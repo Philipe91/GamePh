@@ -1,0 +1,20 @@
+# Cache e dados do editor Godot 4
+.godot/
+
+# Traduções binárias geradas
+*.translation
+
+# Artefatos de captura/dev
+_captura_arena.png
+_captura_arena.png.import
+
+# Exports
+/build/
+/export/
+*.exe.tmp
+
+# Sistema operacional
+Thumbs.db
+ehthumbs.db
+.DS_Store
+desktop.ini

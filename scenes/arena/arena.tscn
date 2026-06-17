@@ -1,0 +1,42 @@
+[gd_scene load_steps=6 format=3 uid="uid://cudiluw2rqqwf"]
+
+[ext_resource type="Script" uid="uid://di1e0sv1hxui" path="res://scenes/arena/arena.gd" id="1_1qjuf"]
+[ext_resource type="PackedScene" uid="uid://bhuuacvmg4tqo" path="res://scenes/characters/player.tscn" id="2_player"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_chao"]
+size = Vector2(24, 24)
+
+[sub_resource type="StandardMaterial3D" id="Mat_chao"]
+albedo_color = Color(0.1, 0.11, 0.16, 1)
+roughness = 0.9
+
+[sub_resource type="Environment" id="Env_arena"]
+background_mode = 1
+background_color = Color(0.03, 0.04, 0.07, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.25, 0.28, 0.38, 1)
+ambient_light_energy = 0.6
+
+[node name="arena" type="Node3D"]
+script = ExtResource("1_1qjuf")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0.8660254, 0, -0.8660254, 0.5, 0, 26, 15)
+projection = 1
+size = 30.0
+current = true
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.642788, 0.766044, 0, -0.766044, 0.642788, 0, 0, 0)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="Chao" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_chao")
+material_override = SubResource("Mat_chao")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_arena")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1, 5)
