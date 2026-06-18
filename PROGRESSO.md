@@ -7,9 +7,10 @@ trabalho: `CLAUDE.md`. Atualize este arquivo ao fim de cada bloco.
 
 ---
 
-## Estado atual: Fase 2 (vertical slice) — blocos 1 e 2 PRONTOS
+## Estado atual: Fase 2 (vertical slice) — blocos 1 a 4 PRONTOS
 
-O loop ainda não está jogável; estamos construindo a fundação, uma fatia por vez.
+Loop jogável em construção: dá pra plantar mina, o bot persegue e pisa, toma dano.
+Falta o bloco 5 (HUD + regras de vitória/timer) pra fechar a Fase 2.
 
 ### ✅ Bloco 1 — Estrutura, arena e grid
 - Estrutura de pastas do GDD (seção 14) já existente e em uso.
@@ -38,22 +39,42 @@ O loop ainda não está jogável; estamos construindo a fundação, uma fatia po
 - A arena instancia o Player no tile de spawn `(3, 8)` e conecta `healer_zerou`
   (fim de partida — placeholder até o HUD/GameManager do bloco 5).
 
+### ✅ Bloco 3 — Armadilha Mina (a única do slice)
+- **Base `scenes/characters/combatente.gd`** (`extends CharacterBody3D`, `class_name
+  Combatente`): Healer (`receber_dano`/`aplicar_empurrao`), sinais `healer_mudou`/
+  `healer_zerou`, registro no grupo `combatentes`. Player e Bot herdam dela (por
+  CAMINHO, não por `class_name` — resolve headless sem cache de classe do editor).
+- **Cena `scenes/traps/mina.tscn`** (Area3D `Detector` cilindro r=0,7 + `Marca`
+  disco neon) + **`mina.gd`**:
+  - Estados ARMANDO → ARMADA (0,5s) → EXPLODIDA. Antes de armar é inerte.
+  - Dispara no `body_entered` de um corpo com `id_jogador != dono_id` (o dono não
+    explode a própria). **Dano 20 + knockback** em todos os combatentes no raio 2,2
+    (inclui o dono — GDD). Acoplamento solto: usa `has_method` + grupo `combatentes`.
+  - Ao explodir: libera o tile (`GridManager.remover_armadilha`) e emite `consumida`.
+  - **Obs.:** GDD lista só "dano" pra Mina; o CLAUDE.md do slice pede dano+knockback
+    — seguimos o CLAUDE.md.
+- **Plantio no `player.gd`:** botão **Espaço** (teclado) / **A** (gamepad) com borda.
+  Inventário **4 minas** (`minas_disponiveis`, sinal `minas_mudou` pra HUD). Snap no
+  tile via `GridManager`; não planta em tile ocupado; mina vai pra arena (`get_parent`),
+  não fica presa ao player. Recarga: **volta 1 mina 6s** após explodir (`consumida`).
+
+### ✅ Bloco 4 — Bot inimigo
+- **Cena `scenes/characters/bot.tscn`** (cápsula vermelha, `id_jogador=2`) + **`bot.gd`**
+  (herda `Combatente`): persegue o player em **linha simples** (sem pathfinding/desvio),
+  para a 1,2u, pode pisar nas minas. Acha o alvo pelo grupo `combatentes` (id diferente).
+- Arena instancia o Bot no tile `(9,3)` ≈ mundo (7,1,-5) e conecta `healer_zerou`.
+
+### ✅ Verificação (blocos 3 e 4)
+- **Teste automatizado headless** em `arena.gd` (`--teste`): planta, valida ocupação/
+  inventário/bloqueio de tile duplo, move o bot até a mina e confere dano + tile
+  liberado. Rodar: `Godot ... --headless ++ --teste`. **Todos passaram.**
+- Screenshot (`--capturar`) confirma player azul + bot vermelho na grade 12×12.
+
 ---
 
-## ⏭️ Próximo: Bloco 3 — Armadilha Mina (a única do slice)
-Conforme `CLAUDE.md` seção 5 e `GDD.md` seção 6:
-- Botão de plantar faz **snap no centro do tile mais próximo** (usar `GridManager`).
-- **Não planta** em tile já ocupado (`pode_plantar`).
-- **Arma após 0,5s**, fica **invisível** pro inimigo.
-- **Explode** quando o inimigo entra no tile: **dano + knockback**.
-- **Inventário de 4 minas**; após explodir, **volta ao inventário em 6s**.
-- Boa prática: a Mina **não** deve referenciar o Player diretamente — detectar alvo
-  por grupo/Area3D e chamar `receber_dano()` via `has_method` (acoplamento solto).
-
-## Depois (resto da Fase 2)
-- **Bloco 4 — Bot inimigo:** CharacterBody3D que persegue o player em linha simples,
-  pode pisar nas minas. Sem IA de armadilha ainda.
-- **Bloco 5 — Vitória + HUD:** vitória por zerar o Healer do oponente em 90s; se o
+## ⏭️ Próximo: Bloco 5 — Vitória + HUD
+Conforme `CLAUDE.md` seção 5 e `GDD.md`:
+- **Vitória** por zerar o Healer do oponente em 90s; se o
   tempo acabar, vence quem tomou menos dano. HUD: dois Healers, timer, contador de minas.
 - **Critério de pronto da Fase 2:** dá pra ganhar uma partida plantando minas contra
   o bot, e é divertido. Só então seguimos pra Fase 3 (sistema completo de armadilhas).
@@ -65,7 +86,7 @@ Conforme `CLAUDE.md` seção 5 e `GDD.md` seção 6:
   `scenes/arena/arena.tscn`.
 - No editor, a arena e o player já aparecem na viewport; o **grid ciano** e o
   **movimento** só aparecem rodando (Play).
-- Controles: **WASD** ou **analógico esquerdo** do gamepad.
+- Controles: **WASD**/analógico esquerdo pra mover, **Espaço**/botão **A** pra plantar mina.
 
 ## Notas técnicas (importante pro fluxo com o MCP)
 - O desenvolvimento é feito via **Godot MCP** (editor precisa estar aberto).

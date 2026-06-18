@@ -1,31 +1,28 @@
-extends CharacterBody3D
+extends "res://scenes/characters/combatente.gd"
 ## Player — personagem jogável do vertical slice.
 ##
-## Movimento LIVRE no plano XZ (não travado em célula; o snap só acontece ao
-## plantar armadilha — GDD seção 5), por WASD e pelo analógico esquerdo do gamepad.
-## Cápsula placeholder colorida + "nariz" que indica a frente. Healer = barra de
-## vida (GDD seção 7.3): começa em 100, emite sinal ao mudar e ao zerar.
+## Herda de Combatente (Healer, dano, knockback, grupo). Aqui fica só o que é do
+## jogador: movimento LIVRE no plano XZ (WASD + analógico esquerdo) e o plantio de
+## Minas (inventário de 4, com recarga em 6s após explodir — GDD seção 6 / bloco 3).
 
-## Emitido quando o Healer muda (pra HUD ouvir, comunicação por signal).
-signal healer_mudou(atual: float, maximo: float)
-## Emitido quando o Healer chega a zero (fim de partida desse jogador).
-signal healer_zerou
+## Emitido quando o inventário de minas muda (pra HUD ouvir no bloco 5).
+signal minas_mudou(atual: int, maximo: int)
 
-const VELOCIDADE: float = 7.0           # unidades/seg (3.5 tiles/seg com tile de 2u)
-const HEALER_MAX: float = 100.0
-const ALTURA_PISO: float = 1.0          # centro da cápsula p/ os pés ficarem no chão (y=0)
-const COR: Color = Color(0.2, 0.6, 1.0) # azul neon = jogador 1 (GDD seção 11, radar)
-const ZONA_MORTA: float = 0.2           # deadzone do analógico
+const VELOCIDADE: float = 7.0       # unidades/seg (3.5 tiles/seg com tile de 2u)
+const ZONA_MORTA: float = 0.2       # deadzone do analógico
+const MINAS_MAX: int = 4
+const TEMPO_RETORNO_MINA: float = 6.0
+const CENA_MINA := preload("res://scenes/traps/mina.tscn")
 
-@export var id_jogador: int = 1
+var minas_disponiveis: int = MINAS_MAX
 
-var healer: float = HEALER_MAX
+var _plantar_antes: bool = false    # borda do botão de plantar (dispara 1x por toque)
 
 
 func _ready() -> void:
-	position.y = ALTURA_PISO
-	healer = HEALER_MAX
-	healer_mudou.emit(healer, HEALER_MAX)
+	super._ready()
+	minas_disponiveis = MINAS_MAX
+	minas_mudou.emit(minas_disponiveis, MINAS_MAX)
 
 
 func _physics_process(_delta: float) -> void:
@@ -39,6 +36,7 @@ func _physics_process(_delta: float) -> void:
 	if dir.length() > 0.01:
 		var alvo := atan2(-velocity.x, -velocity.z)
 		rotation.y = lerp_angle(rotation.y, alvo, 0.25)
+	_ler_plantar()
 
 
 ## Lê WASD + analógico esquerdo (1º gamepad). Retorna Vector2 (x=lateral, y=frente/trás),
@@ -62,19 +60,37 @@ func _obter_direcao() -> Vector2:
 	return dir.limit_length(1.0)
 
 
-## Aplica dano ao Healer. Emite os sinais. Chamado pela Mina (bloco 3) e pelo combate.
-func receber_dano(qtd: float) -> void:
-	if healer <= 0.0:
-		return
-	healer = maxf(0.0, healer - qtd)
-	healer_mudou.emit(healer, HEALER_MAX)
-	if healer <= 0.0:
-		healer_zerou.emit()
+## Botão de plantar (Espaço no teclado, A/cross no gamepad), com detecção de borda.
+func _ler_plantar() -> void:
+	var pressionado := Input.is_physical_key_pressed(KEY_SPACE) \
+		or Input.is_joy_button_pressed(0, JOY_BUTTON_A)
+	if pressionado and not _plantar_antes:
+		plantar()
+	_plantar_antes = pressionado
 
 
-## Aplica knockback (empurrão instantâneo). Usado pela explosão da Mina.
-func aplicar_empurrao(direcao: Vector3, forca: float) -> void:
-	var d := direcao
-	d.y = 0.0
-	if d.length() > 0.01:
-		global_position += d.normalized() * forca
+## Tenta plantar uma Mina no tile atual do player. Faz o snap pelo GridManager.
+## Retorna true se plantou. Público pra entrada e pros testes automatizados.
+func plantar() -> bool:
+	if minas_disponiveis <= 0:
+		return false
+	var coord := GridManager.world_to_grid(global_position)
+	if not GridManager.pode_plantar(coord):
+		return false  # fora do grid ou tile já ocupado
+	var mina := CENA_MINA.instantiate()
+	mina.dono_id = id_jogador
+	mina.coord_grid = coord
+	get_parent().add_child(mina)                      # vai pra arena, não fica preso ao player
+	mina.global_position = GridManager.grid_to_world(coord)  # snap no centro do tile
+	GridManager.registrar_armadilha(coord, id_jogador, "mina", mina)
+	mina.consumida.connect(_ao_mina_consumida)
+	minas_disponiveis -= 1
+	minas_mudou.emit(minas_disponiveis, MINAS_MAX)
+	return true
+
+
+## Quando uma mina explode, ela volta ao inventário após TEMPO_RETORNO_MINA (GDD).
+func _ao_mina_consumida() -> void:
+	await get_tree().create_timer(TEMPO_RETORNO_MINA).timeout
+	minas_disponiveis = mini(minas_disponiveis + 1, MINAS_MAX)
+	minas_mudou.emit(minas_disponiveis, MINAS_MAX)

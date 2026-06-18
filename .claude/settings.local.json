@@ -46,7 +46,14 @@
       "mcp__godot-mcp__open_scene",
       "Bash(gh --version)",
       "Bash(gh auth *)",
-      "Bash(git init *)"
+      "Bash(git init *)",
+      "Bash(git rm *)",
+      "Bash(git commit -q -m ' *)",
+      "Bash(git remote *)",
+      "Bash(git ls-remote *)",
+      "Bash(git push *)",
+      "Bash(echo \"--- exit: $? ---\")",
+      "PowerShell(Test-NetConnection *)"
     ]
   },
   "enabledMcpjsonServers": [
