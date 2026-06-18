@@ -190,6 +190,16 @@ Specs (tiradas do manual original, mantidas como base de balanceamento):
 - Ao encostar na própria armadilha dentro do Caution Mode, é possível recolhê-la.
 - O jogo pergunta se quer retomar. Confirmar devolve a armadilha pro estoque.
 
+### 6.4 Decisões de implementação (definidas na Fase 3)
+- **Stats por Resource:** cada armadilha é configurada por um `StatsArmadilha` (.tres)
+  com dano, raio, knockback, tempos e parâmetros específicos. Uma cena/base genérica
+  `armadilha` lê o Resource e ramifica o comportamento por `tipo` (balanceia sem código).
+- **Seleção de armadilha (MVP):** menu **radial** — segurar um botão abre a roda com as
+  6 armadilhas; soltar no setor escolhido seleciona. Planta a selecionada com o botão
+  de plantar. A HUD mostra a armadilha ativa e a contagem.
+- **Bot:** além de perseguir, **planta armadilhas** simples (minas no caminho), pra dar
+  alvo real ao Caution Mode/Desarme.
+
 ---
 
 ## 7. Combate

@@ -54,7 +54,11 @@
       "Bash(git push *)",
       "Bash(echo \"--- exit: $? ---\")",
       "PowerShell(Test-NetConnection *)",
-      "Bash(rm -f _teste_out.txt _teste_err.txt _cap_out.txt)"
+      "Bash(rm -f _teste_out.txt _teste_err.txt _cap_out.txt)",
+      "PowerShell(Start-Process -FilePath $exe -ArgumentList '--path','\"D:\\\\PROJETOS CLAUDE\\\\GAME\"','-e')",
+      "PowerShell($exe = \"C:\\\\Users\\\\ph_re\\\\AppData\\\\Local\\\\Microsoft\\\\WinGet\\\\Packages\\\\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\\\\Godot_v4.6.3-stable_win64.exe\")",
+      "PowerShell(\"Editor do Godot iniciando...\")",
+      "Bash(rm -f _teste_out.txt _teste_err.txt)"
     ]
   },
   "enabledMcpjsonServers": [

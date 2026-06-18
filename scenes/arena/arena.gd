@@ -84,10 +84,10 @@ func _rodar_teste() -> void:
 	var falhas := 0
 
 	var coord := GridManager.world_to_grid(player.global_position)
-	falhas += _checar("plantar() retorna true", player.plantar())
+	falhas += _checar("plantar() retorna true", player.plantar("mina"))
 	falhas += _checar("tile fica ocupado", GridManager.tem_armadilha(coord))
-	falhas += _checar("inventario cai pra 3", player.minas_disponiveis == 3)
-	falhas += _checar("nao planta 2x no mesmo tile", not player.plantar())
+	falhas += _checar("inventario mina cai pra 3", int(player.inventario["mina"]) == 3)
+	falhas += _checar("nao planta 2x no mesmo tile", not player.plantar("mina"))
 
 	# Tira o player de cima da mina pra ela ficar livre pro bot pisar.
 	player.set_physics_process(false)
@@ -112,6 +112,24 @@ func _rodar_teste() -> void:
 		await get_tree().physics_frame
 	falhas += _checar("bot tomou dano ao pisar", bot.healer < vida_bot_antes)
 	falhas += _checar("tile liberado apos explodir", not GridManager.tem_armadilha(coord))
+
+	# Fase 3 bloco 1: combo Bomba + Detonador.
+	# Planta uma bomba e um detonador em tiles vizinhos; o detonador aciona a bomba.
+	var coord_b := Vector2i(2, 2)
+	var coord_d := Vector2i(3, 2)
+	player.global_position = GridManager.grid_to_world(coord_b)
+	falhas += _checar("planta bomba", player.plantar("bomba"))
+	player.global_position = GridManager.grid_to_world(coord_d)
+	falhas += _checar("planta detonador", player.plantar("detonador"))
+	await get_tree().create_timer(0.6).timeout  # arma bomba (0,4s) e detonador (0,3s)
+	# Bot no tile da bomba pra confirmar o dano em área do combo.
+	bot.global_position = GridManager.grid_to_world(coord_b)
+	var vida_bot_combo: float = bot.healer
+	player.acionar_detonadores()
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	falhas += _checar("combo: bomba explode pelo detonador", not GridManager.tem_armadilha(coord_b))
+	falhas += _checar("combo: bot toma dano em area", bot.healer < vida_bot_combo)
 
 	# Bloco 5: regras de vitória.
 	GameManager.iniciar_partida([player, bot])

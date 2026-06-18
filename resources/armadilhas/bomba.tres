@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatsArmadilha" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stats_armadilha.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+tipo = "bomba"
+nome = "Bomba"
+cor = Color(1, 0.85, 0.2, 1)
+inventario_inicial = 4
+tempo_arma = 0.4
+tempo_retorno = 6.0
+raio_detector = 0.0
+raio_efeito = 3.0
+dano = 35.0
+knockback = 6.0

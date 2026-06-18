@@ -1,6 +1,6 @@
-[gd_scene load_steps=5 format=3 uid="uid://b1mina0vault01"]
+[gd_scene load_steps=5 format=3 uid="uid://barmadilha0v01"]
 
-[ext_resource type="Script" path="res://scenes/traps/mina.gd" id="1"]
+[ext_resource type="Script" path="res://scenes/traps/armadilha.gd" id="1"]
 
 [sub_resource type="CylinderShape3D" id="Shape_det"]
 radius = 0.7
@@ -18,7 +18,7 @@ emission_enabled = true
 emission = Color(1, 0.45, 0.1, 1)
 emission_energy_multiplier = 0.8
 
-[node name="Mina" type="Area3D"]
+[node name="Armadilha" type="Area3D"]
 collision_layer = 0
 collision_mask = 1
 script = ExtResource("1")
