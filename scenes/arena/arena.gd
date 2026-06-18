@@ -24,6 +24,10 @@ func _ready() -> void:
 	# Modo captura automatizada (screenshot pro dev). Só roda se passado --capturar.
 	if "--capturar" in args:
 		_capturar_e_sair()
+		return
+	# Modo normal de jogo: liga a HUD e inicia a partida (timer + regras de vitória).
+	$HUD.configurar(player, bot)
+	GameManager.iniciar_partida([player, bot])
 
 
 ## Por ora só registra; as regras completas de vitória vêm no bloco 5 (HUD/GameManager).
@@ -108,6 +112,15 @@ func _rodar_teste() -> void:
 		await get_tree().physics_frame
 	falhas += _checar("bot tomou dano ao pisar", bot.healer < vida_bot_antes)
 	falhas += _checar("tile liberado apos explodir", not GridManager.tem_armadilha(coord))
+
+	# Bloco 5: regras de vitória.
+	GameManager.iniciar_partida([player, bot])
+	falhas += _checar("partida inicia em 90s", is_equal_approx(GameManager.tempo_restante, 90.0))
+	var venceu := { "id": -1 }
+	GameManager.partida_acabou.connect(func(vid: int, _m: String): venceu["id"] = vid)
+	bot.receber_dano(999.0)  # zera o Healer do bot -> jogador vence
+	await get_tree().physics_frame
+	falhas += _checar("jogador vence quando bot zera", venceu["id"] == 1)
 
 	if falhas == 0:
 		print("[TESTE] RESULTADO: TODOS OS TESTES PASSARAM")

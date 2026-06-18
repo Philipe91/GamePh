@@ -18,6 +18,7 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 [autoload]
 
 GridManager="*res://autoloads/grid_manager.gd"
+GameManager="*res://autoloads/game_manager.gd"
 
 [editor_plugins]
 

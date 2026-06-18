@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://cudiluw2rqqwf"]
+[gd_scene load_steps=8 format=3 uid="uid://cudiluw2rqqwf"]
 
 [ext_resource type="Script" uid="uid://di1e0sv1hxui" path="res://scenes/arena/arena.gd" id="1_1qjuf"]
 [ext_resource type="PackedScene" uid="uid://bhuuacvmg4tqo" path="res://scenes/characters/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/characters/bot.tscn" id="3_bot"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="4_hud"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_chao"]
 size = Vector2(24, 24)
@@ -44,3 +45,5 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1, 5)
 
 [node name="Bot" parent="." instance=ExtResource("3_bot")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 1, -5)
+
+[node name="HUD" parent="." instance=ExtResource("4_hud")]

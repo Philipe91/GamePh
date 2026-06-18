@@ -1,0 +1,82 @@
+[gd_scene load_steps=2 format=3 uid="uid://b3hud00vault01"]
+
+[ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1")
+
+[node name="P1Label" type="Label" parent="."]
+offset_left = 20.0
+offset_top = 14.0
+offset_right = 240.0
+offset_bottom = 36.0
+theme_override_colors/font_color = Color(0.3, 0.7, 1, 1)
+text = "JOGADOR"
+
+[node name="P1Bar" type="ProgressBar" parent="."]
+modulate = Color(0.3, 0.7, 1, 1)
+offset_left = 20.0
+offset_top = 38.0
+offset_right = 240.0
+offset_bottom = 60.0
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="P2Label" type="Label" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -240.0
+offset_top = 14.0
+offset_right = -20.0
+offset_bottom = 36.0
+theme_override_colors/font_color = Color(1, 0.35, 0.4, 1)
+text = "BOT"
+horizontal_alignment = 2
+
+[node name="P2Bar" type="ProgressBar" parent="."]
+modulate = Color(1, 0.35, 0.4, 1)
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -240.0
+offset_top = 38.0
+offset_right = -20.0
+offset_bottom = 60.0
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="TimerLabel" type="Label" parent="."]
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -60.0
+offset_top = 14.0
+offset_right = 60.0
+offset_bottom = 56.0
+theme_override_font_sizes/font_size = 30
+text = "90"
+horizontal_alignment = 1
+
+[node name="MinasLabel" type="Label" parent="."]
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -44.0
+offset_right = 240.0
+offset_bottom = -16.0
+theme_override_font_sizes/font_size = 22
+text = "Minas: 4"
+
+[node name="FimLabel" type="Label" parent="."]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -60.0
+offset_right = 200.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 40
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1

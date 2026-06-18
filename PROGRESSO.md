@@ -7,10 +7,10 @@ trabalho: `CLAUDE.md`. Atualize este arquivo ao fim de cada bloco.
 
 ---
 
-## Estado atual: Fase 2 (vertical slice) — blocos 1 a 4 PRONTOS
+## Estado atual: Fase 2 (vertical slice) — COMPLETA (blocos 1 a 5)
 
-Loop jogável em construção: dá pra plantar mina, o bot persegue e pisa, toma dano.
-Falta o bloco 5 (HUD + regras de vitória/timer) pra fechar a Fase 2.
+Loop jogável: mover (WASD/gamepad), plantar minas (Espaço/A), o bot persegue e pisa,
+toma dano + knockback, com timer de 90s, regras de vitória e HUD. Pronto pra Fase 3.
 
 ### ✅ Bloco 1 — Estrutura, arena e grid
 - Estrutura de pastas do GDD (seção 14) já existente e em uso.
@@ -64,20 +64,30 @@ Falta o bloco 5 (HUD + regras de vitória/timer) pra fechar a Fase 2.
   para a 1,2u, pode pisar nas minas. Acha o alvo pelo grupo `combatentes` (id diferente).
 - Arena instancia o Bot no tile `(9,3)` ≈ mundo (7,1,-5) e conecta `healer_zerou`.
 
-### ✅ Verificação (blocos 3 e 4)
-- **Teste automatizado headless** em `arena.gd` (`--teste`): planta, valida ocupação/
-  inventário/bloqueio de tile duplo, move o bot até a mina e confere dano + tile
-  liberado. Rodar: `Godot ... --headless ++ --teste`. **Todos passaram.**
-- Screenshot (`--capturar`) confirma player azul + bot vermelho na grade 12×12.
+### ✅ Bloco 5 — Vitória + HUD
+- **Autoload `GameManager`** (`autoloads/game_manager.gd`, registrado em `project.godot`):
+  relógio de **90s** e regras de vitória — vence quem zerar o Healer do oponente; no
+  fim do tempo vence quem tomou menos dano (maior Healer), com empate possível.
+  Sinais `tempo_mudou` / `partida_acabou(vencedor_id, motivo)`. Acoplamento solto: a
+  arena registra os combatentes em `iniciar_partida([...])`.
+- **HUD `scenes/ui/hud.tscn` + `hud.gd`** (CanvasLayer): dois Healers (barra azul do
+  jogador, vermelha do bot), **timer** no topo-centro, **contador de minas** no rodapé,
+  e label de fim de partida (VOCÊ VENCEU / PERDEU / EMPATE). Só ouve por signal.
+- Arena (modo normal) chama `$HUD.configurar(player, bot)` e `GameManager.iniciar_partida`.
 
----
+### ✅ Verificação (blocos 3 a 5)
+- **Teste automatizado headless** em `arena.gd` (`--teste`): planta com snap, valida
+  ocupação/inventário/bloqueio de tile duplo, move o bot até a mina (dano + tile
+  liberado) e checa a vitória (partida em 90s, jogador vence ao zerar o bot).
+  Rodar: `Godot ... --headless ++ --teste`. **8/8 passaram.**
+- Screenshot (`--capturar`) confirma a HUD completa + player azul + bot vermelho na
+  grade 12×12.
 
-## ⏭️ Próximo: Bloco 5 — Vitória + HUD
-Conforme `CLAUDE.md` seção 5 e `GDD.md`:
-- **Vitória** por zerar o Healer do oponente em 90s; se o
-  tempo acabar, vence quem tomou menos dano. HUD: dois Healers, timer, contador de minas.
-- **Critério de pronto da Fase 2:** dá pra ganhar uma partida plantando minas contra
-  o bot, e é divertido. Só então seguimos pra Fase 3 (sistema completo de armadilhas).
+## 🎉 Fase 2 (vertical slice) COMPLETA
+Critério de pronto atingido: dá pra jogar uma partida — mover (WASD), plantar minas
+(Espaço), o bot persegue e pisa, toma dano/knockback, e há regras de vitória + HUD.
+**Próximo: Fase 3** (sistema completo de armadilhas — Detonador, Bomba, Gás, Cova,
+Painel de Força + Caution Mode), conforme roadmap do `GDD.md` seção 15.
 
 ---
 
