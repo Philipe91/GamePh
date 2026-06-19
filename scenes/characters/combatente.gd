@@ -81,10 +81,31 @@ func _ready() -> void:
 	add_to_group("combatentes")
 	position.y = ALTURA_PISO
 	aplicar_stats()
+	_montar_modelo()
 	healer = vida_max
 	municao = municao_max
 	healer_mudou.emit(healer, vida_max)
 	municao_mudou.emit(municao, municao_max)
+
+
+## Troca a cápsula pelo modelo 3D do personagem, se houver (.glb via StatsPersonagem).
+## Idempotente: pode ser chamado de novo ao trocar de personagem em runtime.
+func _montar_modelo() -> void:
+	var antigo := get_node_or_null("Modelo")
+	if antigo != null:
+		antigo.queue_free()
+	var malha := get_node_or_null("Malha")
+	if stats == null or stats.cena_modelo == null:
+		if malha != null:
+			malha.visible = true   # sem modelo: mostra a cápsula placeholder
+		return
+	if malha != null:
+		malha.visible = false      # com modelo: esconde a cápsula
+	var m: Node3D = stats.cena_modelo.instantiate()
+	m.name = "Modelo"
+	add_child(m)
+	m.scale = Vector3.ONE * stats.escala_modelo
+	m.rotation.y = deg_to_rad(stats.rotacao_modelo_y)
 
 
 ## Lê o StatsPersonagem (se houver) pros valores efetivos. Subclasses sobrescrevem o
@@ -101,6 +122,7 @@ func aplicar_stats() -> void:
 func aplicar_personagem(novo: Resource) -> void:
 	stats = novo
 	aplicar_stats()
+	_montar_modelo()
 	healer = vida_max
 	municao = municao_max
 	healer_mudou.emit(healer, vida_max)

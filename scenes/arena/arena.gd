@@ -705,6 +705,17 @@ func _rodar_teste() -> void:
 	Persistencia.carregar()
 	falhas += _checar("persistencia salva e le do disco", int(Persistencia.get_config("teste", "x", 0)) == 42)
 
+	# Encaixe do modelo 3D: com cena_modelo setada, esconde a cápsula e monta o "Modelo".
+	var sp_mod := preload("res://scripts/stats_personagem.gd").new()
+	sp_mod.cena_modelo = preload("res://scenes/arena/explosao_fx.tscn")  # qualquer cena serve de teste
+	var p_mod := preload("res://scenes/characters/player.tscn").instantiate()
+	p_mod.stats = sp_mod
+	add_child(p_mod)
+	await get_tree().physics_frame
+	falhas += _checar("modelo: monta o no Modelo", p_mod.get_node_or_null("Modelo") != null)
+	falhas += _checar("modelo: esconde a capsula placeholder", not p_mod.get_node("Malha").visible)
+	p_mod.queue_free()
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX

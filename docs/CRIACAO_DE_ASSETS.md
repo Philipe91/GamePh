@@ -26,8 +26,11 @@ Regra de paleta geral: **fundo/chão escuros e dessaturados; tudo de gameplay AC
   azul/vermelho é aplicada por cima no jogo, então deixe faixas emissivas separadas).
 - **Anims** (no `.glb`, nomes em PT): `parado, correr, plantar, desarmar, atirar,
   recarregar, atingido, preso, derrubado, ko`. 30 fps, in-place.
-- **Plugar:** `assets/models/personagens/<nome>/<nome>.glb`; ligar no `StatsPersonagem`
-  (`resources/personagens/<nome>.tres`); trocar o nó `Malha`. Contrato:
+- **Plugar (ENCAIXE PRONTO):** o `StatsPersonagem` já tem o campo **`cena_modelo`** — basta
+  apontar o `.glb` ali (`resources/personagens/<nome>.tres`) e o jogo **esconde a cápsula e
+  usa o modelo automaticamente** (campos `escala_modelo` e `rotacao_modelo_y` ajustam tamanho/
+  orientação, já que os assets do Kenney são pequenos). **Animações** eu ligo no código ao
+  receber o arquivo (mapeio os nomes reais → estados do jogo). Contrato:
   `docs/CRIACAO_DE_PERSONAGENS.md`.
 
 **Prompts (gere em T-pose):**
