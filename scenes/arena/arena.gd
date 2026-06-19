@@ -222,8 +222,10 @@ func _aplicar_textura_chao() -> void:
 		return
 	var mat := StandardMaterial3D.new()
 	mat.albedo_texture = ImageTexture.create_from_image(img)
-	mat.uv1_scale = Vector3(6.0, 6.0, 1.0)   # repete a textura pelo chão
-	mat.roughness = 0.9
+	# Imagem de arena INTEIRA (com logo/marcas) → cobre o chão 1:1, sem repetir.
+	# (Se um dia for um tile sem-emenda, é só voltar pra uv1_scale 6×6.)
+	mat.uv1_scale = Vector3(1.0, 1.0, 1.0)
+	mat.roughness = 0.85
 	chao.material_override = mat
 
 
