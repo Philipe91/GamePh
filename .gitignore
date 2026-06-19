@@ -18,3 +18,10 @@ Thumbs.db
 ehthumbs.db
 .DS_Store
 desktop.ini
+
+# Logs temporarios de teste/dev
+teste_log.txt
+*.txt.tmp
+v.txt
+g.txt
+r.txt

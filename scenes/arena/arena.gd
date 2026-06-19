@@ -10,8 +10,15 @@ extends Node3D
 @onready var player: CharacterBody3D = $Player
 @onready var bot: CharacterBody3D = $Bot
 
+## Pontes com oclusão dinâmica (somem quando alguém passa embaixo — GDD 11).
+var _pontes: Array = []
+## Guardados pra resetar a cada round (GDD 12).
+var _mapa: Resource = null
+var _oponente: Node = null
+
 
 func _ready() -> void:
+	_aplicar_textura_chao()
 	_desenhar_grid()
 	player.healer_zerou.connect(_ao_player_morrer)
 	bot.healer_zerou.connect(_ao_bot_morrer)
@@ -45,14 +52,51 @@ func _ready() -> void:
 	if "--demo-mapa" in args:
 		_demo_mapa_e_capturar()
 		return
+	# Greybox vertical: ponte (over/under), rampa, paredes — gravidade ligada. Screenshot.
+	if "--demo-greybox" in args:
+		_demo_greybox_e_capturar()
+		return
+	# Greybox vertical JOGÁVEL: monta a arena com altura e inicia a partida (rodar em casa).
+	if "--greybox" in args:
+		_construir_greybox()
+		player.gravidade_ativa = true
+		bot.gravidade_ativa = true
+		player.global_position = Vector3(-6.0, 1.0, 7.0)
+		bot.global_position = Vector3(6.0, 1.0, -7.0)
+		$HUD.configurar(player, bot)
+		add_child(preload("res://scenes/ui/pausa.tscn").instantiate())
+		GameManager.iniciar_partida([player, bot])
+		return
+	# Arena vertical COMPLETA jogável: escolhe o mapa vertical e segue o fluxo normal.
+	if "--vertical" in args:
+		GameManager.mapa = "res://resources/mapas/vertical.tres"
+	# Demo da arena vertical completa: screenshot.
+	if "--demo-vertical" in args:
+		_demo_vertical_e_capturar()
+		return
+	# Demo da tela de fim de partida (vitória premium).
+	if "--demo-fim" in args:
+		bot.set_physics_process(false)
+		player.set_physics_process(false)
+		$HUD.configurar(player, bot)
+		await get_tree().physics_frame
+		$HUD._ao_partida_acabar(1, "Healer zerado")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_capturar_e_sair()
+		return
 	# Modo captura automatizada (screenshot pro dev). Só roda se passado --capturar.
 	if "--capturar" in args:
 		_capturar_e_sair()
 		return
-	# Mapa por dados (Fase 6): redimensiona o grid, redesenha, posiciona spawns e Vaults.
-	var mapa: Resource = preload("res://resources/mapas/padrao.tres")
+	# Mapa por dados (Fase 6): escolhe o mapa (GameManager), redimensiona o grid e monta tudo.
+	var caminho_mapa := GameManager.mapa if GameManager.mapa != "" else "res://resources/mapas/padrao.tres"
+	var mapa: Resource = load(caminho_mapa)
 	GridManager.configurar_mapa(mapa)
 	_desenhar_grid()
+	if mapa.vertical:
+		player.gravidade_ativa = true
+		_montar_estruturas(mapa)   # chão, paredes, pontes, rampas (3D com colisão)
 	player.global_position = GridManager.grid_to_world(mapa.spawn_jogador)
 	player.global_position.y = 1.0
 	# Oponente: o bot (VS COM) ou um 2º jogador local com gamepad 1 (VS MAN — GDD 12).
@@ -67,19 +111,39 @@ func _ready() -> void:
 		oponente = p2
 	oponente.global_position = GridManager.grid_to_world(mapa.spawn_bot)
 	oponente.global_position.y = 1.0
+	oponente.gravidade_ativa = mapa.vertical
 	# Personagens escolhidos na tela de seleção (se houver).
 	if GameManager.personagem_jogador != "":
 		player.aplicar_personagem(load(GameManager.personagem_jogador))
 	if GameManager.personagem_bot != "":
 		oponente.aplicar_personagem(load(GameManager.personagem_bot))
-	# Modo normal de jogo: liga a HUD e inicia a partida (timer + regras de vitória).
+	# Modo normal de jogo: liga a HUD e inicia a partida (rounds + regras de vitória).
+	_mapa = mapa
+	_oponente = oponente
 	$HUD.configurar(player, oponente)
 	for c in mapa.vaults:
 		_colocar_vault(c)                           # Vaults do mapa (GDD 8)
 	_colocar_field_traps(mapa)                      # caixas, esteiras, lançadores, pontes
 	add_child(preload("res://scenes/ui/pausa.tscn").instantiate())  # menu de pausa (ESC)
 	GameManager.faltam_30s.connect(_ao_faltar_30s)  # Spark Bit aos 30s (GDD 7.3)
+	GameManager.round_comecou.connect(_ao_round_comecou)  # reset a cada round (GDD 12)
 	GameManager.iniciar_partida([player, oponente])
+
+
+## Reset de round (GDD 12): limpa armadilhas/projeteis/itens/fx, restaura vida e
+## reposiciona os combatentes nos spawns. Field traps e Vaults do mapa permanecem.
+func _ao_round_comecou(_numero: int) -> void:
+	GridManager.limpar_armadilhas()
+	for grupo in ["armadilhas", "projeteis", "plasmas", "itens", "fx"]:
+		for n in get_tree().get_nodes_in_group(grupo):
+			n.queue_free()
+	player.reiniciar()
+	player.global_position = GridManager.grid_to_world(_mapa.spawn_jogador)
+	player.global_position.y = 1.0
+	if _oponente != null and is_instance_valid(_oponente):
+		_oponente.reiniciar()
+		_oponente.global_position = GridManager.grid_to_world(_mapa.spawn_bot)
+		_oponente.global_position.y = 1.0
 
 
 ## Instancia os field traps do mapa (GDD 10) nos tiles indicados. Posição antes do
@@ -121,6 +185,48 @@ func _ao_faltar_30s() -> void:
 	var s := preload("res://scenes/items/spark_bit.tscn").instantiate()
 	add_child(s)
 	s.global_position = Vector3(0.0, 1.0, 0.0)
+
+
+## Oclusão das pontes: cada ponte fica transparente quando há um combatente embaixo dela
+## (mesma vertical, y menor), e volta a sólida quando ninguém está. Fade suave.
+func _process(delta: float) -> void:
+	if _pontes.is_empty():
+		return
+	for p in _pontes:
+		var alguem := false
+		for c in get_tree().get_nodes_in_group("combatentes"):
+			if not is_instance_valid(c):
+				continue
+			var d: Vector3 = c.global_position - p["centro"]
+			if absf(d.x) <= p["tamanho"].x * 0.5 and absf(d.z) <= p["tamanho"].z * 0.5 \
+					and c.global_position.y < p["centro"].y - 0.2:
+				alguem = true
+				break
+		var mat: StandardMaterial3D = p["mat"]
+		var cor: Color = mat.albedo_color
+		cor.a = lerpf(cor.a, 0.3 if alguem else 1.0, minf(1.0, delta * 8.0))
+		mat.albedo_color = cor
+
+
+## Aplica `assets/sprites/chao.png` como textura do chão (tileada), se o arquivo existir.
+## Plug-and-play: é só largar o PNG na pasta (igual os ícones das armadilhas).
+func _aplicar_textura_chao() -> void:
+	var caminho := "res://assets/sprites/chao.png"
+	if not FileAccess.file_exists(caminho):
+		return
+	var img := Image.new()
+	if img.load(caminho) != OK:
+		return
+	var chao := get_node_or_null("Chao") as MeshInstance3D
+	if chao == null:
+		return
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = ImageTexture.create_from_image(img)
+	# Imagem de arena INTEIRA (com logo/marcas) → cobre o chão 1:1, sem repetir.
+	# (Se um dia for um tile sem-emenda, é só voltar pra uv1_scale 6×6.)
+	mat.uv1_scale = Vector3(1.0, 1.0, 1.0)
+	mat.roughness = 0.85
+	chao.material_override = mat
 
 
 ## Por ora só registra; as regras completas de vitória vêm no bloco 5 (HUD/GameManager).
@@ -381,6 +487,107 @@ func _rodar_teste() -> void:
 	falhas += _checar("bot desvia pra LONGE da armadilha", (bot.global_position - pos_mina_a).dot(desvio_a) > 0.0)
 	bot.global_position = GridManager.grid_to_world(Vector2i(0, 0))  # longe de tudo
 	falhas += _checar("sem armadilha perto, bot nao desvia", bot._desvio_de_armadilhas().length() < 0.001)
+
+	# IA do bot: recua (kite) quando com pouca vida.
+	player.set_physics_process(false)
+	player.global_position = Vector3(0.0, 1.0, 0.0)
+	bot.gravidade_ativa = false
+	bot.healer = 10.0                          # pouca vida -> foge
+	bot._imobilizado_restante = 0.0            # limpa resíduo de Cova/Gás dos testes
+	bot._slow_restante = 0.0
+	bot._derrubado_restante = 0.0
+	bot.global_position = Vector3(0.0, 1.0, -3.0)
+	bot._alvo = player
+	bot.set_physics_process(true)              # liga a IA
+	var dist_fuga: float = bot.global_position.distance_to(player.global_position)
+	for _i in range(40):
+		await get_tree().physics_frame
+	falhas += _checar("bot recua com pouca vida", bot.global_position.distance_to(player.global_position) > dist_fuga + 1.0)
+	bot.set_physics_process(false)
+	bot.healer = Combatente.HEALER_MAX
+	# IA do bot: planta Cova quando o player está perto (prende quem persegue).
+	var coord_cv := Vector2i(1, 4)
+	GridManager.remover_armadilha(coord_cv)
+	bot.global_position = GridManager.grid_to_world(coord_cv)
+	bot._armadilhas_ativas = 0
+	bot._plantar_situacional(3.0)              # dist < 6 -> cova
+	falhas += _checar("bot planta Cova com o player perto", GridManager.armadilha_em(coord_cv).get("tipo") == "cova")
+	GridManager.remover_armadilha(coord_cv)
+
+	# G2: dificuldade do bot ajusta a IA (params setados no _ready; physics off pra não agir).
+	GameManager.dificuldade = "dificil"
+	var bot_dif := preload("res://scenes/characters/bot.tscn").instantiate()
+	bot_dif.position = Vector3(60.0, 1.0, 60.0)
+	add_child(bot_dif)
+	bot_dif.set_physics_process(false)
+	falhas += _checar("dificil: mais armadilhas e mira melhor", bot_dif._max_armadilhas == 6 and bot_dif._limiar_tiro < 0.6)
+	bot_dif.queue_free()
+	GameManager.dificuldade = "facil"
+	var bot_facil := preload("res://scenes/characters/bot.tscn").instantiate()
+	bot_facil.position = Vector3(60.0, 1.0, -60.0)
+	add_child(bot_facil)
+	bot_facil.set_physics_process(false)
+	falhas += _checar("facil: nao kita e poucas armadilhas", (not bot_facil._kite) and bot_facil._max_armadilhas <= 2)
+	bot_facil.queue_free()
+	GameManager.dificuldade = "normal"
+
+	# G4: o bot desarma uma armadilha do player ao encostar (fica parado e exposto).
+	# Limpa o ambiente (testes anteriores deixam gás/projeteis/armadilhas ativos).
+	for p in get_tree().get_nodes_in_group("projeteis"):
+		p.queue_free()
+	for a in get_tree().get_nodes_in_group("armadilhas"):
+		a.queue_free()
+	GridManager.configurar_mapa(preload("res://scripts/stats_mapa.gd").new())  # grid 12x12 limpo
+	await get_tree().physics_frame
+	var coord_dz := Vector2i(4, 7)
+	player.set_physics_process(false)
+	player.inventario["mina"] = 4
+	player.global_position = GridManager.grid_to_world(coord_dz)
+	player.plantar("mina")                       # mina do player
+	player.global_position = Vector3(25.0, 1.0, 0.0)   # tira o player de cena
+	bot._imobilizado_restante = 0.0
+	bot._slow_restante = 0.0
+	bot._derrubado_restante = 0.0
+	bot._desarmando = null
+	bot.healer = Combatente.HEALER_MAX
+	bot.gravidade_ativa = false
+	bot.global_position = GridManager.grid_to_world(coord_dz) + Vector3(0.0, 0.0, 1.0)  # ~1u da mina
+	bot._alvo = player
+	bot.set_physics_process(true)
+	for _i in range(140):                        # desarme leva 1.5s (~90 frames) + folga
+		await get_tree().physics_frame
+	falhas += _checar("bot desarma a armadilha do player", not GridManager.tem_armadilha(coord_dz))
+	bot.set_physics_process(false)
+
+	# G6: bot busca o Healer da Vault quando está com pouca vida.
+	for p in get_tree().get_nodes_in_group("projeteis"):
+		p.queue_free()
+	for a in get_tree().get_nodes_in_group("armadilhas"):
+		a.queue_free()
+	GridManager.configurar_mapa(preload("res://scripts/stats_mapa.gd").new())
+	await get_tree().physics_frame
+	player.global_position = Vector3(30.0, 1.0, 0.0)   # player bem longe
+	var heal := preload("res://scenes/items/item.tscn").instantiate()
+	heal.tipo = "healer"
+	add_child(heal)
+	heal.global_position = Vector3(0.0, 1.0, 8.0)       # item ao norte
+	bot._imobilizado_restante = 0.0
+	bot._slow_restante = 0.0
+	bot._derrubado_restante = 0.0
+	bot._desarmando = null
+	bot.healer = 10.0                                   # pouca vida -> busca cura
+	bot.gravidade_ativa = false
+	bot.global_position = Vector3(0.0, 1.0, 0.0)
+	bot._alvo = player
+	falhas += _checar("bot mira o Healer com pouca vida", bot._melhor_item() == heal)
+	var d_heal: float = bot.global_position.distance_to(heal.global_position)
+	bot.set_physics_process(true)
+	for _i in range(40):
+		await get_tree().physics_frame
+	falhas += _checar("bot anda em direcao ao Healer", bot.global_position.distance_to(heal.global_position) < d_heal - 1.0)
+	bot.set_physics_process(false)
+	bot.healer = Combatente.HEALER_MAX
+	heal.queue_free()
 
 	# Bloco B1 (Fase 4): arma de projétil.
 	player.set_physics_process(false)
@@ -658,6 +865,7 @@ func _rodar_teste() -> void:
 
 	# Bloco E1 (Fase 7): AudioManager toca sons (placeholders procedurais).
 	falhas += _checar("audiomanager registra os sons", AudioManager.tem_som("explodir") and AudioManager.tem_som("tiro"))
+	falhas += _checar("audiomanager tem som de dano e derrubado", AudioManager.tem_som("dano") and AudioManager.tem_som("derrubado"))
 	falhas += _checar("audiomanager toca evento conhecido", AudioManager.tocar("explodir"))
 	falhas += _checar("audiomanager ignora evento desconhecido", not AudioManager.tocar("inexistente"))
 
@@ -705,6 +913,15 @@ func _rodar_teste() -> void:
 	Persistencia.carregar()
 	falhas += _checar("persistencia salva e le do disco", int(Persistencia.get_config("teste", "x", 0)) == 42)
 
+	# Settings (Fase 7): volume aplica no AudioManager e persiste.
+	AudioManager.aplicar_volume(0.5)
+	falhas += _checar("audiomanager aplica volume", absf(AudioManager.volume - 0.5) < 0.01)
+	Persistencia.set_config("audio", "volume", 0.5)
+	Persistencia.salvar()
+	Persistencia.carregar()
+	falhas += _checar("settings persiste o volume", absf(float(Persistencia.get_config("audio", "volume", 1.0)) - 0.5) < 0.01)
+	AudioManager.aplicar_volume(0.8)
+
 	# Encaixe do modelo 3D: com cena_modelo setada, esconde a cápsula e monta o "Modelo".
 	var sp_mod := preload("res://scripts/stats_personagem.gd").new()
 	sp_mod.cena_modelo = preload("res://scenes/arena/explosao_fx.tscn")  # qualquer cena serve de teste
@@ -716,16 +933,101 @@ func _rodar_teste() -> void:
 	falhas += _checar("modelo: esconde a capsula placeholder", not p_mod.get_node("Malha").visible)
 	p_mod.queue_free()
 
-	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
+	# Greybox vertical: gravidade + colisão (chão e ponte elevada).
+	player.global_position = Vector3(40.0, 1.0, 40.0)   # tira os principais da área de teste
+	bot.global_position = Vector3(-40.0, 1.0, -40.0)
+	var chao_g := _caixa_solida(Vector3(0.0, -0.1, 0.0), Vector3(24.0, 0.2, 24.0), Color(0.1, 0.1, 0.1))
+	var pg := preload("res://scenes/characters/player.tscn").instantiate()
+	pg.gravidade_ativa = true
+	add_child(pg)
+	pg.global_position = Vector3(0.0, 5.0, 0.0)         # cai no chão
+	var ponte_g := _caixa_solida(Vector3(6.0, 2.6, 0.0), Vector3(4.0, 0.3, 4.0), Color(0.5, 0.5, 0.6))
+	var pb := preload("res://scenes/characters/player.tscn").instantiate()
+	pb.gravidade_ativa = true
+	add_child(pb)
+	pb.global_position = Vector3(6.0, 5.0, 0.0)         # cai EM CIMA da ponte
+	for _i in range(70):
+		await get_tree().physics_frame
+	falhas += _checar("gravidade assenta no chao (y~1)", absf(pg.global_position.y - 1.0) < 0.35)
+	falhas += _checar("personagem fica EM CIMA da ponte (y~3.75)", absf(pb.global_position.y - 3.75) < 0.5)
+	pg.queue_free()
+	pb.queue_free()
+	chao_g.queue_free()
+	ponte_g.queue_free()
+
+	# Oclusão da ponte: sólida sem ninguém embaixo, some quando alguém passa por baixo.
+	_pontes.clear()
+	var ponte_oc := _construir_ponte(Vector3(15.0, 2.6, 15.0), Vector3(4.0, 0.3, 4.0))
+	var mat_oc: StandardMaterial3D = _pontes[-1]["mat"]
+	mat_oc.albedo_color.a = 1.0
+	for _i in range(10):
+		await get_tree().process_frame          # ninguém embaixo: continua sólida
+	falhas += _checar("ponte solida sem ninguem embaixo", mat_oc.albedo_color.a > 0.8)
+	var pu := preload("res://scenes/characters/player.tscn").instantiate()
+	add_child(pu)
+	pu.set_physics_process(false)
+	pu.global_position = Vector3(15.0, 1.0, 15.0)   # embaixo da ponte
+	for _i in range(30):
+		await get_tree().process_frame          # fade pra transparente
+	falhas += _checar("ponte fica transparente com alguem embaixo", mat_oc.albedo_color.a < 0.6)
+	pu.queue_free()
+	ponte_oc.queue_free()
+	_pontes.clear()
+
+	# Arena vertical por dados: a flag e as estruturas do .tres.
+	var mapa_v: Resource = load("res://resources/mapas/vertical.tres")
+	falhas += _checar("mapa vertical tem a flag e estruturas", mapa_v.vertical and mapa_v.estruturas.size() > 10)
+	_montar_arena_vertical()
+	falhas += _checar("arena vertical registra 2 pontes", _pontes.size() == 2)
+	var pv := preload("res://scenes/characters/player.tscn").instantiate()
+	pv.gravidade_ativa = true
+	add_child(pv)
+	pv.global_position = Vector3(-11.0, 5.0, 11.0)   # cai num canto livre do chão
+	for _i in range(70):
+		await get_tree().physics_frame
+	falhas += _checar("player assenta no chao da arena vertical", absf(pv.global_position.y - 1.0) < 0.4)
+	pv.queue_free()
+	for n in get_tree().get_nodes_in_group("geometria"):
+		n.queue_free()
+	_pontes.clear()
+	await get_tree().physics_frame
+
+	# Reset de round: reiniciar() restaura vida/munição e limpa status; limpar_armadilhas zera o grid.
+	player.healer = 20.0
+	player._imobilizado_restante = 5.0
+	player.municao = 1
+	player.reiniciar()
+	falhas += _checar("reiniciar restaura vida e municao", is_equal_approx(player.healer, player.vida_max) and player.municao == player.municao_max)
+	falhas += _checar("reiniciar limpa o status", not player.esta_imobilizado())
+	GridManager.remover_armadilha(Vector2i(5, 5))
+	player.inventario["mina"] = 4
+	player.global_position = GridManager.grid_to_world(Vector2i(5, 5))
+	player.plantar("mina")
+	falhas += _checar("tem armadilha antes de limpar", GridManager.tem_armadilha(Vector2i(5, 5)))
+	GridManager.limpar_armadilhas()
+	falhas += _checar("limpar_armadilhas zera o grid", not GridManager.tem_armadilha(Vector2i(5, 5)))
+
+	# G3: regras de partida em ROUNDS (melhor de 3). Sem listener da arena no --teste,
+	# então reseto os Healers manualmente entre os rounds.
+	player.set_physics_process(false)
+	bot.set_physics_process(false)
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX
 	GameManager.iniciar_partida([player, bot])
-	falhas += _checar("partida inicia em 90s", is_equal_approx(GameManager.tempo_restante, 90.0))
+	falhas += _checar("partida comeca em 90s no round 1", is_equal_approx(GameManager.tempo_restante, 90.0) and GameManager.round_num == 1)
+	falhas += _checar("placar comeca 0-0", GameManager.v1 == 0 and GameManager.v2 == 0)
 	var venceu := { "id": -1 }
 	GameManager.partida_acabou.connect(func(vid: int, _m: String): venceu["id"] = vid)
-	bot.receber_dano(999.0)  # zera o Healer do bot -> jogador vence
-	await get_tree().physics_frame
-	falhas += _checar("jogador vence quando bot zera", venceu["id"] == 1)
+	bot.receber_dano(999.0)                       # round 1 -> jogador
+	falhas += _checar("round 1 vai pro jogador (1-0)", GameManager.v1 == 1 and GameManager.v2 == 0)
+	falhas += _checar("partida NAO acaba no round 1", venceu["id"] == -1)
+	GameManager._process(GameManager.PAUSA_ENTRE_ROUNDS + 0.1)  # passa a pausa -> round 2
+	falhas += _checar("avanca automaticamente pro round 2", GameManager.round_num == 2)
+	player.healer = Combatente.HEALER_MAX
+	bot.healer = Combatente.HEALER_MAX
+	bot.receber_dano(999.0)                       # round 2 -> jogador faz 2 -> vence a partida
+	falhas += _checar("placar fica 2-0", GameManager.v1 == 2)
+	falhas += _checar("jogador vence a PARTIDA com 2 rounds", venceu["id"] == 1)
 
 	if falhas == 0:
 		print("[TESTE] RESULTADO: TODOS OS TESTES PASSARAM")
@@ -806,6 +1108,117 @@ func _demo_desarme_e_capturar() -> void:
 	player._atualizar_overlay_caution()
 	await get_tree().process_frame
 	await get_tree().process_frame  # deixa a HUD desenhar o painel de código
+	_capturar_e_sair()
+
+
+## Cria um bloco sólido (StaticBody3D + colisão) pro greybox. Alfa<1 = semitransparente.
+func _caixa_solida(pos: Vector3, tamanho: Vector3, cor: Color, rot_x: float = 0.0) -> StaticBody3D:
+	var sb := StaticBody3D.new()
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = tamanho
+	mi.mesh = bm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = cor
+	if cor.a < 1.0:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mi.material_override = mat
+	sb.add_child(mi)
+	var cs := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = tamanho
+	cs.shape = box
+	sb.add_child(cs)
+	sb.add_to_group("geometria")   # facilita limpar nos testes
+	add_child(sb)
+	sb.position = pos
+	sb.rotation.x = rot_x
+	return sb
+
+
+## Monta a geometria vertical do greybox: chão com colisão, ponte elevada (passa-se por
+## baixo), rampa de acesso e paredes laterais (corredor). A ponte é semitransparente pra
+## dar pra ver quem passa embaixo (solução simples de oclusão por enquanto).
+func _construir_greybox() -> void:
+	_caixa_solida(Vector3(0.0, -0.1, 0.0), Vector3(24.0, 0.2, 24.0), Color(0.12, 0.13, 0.18))  # chão
+	_construir_ponte(Vector3(0.0, 2.6, 0.0), Vector3(12.0, 0.3, 3.0))                            # ponte (oclui)
+	_caixa_solida(Vector3(0.0, 1.3, -5.5), Vector3(3.0, 0.3, 6.0), Color(0.45, 0.5, 0.65), deg_to_rad(-25.0))  # rampa
+	_caixa_solida(Vector3(-9.0, 0.6, 0.0), Vector3(0.4, 1.2, 18.0), Color(0.2, 0.22, 0.3))  # parede
+	_caixa_solida(Vector3(9.0, 0.6, 0.0), Vector3(0.4, 1.2, 18.0), Color(0.2, 0.22, 0.3))   # parede
+
+
+## Cria uma rampa inclinada ligando um ponto baixo a um alto (ao longo de X ou Z).
+func _rampa(baixo: Vector3, alto: Vector3, largura: float) -> StaticBody3D:
+	var meio := (baixo + alto) * 0.5
+	var delta := alto - baixo
+	var sb: StaticBody3D
+	if absf(delta.z) >= absf(delta.x):           # rampa ao longo de Z (norte/sul)
+		var comp := absf(delta.z) + 1.0
+		sb = _caixa_solida(meio, Vector3(largura, 0.3, comp), Color(0.45, 0.5, 0.65))
+		var ang := atan2(delta.y, absf(delta.z))
+		sb.rotation.x = ang if delta.z < 0.0 else -ang
+	else:                                        # rampa ao longo de X (leste/oeste)
+		var comp := absf(delta.x) + 1.0
+		sb = _caixa_solida(meio, Vector3(comp, 0.3, largura), Color(0.45, 0.5, 0.65))
+		var ang := atan2(delta.y, absf(delta.x))
+		sb.rotation.z = -ang if delta.x < 0.0 else ang
+	return sb
+
+
+## Monta as estruturas 3D de um mapa vertical a partir dos DADOS (StatsMapa.estruturas).
+func _montar_estruturas(mapa: Resource) -> void:
+	for e in mapa.estruturas:
+		match String(e.get("tipo", "")):
+			"chao":
+				_caixa_solida(e["pos"], e["tam"], Color(0.12, 0.13, 0.18))
+			"parede":
+				_caixa_solida(e["pos"], e["tam"], Color(0.2, 0.22, 0.3))
+			"pilar":
+				_caixa_solida(e["pos"], e["tam"], Color(0.25, 0.26, 0.34))
+			"ponte":
+				_construir_ponte(e["pos"], e["tam"])
+			"rampa":
+				_rampa(e["de"], e["ate"], float(e.get("larg", 3.0)))
+
+
+## Builder da arena vertical (usado pelo --demo-vertical): carrega o mapa .tres por dados.
+func _montar_arena_vertical() -> void:
+	_montar_estruturas(load("res://resources/mapas/vertical.tres"))
+
+
+## Cria uma ponte sólida e a registra pra oclusão dinâmica (some quem passa por baixo vê).
+func _construir_ponte(pos: Vector3, tamanho: Vector3) -> StaticBody3D:
+	var sb := _caixa_solida(pos, tamanho, Color(0.5, 0.55, 0.7, 1.0))
+	var mi := sb.get_child(0) as MeshInstance3D
+	var mat := mi.material_override as StandardMaterial3D
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA  # pra poder esmaecer
+	_pontes.append({"no": sb, "mat": mat, "centro": pos, "tamanho": tamanho})
+	return sb
+
+
+## Demo da arena vertical completa: posiciona o player numa rampa subindo e o bot no alto.
+func _demo_vertical_e_capturar() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	_montar_arena_vertical()
+	await get_tree().physics_frame
+	player.global_position = Vector3(0.0, 1.0, 6.0)    # no chão, embaixo das pontes
+	bot.global_position = Vector3(0.0, 3.6, 0.0)       # no cruzamento das pontes (alto)
+	for _i in range(30):
+		await get_tree().process_frame                 # deixa a oclusão agir
+	_capturar_e_sair()
+
+
+## Demo do greybox vertical: posiciona um no chão SOB a ponte e outro EM CIMA dela, captura.
+func _demo_greybox_e_capturar() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	_construir_greybox()
+	await get_tree().physics_frame
+	player.global_position = Vector3(0.0, 1.0, 1.0)    # no chão, embaixo da ponte
+	bot.global_position = Vector3(0.0, 3.6, 0.0)       # em cima da ponte (2.6 + 1.0)
+	for _i in range(30):
+		await get_tree().process_frame  # deixa a ponte esmaecer (oclusão)
 	_capturar_e_sair()
 
 

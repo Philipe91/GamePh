@@ -4,6 +4,9 @@ extends Control
 ## arena), mantendo a suíte headless intacta.
 
 const SELECAO := "res://scenes/ui/selecao.tscn"
+const UIEstilo := preload("res://scenes/ui/ui_estilo.gd")
+
+var _dif_label: Label = null
 
 
 func _ready() -> void:
@@ -11,6 +14,12 @@ func _ready() -> void:
 	if "--demo-titulo" in args:
 		_montar_ui()
 		_capturar()
+		return
+	if "--demo-settings" in args:
+		get_tree().change_scene_to_file.call_deferred("res://scenes/ui/settings.tscn")
+		return
+	if "--demo-story" in args:
+		get_tree().change_scene_to_file.call_deferred("res://scenes/ui/story.tscn")
 		return
 	if not args.is_empty():
 		_ir_pra_selecao()
@@ -27,10 +36,7 @@ func _capturar() -> void:
 
 
 func _montar_ui() -> void:
-	var fundo := ColorRect.new()
-	fundo.color = Color(0.04, 0.05, 0.09)
-	fundo.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(fundo)
+	UIEstilo.fundo_neon(self)
 
 	var centro := CenterContainer.new()
 	centro.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -44,6 +50,7 @@ func _montar_ui() -> void:
 	titulo.text = "VAULTBREAKER"
 	titulo.add_theme_font_size_override("font_size", 56)
 	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UIEstilo.titulo_glow(titulo)
 	caixa.add_child(titulo)
 
 	var sub := Label.new()
@@ -51,17 +58,57 @@ func _montar_ui() -> void:
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caixa.add_child(sub)
 
+	# Dificuldade do bot.
+	_dif_label = Label.new()
+	_dif_label.text = "Dificuldade: Normal"
+	_dif_label.add_theme_color_override("font_color", Color(0.5, 0.8, 1))
+	_dif_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caixa.add_child(_dif_label)
+
+	var linha_dif := HBoxContainer.new()
+	linha_dif.alignment = BoxContainer.ALIGNMENT_CENTER
+	linha_dif.add_theme_constant_override("separation", 8)
+	caixa.add_child(linha_dif)
+	for d in [["facil", "Fácil"], ["normal", "Normal"], ["dificil", "Difícil"]]:
+		var db := Button.new()
+		db.text = d[1]
+		db.custom_minimum_size = Vector2(120, 38)
+		UIEstilo.estilizar_botao(db, Color(0.6, 0.9, 0.6))
+		db.pressed.connect(_escolher_dif.bind(String(d[0]), String(d[1])))
+		linha_dif.add_child(db)
+
 	var vs_com := Button.new()
 	vs_com.text = "VS COM  (contra o bot)"
 	vs_com.custom_minimum_size = Vector2(320, 52)
+	UIEstilo.estilizar_botao(vs_com)
 	vs_com.pressed.connect(_jogar.bind("vs_com"))
 	caixa.add_child(vs_com)
 
 	var vs_man := Button.new()
 	vs_man.text = "VS MAN  (2 jogadores)"
 	vs_man.custom_minimum_size = Vector2(320, 52)
+	UIEstilo.estilizar_botao(vs_man, Color(1.0, 0.35, 0.4))
 	vs_man.pressed.connect(_jogar.bind("vs_man"))
 	caixa.add_child(vs_man)
+
+	var story := Button.new()
+	story.text = "STORY  (campanha)"
+	story.custom_minimum_size = Vector2(320, 44)
+	UIEstilo.estilizar_botao(story, Color(0.8, 0.6, 0.3))
+	story.pressed.connect(func(): get_tree().change_scene_to_file.call_deferred("res://scenes/ui/story.tscn"))
+	caixa.add_child(story)
+
+	var settings := Button.new()
+	settings.text = "Configurações"
+	settings.custom_minimum_size = Vector2(320, 44)
+	UIEstilo.estilizar_botao(settings, Color(0.6, 0.6, 0.7))
+	settings.pressed.connect(func(): get_tree().change_scene_to_file.call_deferred("res://scenes/ui/settings.tscn"))
+	caixa.add_child(settings)
+
+
+func _escolher_dif(chave: String, nome: String) -> void:
+	GameManager.dificuldade = chave
+	_dif_label.text = "Dificuldade: " + nome
 
 
 func _jogar(modo: String) -> void:

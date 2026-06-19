@@ -165,9 +165,16 @@ func _physics_process(delta: float) -> void:
 		var vel := velocidade_base * fator_velocidade()  # base do personagem × slow/speed
 		velocity.x = dir.x * vel
 		velocity.z = dir.y * vel
-		velocity.y = 0.0
-		move_and_slide()
-		position.y = ALTURA_PISO
+		if gravidade_ativa:
+			# Mapa vertical: segue o chão de colisão (rampa/ponte) com gravidade.
+			if not is_on_floor():
+				velocity.y -= GRAVIDADE * delta
+			move_and_slide()
+		else:
+			# Mapa plano: altura travada (comportamento original, rápido).
+			velocity.y = 0.0
+			move_and_slide()
+			position.y = ALTURA_PISO
 		if dir.length() > 0.01:
 			var alvo := atan2(-velocity.x, -velocity.z)
 			rotation.y = lerp_angle(rotation.y, alvo, 0.25)

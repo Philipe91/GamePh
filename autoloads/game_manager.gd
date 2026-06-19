@@ -1,29 +1,42 @@
 extends Node
-## GameManager — autoload (singleton) do estado da partida (GDD seção 4 / bloco 5).
+## GameManager — autoload (singleton) do estado da partida.
 ##
-## Cuida do relógio de 90s e das regras de vitória:
-##  - Vence quem zerar o Healer do oponente.
-##  - Se o tempo acabar, vence quem tomou MENOS dano (maior Healer); empate possível.
+## Partida em ROUNDS (melhor de 3 — GDD 12, [decisão 2026-06-19]): vence quem ganhar 2
+## rounds. Cada round tem relógio de 90s; vence o round quem zerar o Healer do oponente,
+## ou (no fim do tempo) quem tomou menos dano. Entre rounds há uma pausa curta; a arena
+## reseta posições, vida cheia e armadilhas ao ouvir `round_comecou`.
 ##
 ## Não referencia player/bot por nome: a arena registra os combatentes em
 ## iniciar_partida() e o GameManager ouve o sinal healer_zerou de cada um.
 
 ## Emitido a cada tick com o tempo restante (a HUD ouve).
 signal tempo_mudou(restante: float)
-## Emitido uma vez ao fim. vencedor_id: 1=jogador, 2=bot, 0=empate.
+## Emitido ao FIM DA PARTIDA (alguém fez 2 rounds). vencedor_id: 1=jogador, 2=bot.
 signal partida_acabou(vencedor_id: int, motivo: String)
-## Emitido uma vez quando faltam 30s (a arena solta o Spark Bit — GDD 7.3).
+## Emitido ao fim de cada ROUND (com o placar atualizado).
+signal round_acabou(vencedor_id: int, motivo: String, v1: int, v2: int)
+## Emitido no começo de cada round (a arena reseta e a HUD anuncia "ROUND N").
+signal round_comecou(numero: int)
+## Emitido quando o placar muda (a HUD atualiza).
+signal placar_mudou(v1: int, v2: int)
+## Emitido uma vez por round quando faltam 30s (a arena solta o Spark Bit — GDD 7.3).
 signal faltam_30s
 
 const DURACAO_PARTIDA: float = 90.0
 const AVISO_SPARK: float = 30.0
+const ROUNDS_PRA_VENCER: int = 2       # melhor de 3
+const PAUSA_ENTRE_ROUNDS: float = 2.0  # segundos da tela "ROUND N"
 
-enum Estado { OCIOSO, JOGANDO, ACABOU }
+enum Estado { OCIOSO, JOGANDO, ENTRE_ROUNDS, ACABOU }
 
 var tempo_restante: float = DURACAO_PARTIDA
+var round_num: int = 1
+var v1: int = 0                         # rounds ganhos pelo jogador 1
+var v2: int = 0                         # rounds ganhos pelo jogador 2
 var _estado: Estado = Estado.OCIOSO
 var _combatentes: Array = []
 var _avisou_30s: bool = false
+var _t_entre_round: float = 0.0
 
 ## Personagens escolhidos na tela de seleção (caminho do .tres). "" = usa o default.
 var personagem_jogador: String = ""
@@ -31,21 +44,41 @@ var personagem_bot: String = ""
 
 ## Modo da partida (GDD 12): "vs_com" (contra o bot) ou "vs_man" (2 jogadores locais).
 var modo: String = "vs_com"
+## Caminho do mapa escolhido (.tres). "" = padrão.
+var mapa: String = ""
+## Dificuldade do bot: "facil" | "normal" | "dificil".
+var dificuldade: String = "normal"
 
 
-## Inicia (ou reinicia) a partida com a lista de combatentes (nós com Healer e id).
+## Inicia (ou reinicia) a PARTIDA: zera o placar e começa o round 1.
 func iniciar_partida(combatentes: Array) -> void:
 	_combatentes = combatentes
 	for c in _combatentes:
 		if c.has_signal("healer_zerou") and not c.healer_zerou.is_connected(_ao_combatente_zerar):
 			c.healer_zerou.connect(_ao_combatente_zerar.bind(c))
+	v1 = 0
+	v2 = 0
+	round_num = 1
+	placar_mudou.emit(v1, v2)
+	_comecar_round()
+
+
+## Começa o round atual: relógio cheio, avisa a arena (que reseta) e a HUD.
+func _comecar_round() -> void:
 	tempo_restante = DURACAO_PARTIDA
-	_estado = Estado.JOGANDO
 	_avisou_30s = false
+	_estado = Estado.JOGANDO
+	round_comecou.emit(round_num)
 	tempo_mudou.emit(tempo_restante)
 
 
 func _process(delta: float) -> void:
+	if _estado == Estado.ENTRE_ROUNDS:
+		_t_entre_round -= delta
+		if _t_entre_round <= 0.0:
+			round_num += 1
+			_comecar_round()
+		return
 	if _estado != Estado.JOGANDO:
 		return
 	tempo_restante = maxf(0.0, tempo_restante - delta)
@@ -57,14 +90,14 @@ func _process(delta: float) -> void:
 		_decidir_por_tempo()
 
 
-## Quando um combatente zera, vence o outro time.
+## Quando um combatente zera, o OUTRO ganha o round.
 func _ao_combatente_zerar(combatente: Node) -> void:
 	if _estado != Estado.JOGANDO:
 		return
-	_terminar(_outro_id(combatente.id_jogador), "Healer zerado")
+	_fim_round(_outro_id(combatente.id_jogador), "Healer zerado")
 
 
-## No fim do tempo, vence quem tem mais Healer (tomou menos dano). Empate se igual.
+## No fim do tempo, ganha o round quem tem mais Healer (tomou menos dano). Empate possível.
 func _decidir_por_tempo() -> void:
 	var melhor: Node = null
 	var empate := false
@@ -75,14 +108,26 @@ func _decidir_por_tempo() -> void:
 		elif is_equal_approx(c.healer, melhor.healer):
 			empate = true
 	var vencedor := 0 if (empate or melhor == null) else int(melhor.id_jogador)
-	_terminar(vencedor, "Tempo esgotado")
+	_fim_round(vencedor, "Tempo esgotado")
 
 
-func _terminar(vencedor_id: int, motivo: String) -> void:
-	_estado = Estado.ACABOU
+## Fecha um round: contabiliza, atualiza o placar e decide se a PARTIDA acabou.
+func _fim_round(vencedor_id: int, motivo: String) -> void:
+	if vencedor_id == 1:
+		v1 += 1
+	elif vencedor_id == 2:
+		v2 += 1
+	placar_mudou.emit(v1, v2)
+	round_acabou.emit(vencedor_id, motivo, v1, v2)
 	AudioManager.tocar("vitoria")
-	Persistencia.registrar_resultado(vencedor_id)  # progressão local (vitórias/derrotas)
-	partida_acabou.emit(vencedor_id, motivo)
+	if v1 >= ROUNDS_PRA_VENCER or v2 >= ROUNDS_PRA_VENCER:
+		_estado = Estado.ACABOU
+		var campeao := 1 if v1 > v2 else 2
+		Persistencia.registrar_resultado(campeao)  # progressão local (vitórias/derrotas)
+		partida_acabou.emit(campeao, motivo)
+	else:
+		_estado = Estado.ENTRE_ROUNDS
+		_t_entre_round = PAUSA_ENTRE_ROUNDS
 
 
 func _outro_id(id: int) -> int:

@@ -20,3 +20,9 @@ class_name StatsMapa
 @export var esteiras: Array[Vector2i] = []       # Conveyer Belt
 @export var pontes: Array[Vector2i] = []         # passarela (evasão da Plasma)
 @export var lancadores: Array[Vector2i] = []     # Laser/Rocket Launcher
+
+## Mapa vertical (com altura): liga gravidade nos personagens e monta as estruturas 3D.
+@export var vertical: bool = false
+## Estruturas 3D (Fase 6+): lista de Dictionaries. Tipos: "chao", "parede", "pilar"
+## (pos+tam), "ponte" (pos+tam, com oclusão), "rampa" (de+ate+larg). Coordenadas em mundo.
+@export var estruturas: Array = []

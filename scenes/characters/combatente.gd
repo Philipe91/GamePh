@@ -15,6 +15,11 @@ signal municao_mudou(atual: int, maximo: int)
 
 const HEALER_MAX: float = 100.0
 const ALTURA_PISO: float = 1.0  # centro da cápsula p/ os pés ficarem no chão (y=0)
+const GRAVIDADE: float = 22.0   # usada só nos mapas verticais (gravidade_ativa)
+
+## Mapas planos travam a altura (rápido, simples). Mapas com rampa/ponte ligam a
+## gravidade: o personagem segue o chão de colisão (sobe rampa, anda sobre a ponte).
+@export var gravidade_ativa: bool = false
 
 # Arma de projétil (GDD 7.1). Valores base; viram stats por personagem na Fase 5.
 const MUNICAO_MAX: int = 6
@@ -185,6 +190,8 @@ func socar() -> void:
 func derrubar(direcao: Vector3, forca: float) -> void:
 	_derrubado_restante = DERRUBADO_TEMPO
 	aplicar_empurrao(direcao, forca)
+	AudioManager.tocar("derrubado")
+	get_tree().call_group("camera", "tremer", 0.25)  # screenshake no knockdown (juice)
 	if _carregando_unit:
 		tem_unit = false
 		plasma_bombs = 0
@@ -337,6 +344,25 @@ func tentar_escapar(quantidade: float) -> void:
 	_imobilizado_restante = maxf(0.0, _imobilizado_restante - quantidade)
 
 
+## Reseta o combatente pro começo de um round (GDD 12): vida e munição cheias, limpa
+## status e estados de combate. A posição é reposicionada pela arena.
+func reiniciar() -> void:
+	healer = vida_max
+	municao = municao_max
+	_imobilizado_restante = 0.0
+	_slow_restante = 0.0
+	_speed_restante = 0.0
+	_protegido_restante = 0.0
+	_derrubado_restante = 0.0
+	_recarga_restante = 0.0
+	_cadencia_restante = 0.0
+	_soco_cd = 0.0
+	_carregando_unit = false
+	velocity = Vector3.ZERO
+	healer_mudou.emit(healer, vida_max)
+	municao_mudou.emit(municao, municao_max)
+
+
 ## Recupera Healer (capado no máximo). Usado pelo desarme bem-sucedido (GDD 6.2).
 func curar(qtd: float) -> void:
 	if qtd <= 0.0:
@@ -356,6 +382,7 @@ func receber_dano(qtd: float, tipo_dano: String = "normal") -> void:
 	if _carregando_unit:
 		_cancelar_carga()
 	healer = maxf(0.0, healer - qtd)
+	AudioManager.tocar("dano")   # feedback de hit (juice)
 	healer_mudou.emit(healer, vida_max)
 	if healer <= 0.0:
 		healer_zerou.emit()

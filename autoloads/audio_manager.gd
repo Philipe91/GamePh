@@ -15,6 +15,8 @@ const EVENTOS := {
 	"tiro": [880.0, 0.06],
 	"explodir": [120.0, 0.30],
 	"soco": [200.0, 0.10],
+	"dano": [440.0, 0.07],
+	"derrubado": [150.0, 0.18],
 	"desarme": [660.0, 0.20],
 	"item": [990.0, 0.15],
 	"vitoria": [520.0, 0.40],
@@ -25,6 +27,9 @@ var _players: Array[AudioStreamPlayer] = []
 var _proximo: int = 0
 
 
+var volume: float = 0.8   # 0..1 (master). Persistido em settings.
+
+
 func _ready() -> void:
 	for i in N_PLAYERS:
 		var p := AudioStreamPlayer.new()
@@ -32,6 +37,15 @@ func _ready() -> void:
 		_players.append(p)
 	for evento in EVENTOS:
 		_sons[evento] = _carregar_ou_gerar(evento)
+	# Volume salvo nos settings (Persistencia já carregou — ordem de autoload).
+	aplicar_volume(float(Persistencia.get_config("audio", "volume", 0.8)))
+
+
+## Ajusta o volume master (0..1). 0 = mudo. Não salva (quem salva é a tela de settings).
+func aplicar_volume(v: float) -> void:
+	volume = clampf(v, 0.0, 1.0)
+	var db := -80.0 if volume <= 0.001 else linear_to_db(volume)
+	AudioServer.set_bus_volume_db(0, db)
 
 
 ## Toca o som do evento. Retorna false se não houver som pra ele.
