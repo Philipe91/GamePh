@@ -243,6 +243,13 @@ Specs (tiradas do manual original, mantidas como base de balanceamento):
 - Tempo limite padrão do MVP: 90 segundos.
 - Quando faltam 30 segundos, surge um Spark Bit no mapa (forma viva de eletricidade
   que dá dano ao toque), pra forçar ação.
+- **Rounds — melhor de 3 [decisão 2026-06-19, aprovada pelo humano]:** a partida é melhor
+  de 3 rounds; vence quem ganhar **2 rounds**. Cada round tem o relógio de 90s e as regras
+  acima (zerar o Healer, ou menos dano no fim do tempo). Entre rounds há uma **tela curta
+  "ROUND N"** (~2s); a cada round **reseta** posições, **vida cheia** e **armadilhas**
+  (field traps e Vaults do mapa permanecem). **Placar** visível na HUD. Padrões do gênero
+  adotados onde o GDD era omisso (2 vitórias, vida cheia por round, reset de armadilhas) —
+  revisar se quiser mudar.
 
 ---
 

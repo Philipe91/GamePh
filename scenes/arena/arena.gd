@@ -12,6 +12,9 @@ extends Node3D
 
 ## Pontes com oclusão dinâmica (somem quando alguém passa embaixo — GDD 11).
 var _pontes: Array = []
+## Guardados pra resetar a cada round (GDD 12).
+var _mapa: Resource = null
+var _oponente: Node = null
 
 
 func _ready() -> void:
@@ -113,14 +116,33 @@ func _ready() -> void:
 		player.aplicar_personagem(load(GameManager.personagem_jogador))
 	if GameManager.personagem_bot != "":
 		oponente.aplicar_personagem(load(GameManager.personagem_bot))
-	# Modo normal de jogo: liga a HUD e inicia a partida (timer + regras de vitória).
+	# Modo normal de jogo: liga a HUD e inicia a partida (rounds + regras de vitória).
+	_mapa = mapa
+	_oponente = oponente
 	$HUD.configurar(player, oponente)
 	for c in mapa.vaults:
 		_colocar_vault(c)                           # Vaults do mapa (GDD 8)
 	_colocar_field_traps(mapa)                      # caixas, esteiras, lançadores, pontes
 	add_child(preload("res://scenes/ui/pausa.tscn").instantiate())  # menu de pausa (ESC)
 	GameManager.faltam_30s.connect(_ao_faltar_30s)  # Spark Bit aos 30s (GDD 7.3)
+	GameManager.round_comecou.connect(_ao_round_comecou)  # reset a cada round (GDD 12)
 	GameManager.iniciar_partida([player, oponente])
+
+
+## Reset de round (GDD 12): limpa armadilhas/projeteis/itens/fx, restaura vida e
+## reposiciona os combatentes nos spawns. Field traps e Vaults do mapa permanecem.
+func _ao_round_comecou(_numero: int) -> void:
+	GridManager.limpar_armadilhas()
+	for grupo in ["armadilhas", "projeteis", "plasmas", "itens", "fx"]:
+		for n in get_tree().get_nodes_in_group(grupo):
+			n.queue_free()
+	player.reiniciar()
+	player.global_position = GridManager.grid_to_world(_mapa.spawn_jogador)
+	player.global_position.y = 1.0
+	if _oponente != null and is_instance_valid(_oponente):
+		_oponente.reiniciar()
+		_oponente.global_position = GridManager.grid_to_world(_mapa.spawn_bot)
+		_oponente.global_position.y = 1.0
 
 
 ## Instancia os field traps do mapa (GDD 10) nos tiles indicados. Posição antes do
@@ -938,16 +960,27 @@ func _rodar_teste() -> void:
 	_pontes.clear()
 	await get_tree().physics_frame
 
-	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
+	# G3: regras de partida em ROUNDS (melhor de 3). Sem listener da arena no --teste,
+	# então reseto os Healers manualmente entre os rounds.
+	player.set_physics_process(false)
+	bot.set_physics_process(false)
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX
 	GameManager.iniciar_partida([player, bot])
-	falhas += _checar("partida inicia em 90s", is_equal_approx(GameManager.tempo_restante, 90.0))
+	falhas += _checar("partida comeca em 90s no round 1", is_equal_approx(GameManager.tempo_restante, 90.0) and GameManager.round_num == 1)
+	falhas += _checar("placar comeca 0-0", GameManager.v1 == 0 and GameManager.v2 == 0)
 	var venceu := { "id": -1 }
 	GameManager.partida_acabou.connect(func(vid: int, _m: String): venceu["id"] = vid)
-	bot.receber_dano(999.0)  # zera o Healer do bot -> jogador vence
-	await get_tree().physics_frame
-	falhas += _checar("jogador vence quando bot zera", venceu["id"] == 1)
+	bot.receber_dano(999.0)                       # round 1 -> jogador
+	falhas += _checar("round 1 vai pro jogador (1-0)", GameManager.v1 == 1 and GameManager.v2 == 0)
+	falhas += _checar("partida NAO acaba no round 1", venceu["id"] == -1)
+	GameManager._process(GameManager.PAUSA_ENTRE_ROUNDS + 0.1)  # passa a pausa -> round 2
+	falhas += _checar("avanca automaticamente pro round 2", GameManager.round_num == 2)
+	player.healer = Combatente.HEALER_MAX
+	bot.healer = Combatente.HEALER_MAX
+	bot.receber_dano(999.0)                       # round 2 -> jogador faz 2 -> vence a partida
+	falhas += _checar("placar fica 2-0", GameManager.v1 == 2)
+	falhas += _checar("jogador vence a PARTIDA com 2 rounds", venceu["id"] == 1)
 
 	if falhas == 0:
 		print("[TESTE] RESULTADO: TODOS OS TESTES PASSARAM")

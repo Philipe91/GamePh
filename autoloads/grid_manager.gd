@@ -112,6 +112,11 @@ func armadilha_em(coord: Vector2i) -> Dictionary:
 	return _armadilhas.get(coord, {})
 
 
+## Limpa o registro de todas as armadilhas (reset de round). Não mexe nos tipos de tile.
+func limpar_armadilhas() -> void:
+	_armadilhas.clear()
+
+
 ## Coords das armadilhas de OUTRO dono cujo centro está a até `raio` (mundo) de `centro`.
 ## Usado pelo Caution Mode (GDD 6.1) pra revelar a teia inimiga dentro do alcance.
 func armadilhas_inimigas_no_raio(dono: int, centro: Vector3, raio: float) -> Array[Vector2i]:

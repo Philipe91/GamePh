@@ -342,6 +342,25 @@ func tentar_escapar(quantidade: float) -> void:
 	_imobilizado_restante = maxf(0.0, _imobilizado_restante - quantidade)
 
 
+## Reseta o combatente pro começo de um round (GDD 12): vida e munição cheias, limpa
+## status e estados de combate. A posição é reposicionada pela arena.
+func reiniciar() -> void:
+	healer = vida_max
+	municao = municao_max
+	_imobilizado_restante = 0.0
+	_slow_restante = 0.0
+	_speed_restante = 0.0
+	_protegido_restante = 0.0
+	_derrubado_restante = 0.0
+	_recarga_restante = 0.0
+	_cadencia_restante = 0.0
+	_soco_cd = 0.0
+	_carregando_unit = false
+	velocity = Vector3.ZERO
+	healer_mudou.emit(healer, vida_max)
+	municao_mudou.emit(municao, municao_max)
+
+
 ## Recupera Healer (capado no máximo). Usado pelo desarme bem-sucedido (GDD 6.2).
 func curar(qtd: float) -> void:
 	if qtd <= 0.0:

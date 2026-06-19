@@ -58,3 +58,11 @@ agente desce a fila, **commita E dá push** em cada fatia, manda screenshot nos 
 - **P2 ✅** Tela de fim premium: cor por resultado (vitória verde / derrota vermelho /
   empate amarelo), texto com glow e painel escuro com borda+glow neon. `--demo-fim`.
   108/108. Próximo: P3 (marcador da armadilha no chão com ícone).
+
+## NOVA FILA AUTÔNOMA (humano, 2026-06-19, longe de casa — sem playtest)
+Aprovado adiantado: G3 rounds. Ordem: G3 → conferir Fase 5/6 (já feitas) → Fase 7 (settings,
+Story skeleton) → ganchos de áudio/juice → persistência de settings → cobertura de testes →
+placeholders. Ao esgotar, criar PLAYTEST.md e parar.
+- **G3 ✅** Rounds melhor de 3 (GameManager: v1/v2/round_num, round_comecou/round_acabou/
+  placar_mudou; pausa entre rounds; arena reseta posições+vida+armadilhas; HUD placar +
+  "ROUND N"). GDD 7.3 atualizado. 120/120.

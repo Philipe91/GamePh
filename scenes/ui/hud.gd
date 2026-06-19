@@ -19,6 +19,9 @@ const SETAS: Array[String] = ["↑", "↓", "←", "→"]
 
 var _jogador: Node = null
 var _fim: bool = false   # partida acabou: habilita o rematch (Enter)
+var _lbl_placar: Label = null    # placar de rounds (ex.: "1  -  0")
+var _lbl_round: Label = null      # anúncio grande "ROUND N"
+var _t_round_aviso: float = 0.0   # tempo restante do anúncio na tela
 var _arma_icone: TextureRect = null   # ícone da armadilha selecionada (canto inferior esq.)
 var _icones_arma: Dictionary = {}     # tipo -> Texture2D (cache)
 
@@ -89,7 +92,36 @@ func configurar(p1: Node, p2: Node) -> void:
 	_arma_icone.offset_bottom = -12.0
 	add_child(_arma_icone)
 	lbl_minas.offset_left = 58.0   # abre espaço pro ícone na mesma linha
+	# Placar de rounds (topo-centro, abaixo do timer) e anúncio "ROUND N".
+	_lbl_placar = Label.new()
+	_lbl_placar.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_lbl_placar.offset_left = -80.0
+	_lbl_placar.offset_right = 80.0
+	_lbl_placar.offset_top = 58.0
+	_lbl_placar.offset_bottom = 86.0
+	_lbl_placar.add_theme_font_size_override("font_size", 22)
+	_lbl_placar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lbl_placar.text = "0  -  0"
+	add_child(_lbl_placar)
+	_lbl_round = Label.new()
+	_lbl_round.set_anchors_preset(Control.PRESET_CENTER)
+	_lbl_round.offset_left = -200.0
+	_lbl_round.offset_right = 200.0
+	_lbl_round.offset_top = -120.0
+	_lbl_round.offset_bottom = -60.0
+	_lbl_round.add_theme_font_size_override("font_size", 48)
+	_lbl_round.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lbl_round.visible = false
+	add_child(_lbl_round)
+	GameManager.placar_mudou.connect(func(a: int, b: int): _lbl_placar.text = "%d  -  %d" % [a, b])
+	GameManager.round_comecou.connect(_ao_round_comecou)
 	_atualizar_label_armadilha()
+
+
+func _ao_round_comecou(numero: int) -> void:
+	_lbl_round.text = "ROUND %d" % numero
+	_lbl_round.visible = true
+	_t_round_aviso = 1.5
 
 
 ## Mostra "Nome: quantidade" da armadilha selecionada (rodapé esquerdo).
@@ -124,6 +156,11 @@ func _ao_municao_mudar(atual: int, maximo: int) -> void:
 ## Painel de desarme e prompt de retomada são dinâmicos (timer correndo): leio o estado
 ## do jogador a cada frame em vez de mil signals por segundo.
 func _process(_delta: float) -> void:
+	# Some o anúncio "ROUND N" depois de um tempo.
+	if _t_round_aviso > 0.0:
+		_t_round_aviso -= _delta
+		if _t_round_aviso <= 0.0 and _lbl_round != null:
+			_lbl_round.visible = false
 	# Rematch: ao fim da partida, Enter volta pra seleção de personagem.
 	if _fim and Input.is_action_just_pressed("ui_accept"):
 		get_tree().change_scene_to_file.call_deferred("res://scenes/ui/selecao.tscn")

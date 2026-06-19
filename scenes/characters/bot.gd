@@ -174,6 +174,15 @@ func _melhor_item() -> Node3D:
 	return melhor
 
 
+## Reset de round: zera o estado de IA além do reset-base do Combatente.
+func reiniciar() -> void:
+	super.reiniciar()
+	_desarmando = null
+	_armadilhas_ativas = 0
+	_t_plantio = 2.0
+	_alvo = null
+
+
 ## Aplica gravidade (mapas verticais) ou trava a altura (mapas planos) + move_and_slide.
 func _mover(delta: float) -> void:
 	if gravidade_ativa:
