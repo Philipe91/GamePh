@@ -93,24 +93,81 @@ func _ready() -> void:
 	municao_mudou.emit(municao, municao_max)
 
 
-## Troca a cápsula pelo modelo 3D do personagem, se houver (.glb via StatsPersonagem).
+## Modelo placeholder padrão (Kenney) usado em JOGO até cada personagem ter o seu próprio.
+const MODELO_PADRAO_PATH := "res://assets/models/kenney/Character/Character.gltf"
+const ESCALA_PADRAO := 6.5
+const OFFSET_PADRAO := -1.0
+
+## Troca a cápsula pelo modelo 3D. Usa o modelo do personagem (StatsPersonagem) se houver;
+## senão, em jogo real (não nos testes), cai no modelo padrão. Adiciona o anel do time.
 ## Idempotente: pode ser chamado de novo ao trocar de personagem em runtime.
 func _montar_modelo() -> void:
 	var antigo := get_node_or_null("Modelo")
 	if antigo != null:
 		antigo.queue_free()
 	var malha := get_node_or_null("Malha")
-	if stats == null or stats.cena_modelo == null:
+	var cena: PackedScene = null
+	var escala := ESCALA_PADRAO
+	var rot := 0.0
+	var offset := OFFSET_PADRAO
+	if stats != null and stats.cena_modelo != null:
+		cena = stats.cena_modelo
+		escala = stats.escala_modelo
+		rot = stats.rotacao_modelo_y
+		offset = stats.offset_modelo_y
+	elif not _modo_teste() and ResourceLoader.exists(MODELO_PADRAO_PATH):
+		cena = load(MODELO_PADRAO_PATH)
+	if cena == null:
 		if malha != null:
 			malha.visible = true   # sem modelo: mostra a cápsula placeholder
+		_remover_anel_time()
 		return
 	if malha != null:
 		malha.visible = false      # com modelo: esconde a cápsula
-	var m: Node3D = stats.cena_modelo.instantiate()
+	var m: Node3D = cena.instantiate()
 	m.name = "Modelo"
 	add_child(m)
-	m.scale = Vector3.ONE * stats.escala_modelo
-	m.rotation.y = deg_to_rad(stats.rotacao_modelo_y)
+	m.scale = Vector3.ONE * escala
+	m.rotation.y = deg_to_rad(rot)
+	m.position.y = offset           # pivot nos pés -> desce pro chão
+	_montar_anel_time()
+
+
+func _modo_teste() -> bool:
+	return "--teste" in OS.get_cmdline_user_args()
+
+
+## Anel luminoso no chão na cor do time — distingue player/bot na visão top-down.
+func _montar_anel_time() -> void:
+	_remover_anel_time()
+	var mi := MeshInstance3D.new()
+	mi.name = "AnelTime"
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.45
+	torus.outer_radius = 0.62
+	mi.mesh = torus
+	var cor := _cor_time()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = cor
+	mat.emission_enabled = true
+	mat.emission = cor
+	mat.emission_energy_multiplier = 2.5
+	mi.material_override = mat
+	add_child(mi)
+	mi.position.y = -ALTURA_PISO + 0.06   # rente ao chão
+
+
+func _remover_anel_time() -> void:
+	var a := get_node_or_null("AnelTime")
+	if a != null:
+		a.queue_free()
+
+
+## Cor do time: a do personagem, ou um padrão por id (player azul, bot vermelho).
+func _cor_time() -> Color:
+	if stats != null and stats.cor_time != null:
+		return stats.cor_time
+	return Color(0.3, 0.7, 1.0) if id_jogador == 1 else Color(1.0, 0.3, 0.3)
 
 
 ## Lê o StatsPersonagem (se houver) pros valores efetivos. Subclasses sobrescrevem o

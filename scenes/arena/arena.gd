@@ -15,6 +15,9 @@ var _pontes: Array = []
 ## Guardados pra resetar a cada round (GDD 12).
 var _mapa: Resource = null
 var _oponente: Node = null
+## Câmera que segue o player em mapas grandes (estilo Trap Gunner).
+var _seguir_camera: bool = false
+var _cam_offset: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
@@ -52,6 +55,10 @@ func _ready() -> void:
 	if "--demo-mapa" in args:
 		_demo_mapa_e_capturar()
 		return
+	# Demo do modelo 3D (Kenney): troca a cápsula pelo boneco.
+	if "--demo-modelo" in args:
+		_demo_modelo_e_capturar()
+		return
 	# Greybox vertical: ponte (over/under), rampa, paredes — gravidade ligada. Screenshot.
 	if "--demo-greybox" in args:
 		_demo_greybox_e_capturar()
@@ -71,6 +78,9 @@ func _ready() -> void:
 	if "--vertical" in args:
 		GameManager.mapa = "res://resources/mapas/vertical.tres"
 	# Demo da arena vertical completa: screenshot.
+	if "--demo-setor07" in args:
+		_demo_setor07_e_capturar()
+		return
 	if "--demo-vertical" in args:
 		_demo_vertical_e_capturar()
 		return
@@ -120,6 +130,12 @@ func _ready() -> void:
 	# Modo normal de jogo: liga a HUD e inicia a partida (rounds + regras de vitória).
 	_mapa = mapa
 	_oponente = oponente
+	# Câmera segue o player em mapas grandes (Trap Gunner). Offset = pose inicial da câmera.
+	if mapa.get("camera_segue"):
+		var cam := get_node_or_null("Camera3D") as Camera3D
+		if cam != null:
+			_cam_offset = cam.position
+			_seguir_camera = true
 	$HUD.configurar(player, oponente)
 	for c in mapa.vaults:
 		_colocar_vault(c)                           # Vaults do mapa (GDD 8)
@@ -190,6 +206,7 @@ func _ao_faltar_30s() -> void:
 ## Oclusão das pontes: cada ponte fica transparente quando há um combatente embaixo dela
 ## (mesma vertical, y menor), e volta a sólida quando ninguém está. Fade suave.
 func _process(delta: float) -> void:
+	_seguir_player(delta)
 	if _pontes.is_empty():
 		return
 	for p in _pontes:
@@ -206,6 +223,17 @@ func _process(delta: float) -> void:
 		var cor: Color = mat.albedo_color
 		cor.a = lerpf(cor.a, 0.3 if alguem else 1.0, minf(1.0, delta * 8.0))
 		mat.albedo_color = cor
+
+
+## Câmera segue o player em XZ (mantendo o ângulo/altura 2.5D), com suavização.
+func _seguir_player(delta: float) -> void:
+	if not _seguir_camera or player == null or not is_instance_valid(player):
+		return
+	var cam := get_node_or_null("Camera3D") as Camera3D
+	if cam == null:
+		return
+	var alvo := Vector3(player.global_position.x, 0.0, player.global_position.z) + _cam_offset
+	cam.global_position = cam.global_position.lerp(alvo, 1.0 - exp(-delta * 6.0))
 
 
 ## Aplica `assets/sprites/chao.png` como textura do chão (tileada), se o arquivo existir.
@@ -1007,6 +1035,26 @@ func _rodar_teste() -> void:
 	GridManager.limpar_armadilhas()
 	falhas += _checar("limpar_armadilhas zera o grid", not GridManager.tem_armadilha(Vector2i(5, 5)))
 
+	# Câmera segue o player (mapas grandes Trap Gunner).
+	var cam_t := get_node_or_null("Camera3D") as Camera3D
+	if cam_t != null:
+		var pos_orig := cam_t.position
+		_cam_offset = cam_t.position
+		_seguir_camera = true
+		player.global_position = Vector3(20.0, 1.0, -10.0)
+		for _i in range(80):
+			_seguir_player(0.05)
+		falhas += _checar("camera segue o X do player", absf(cam_t.global_position.x - 20.0) < 0.6)
+		falhas += _checar("camera segue o Z do player", absf(cam_t.global_position.z - 5.0) < 0.6)
+		_seguir_camera = false
+		cam_t.position = pos_orig
+
+	# Mapa grande Setor 07 (Trap Gunner): carrega, é grande, pede câmera-segue e tem estruturas.
+	var m_setor: Resource = load("res://resources/mapas/setor07.tres")
+	falhas += _checar("setor07 carrega grande", m_setor.largura >= 30 and m_setor.altura >= 30)
+	falhas += _checar("setor07 pede camera-segue e vertical", m_setor.camera_segue and m_setor.vertical)
+	falhas += _checar("setor07 tem muitas estruturas", m_setor.estruturas.size() > 10)
+
 	# G3: regras de partida em ROUNDS (melhor de 3). Sem listener da arena no --teste,
 	# então reseto os Healers manualmente entre os rounds.
 	player.set_physics_process(false)
@@ -1196,6 +1244,29 @@ func _construir_ponte(pos: Vector3, tamanho: Vector3) -> StaticBody3D:
 	return sb
 
 
+## Demo do mapa grande Setor 07 (Trap Gunner): monta as estruturas e segue o player.
+func _demo_setor07_e_capturar() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	var mapa: Resource = load("res://resources/mapas/setor07.tres")
+	var chao := get_node_or_null("Chao")
+	if chao != null:
+		chao.visible = false   # o chão do mapa (estrutura) cobre tudo
+	player.gravidade_ativa = true
+	bot.gravidade_ativa = true
+	_montar_estruturas(mapa)
+	var cam := get_node_or_null("Camera3D") as Camera3D
+	if cam != null:
+		_cam_offset = cam.position
+		_seguir_camera = true
+	await get_tree().physics_frame
+	player.global_position = Vector3(-12.0, 1.0, 14.0)
+	bot.global_position = Vector3(8.0, 1.0, 10.0)
+	for _i in range(40):
+		await get_tree().process_frame   # câmera converge + oclusão age
+	_capturar_e_sair()
+
+
 ## Demo da arena vertical completa: posiciona o player numa rampa subindo e o bot no alto.
 func _demo_vertical_e_capturar() -> void:
 	bot.set_physics_process(false)
@@ -1220,6 +1291,45 @@ func _demo_greybox_e_capturar() -> void:
 	for _i in range(30):
 		await get_tree().process_frame  # deixa a ponte esmaecer (oclusão)
 	_capturar_e_sair()
+
+
+## Demo do modelo 3D (Kenney Character.gltf): aplica no player e no bot e captura.
+func _demo_modelo_e_capturar() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	var sp := preload("res://scripts/stats_personagem.gd").new()
+	sp.cena_modelo = load("res://assets/models/kenney/Character/Character.gltf")
+	sp.escala_modelo = 6.5
+	sp.rotacao_modelo_y = 0.0
+	sp.offset_modelo_y = -1.0
+	player.aplicar_personagem(sp)
+	bot.aplicar_personagem(sp)
+	await get_tree().physics_frame
+	player.global_position = Vector3(-1.5, 1.0, 1.5)
+	bot.global_position = Vector3(1.5, 1.0, 1.5)
+	var modelo := player.get_node_or_null("Modelo")
+	if modelo != null:
+		print("[MODELO] tamanho(x,y,z)=", _aabb_no(modelo).size, " (y maior = em pe)")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_capturar_e_sair()
+
+
+## Junta os AABB de todos os MeshInstance3D sob um nó (espaço local do nó), pra medir tamanho.
+func _aabb_no(no: Node) -> AABB:
+	var total := AABB()
+	var achou := false
+	for filho in no.find_children("*", "MeshInstance3D", true, false):
+		var mi := filho as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		var ab := mi.get_aabb()
+		if not achou:
+			total = ab
+			achou = true
+		else:
+			total = total.merge(ab)
+	return total
 
 
 ## Demo de mapa: aplica um mapa com field traps e captura (mostra caixas/esteira/ponte/lançador).

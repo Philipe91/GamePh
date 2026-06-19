@@ -75,3 +75,11 @@ placeholders. Ao esgotar, criar PLAYTEST.md e parar.
   seleção; 3+1 mapas com Vaults e field traps). Nada a refazer.
 - **FILA AUTÔNOMA ESGOTADA.** Criado `PLAYTEST.md` com tudo que precisa do feel/playtest do
   humano (balanceamento, rampas verticais, aprovações). Parando e avisando. Sobra só G5.
+
+## ARENA GRANDE (Trap Gunner) — humano 2026-06-19
+- **Câmera segue o player ✅** (stats_mapa.camera_segue; arena._seguir_player; VS COM segue o
+  player. Online=cada um sua câmera / local 2P=split-screen ficam pra depois). 129 testes.
+- **Mapa grande "Setor 07" ✅** 30×30 tiles (60×60 mundo, ~3×): plataforma central elevada,
+  pontes longas over/under, 4 rampas, pilares, paredes de cobertura, field traps, 3 Vaults.
+  Selecionável no menu. 132 testes.
+- TODO: chão pro mapa grande (textura cobre só 24×24 hoje); props Kenney pra decorar.
