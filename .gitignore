@@ -4,9 +4,11 @@
 # Traduções binárias geradas
 *.translation
 
-# Artefatos de captura/dev
+# Artefatos de captura/dev (screenshots e logs temporarios usam o prefixo "_")
 _captura_arena.png
 _captura_arena.png.import
+_*.png
+_*.txt
 
 # Exports
 /build/
