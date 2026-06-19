@@ -990,6 +990,21 @@ func _rodar_teste() -> void:
 	_pontes.clear()
 	await get_tree().physics_frame
 
+	# Reset de round: reiniciar() restaura vida/munição e limpa status; limpar_armadilhas zera o grid.
+	player.healer = 20.0
+	player._imobilizado_restante = 5.0
+	player.municao = 1
+	player.reiniciar()
+	falhas += _checar("reiniciar restaura vida e municao", is_equal_approx(player.healer, player.vida_max) and player.municao == player.municao_max)
+	falhas += _checar("reiniciar limpa o status", not player.esta_imobilizado())
+	GridManager.remover_armadilha(Vector2i(5, 5))
+	player.inventario["mina"] = 4
+	player.global_position = GridManager.grid_to_world(Vector2i(5, 5))
+	player.plantar("mina")
+	falhas += _checar("tem armadilha antes de limpar", GridManager.tem_armadilha(Vector2i(5, 5)))
+	GridManager.limpar_armadilhas()
+	falhas += _checar("limpar_armadilhas zera o grid", not GridManager.tem_armadilha(Vector2i(5, 5)))
+
 	# G3: regras de partida em ROUNDS (melhor de 3). Sem listener da arena no --teste,
 	# então reseto os Healers manualmente entre os rounds.
 	player.set_physics_process(false)
