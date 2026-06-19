@@ -166,5 +166,25 @@ func _ao_partida_acabar(vencedor_id: int, motivo: String) -> void:
 	else:
 		lbl_fim.text = "VOCÊ PERDEU\n(%s)" % motivo
 	lbl_fim.text += "\n\nEnter: jogar de novo"
+	# Estilo premium: cor por resultado, texto com glow e painel escuro com borda neon.
+	var cor := Color(1.0, 0.9, 0.4)            # empate = amarelo
+	if vencedor_id == 1:
+		cor = Color(0.3, 1.0, 0.5)             # vitória = verde
+	elif vencedor_id == 2:
+		cor = Color(1.0, 0.4, 0.45)            # derrota = vermelho
+	lbl_fim.add_theme_color_override("font_color", cor)
+	lbl_fim.add_theme_color_override("font_shadow_color", Color(cor.r, cor.g, cor.b, 0.9))
+	lbl_fim.add_theme_constant_override("shadow_offset_x", 0)
+	lbl_fim.add_theme_constant_override("shadow_offset_y", 0)
+	lbl_fim.add_theme_constant_override("shadow_outline_size", 18)
+	var painel := StyleBoxFlat.new()
+	painel.bg_color = Color(0.02, 0.03, 0.06, 0.88)
+	painel.set_corner_radius_all(14)
+	painel.set_content_margin_all(28.0)
+	painel.set_border_width_all(2)
+	painel.border_color = Color(cor.r, cor.g, cor.b, 0.6)
+	painel.shadow_color = Color(cor.r, cor.g, cor.b, 0.35)
+	painel.shadow_size = 16
+	lbl_fim.add_theme_stylebox_override("normal", painel)
 	lbl_fim.visible = true
 	_fim = true

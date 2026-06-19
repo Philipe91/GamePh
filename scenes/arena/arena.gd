@@ -70,6 +70,17 @@ func _ready() -> void:
 	if "--demo-vertical" in args:
 		_demo_vertical_e_capturar()
 		return
+	# Demo da tela de fim de partida (vitória premium).
+	if "--demo-fim" in args:
+		bot.set_physics_process(false)
+		player.set_physics_process(false)
+		$HUD.configurar(player, bot)
+		await get_tree().physics_frame
+		$HUD._ao_partida_acabar(1, "Healer zerado")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_capturar_e_sair()
+		return
 	# Modo captura automatizada (screenshot pro dev). Só roda se passado --capturar.
 	if "--capturar" in args:
 		_capturar_e_sair()

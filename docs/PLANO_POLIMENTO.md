@@ -16,7 +16,8 @@ nos marcos, e agenda a próxima. Diário no fim.
 - [x] **P1. Menus premium** — título/seleção com botões de neon (hover glow), fundo
   escuro com acento no topo, logo com brilho. `scenes/ui/ui_estilo.gd` (estilizar_botao /
   titulo_glow / fundo_neon); personagens com botão na cor de time. 108/108.
-- [ ] **P2. Tela de fim premium** — VITÓRIA/DERROTA/EMPATE com neon, glow e destaque.
+- [x] **P2. Tela de fim premium** — VITÓRIA(verde)/DERROTA(vermelho)/EMPATE(amarelo) com
+  texto em glow e painel escuro com borda neon na cor do resultado. `--demo-fim`. 108/108.
 - [ ] **P3. Marcador da armadilha no chão** — usa o ícone mini do tipo (discreto pro
   inimigo; respeita a regra de visibilidade da armadilha).
 - [ ] **P4. Radar premium** — borda neon, glow nos pontos, fundo com vinheta.
@@ -31,3 +32,6 @@ nos marcos, e agenda a próxima. Diário no fim.
 - **P1 ✅** Menus premium: `ui_estilo.gd` compartilhado (botões neon com hover glow, título
   com glow, fundo escuro + acento). Aplicado em título (VS COM ciano / VS MAN vermelho) e
   seleção (mapas ciano, personagens na cor de time). 108/108. Próximo: P2 (tela de fim).
+- **P2 ✅** Tela de fim premium: cor por resultado (vitória verde / derrota vermelho /
+  empate amarelo), texto com glow e painel escuro com borda+glow neon. `--demo-fim`.
+  108/108. Próximo: P3 (marcador da armadilha no chão com ícone).
