@@ -1,0 +1,117 @@
+Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
+
+[Arena] pronta — grid 12x12, tile 2.0u
+[TESTE] plantar() retorna true -> OK
+[TESTE] tile fica ocupado -> OK
+[TESTE] inventario mina cai pra 3 -> OK
+[TESTE] nao planta 2x no mesmo tile -> OK
+[TESTE] bot tomou dano ao pisar -> OK
+[TESTE] tile liberado apos explodir -> OK
+[TESTE] planta bomba -> OK
+[TESTE] planta detonador -> OK
+[TESTE] combo: bomba explode pelo detonador -> OK
+[TESTE] combo: bot toma dano em area -> OK
+[TESTE] cova/painel/gas no inventario -> OK
+[TESTE] cova imobiliza o bot -> OK
+[TESTE] painel arremessa o bot -> OK
+[TESTE] gas causa dano na nuvem -> OK
+[TESTE] gas aplica slow -> OK
+[TESTE] bot planta mina (dono 2) -> OK
+[TESTE] caution detecta mina inimiga no alcance -> OK
+[TESTE] caution ignora a propria armadilha -> OK
+[TESTE] caution nao detecta fora do alcance -> OK
+[TESTE] caution off nao detecta nada -> OK
+[TESTE] desarme inicia ao encostar em caution -> OK
+[TESTE] desarme: sucesso remove a armadilha inimiga -> OK
+[TESTE] desarme: sucesso cura o jogador -> OK
+[TESTE] desarme: encerra apos sucesso -> OK
+[TESTE] desarme: codigo errado encerra -> OK
+[TESTE] desarme: codigo errado detona a mina -> OK
+[Arena] Healer do jogador zerou — fim de partida (placeholder).
+[Arena] Healer do bot zerou — jogador venceu (placeholder).
+[TESTE] desarme: tempo esgotado encerra -> OK
+[TESTE] desarme (d) inicia -> OK
+[TESTE] desarme: golpe encerra na hora -> OK
+[TESTE] retomada disponivel na propria armadilha -> OK
+[TESTE] retomar libera o tile -> OK
+[TESTE] retomar devolve +1 ao inventario -> OK
+[TESTE] radial: cima -> idx 0 (mina) -> OK
+[TESTE] radial: baixo -> idx 3 (gas) -> OK
+[TESTE] radial: selecionar_idx troca a selecao -> OK
+[TESTE] bot sente a armadilha do player -> OK
+[TESTE] bot desvia pra LONGE da armadilha -> OK
+[TESTE] sem armadilha perto, bot nao desvia -> OK
+[TESTE] tiro consome municao -> OK
+[TESTE] projetil acerta o inimigo (dano) -> OK
+[TESTE] municao zera dispara recarga -> OK
+[TESTE] nao atira durante a recarga -> OK
+[TESTE] soco de perto da dano -> OK
+[TESTE] soco derruba o inimigo -> OK
+[TESTE] soco longe nao acerta -> OK
+[TESTE] conceder unit da plasma bomb -> OK
+[TESTE] inicia a carga da unit -> OK
+[TESTE] dano cancela a carga (nao dispara) -> OK
+[TESTE] derrubado na carga quebra o lancador -> OK
+[TESTE] carga completa gasta a plasma bomb -> OK
+[TESTE] plasma persegue e da dano massivo -> OK
+[TESTE] vault bloqueia plantio no tile -> OK
+[TESTE] speed up acelera o player -> OK
+[TESTE] item healer cura -> OK
+[TESTE] protect bloqueia dano normal -> OK
+[TESTE] protect nao bloqueia a plasma -> OK
+[TESTE] item de armadilha soma no inventario -> OK
+[TESTE] item unit concede a unit -> OK
+[TESTE] spark bit da dano ao tocar -> OK
+[TESTE] stats aplica vida_max -> OK
+[TESTE] stats aplica velocidade -> OK
+[TESTE] stats aplica municao_max -> OK
+[TESTE] loadout define o inventario -> OK
+[TESTE] loadout zera tipos fora dele -> OK
+[TESTE] roster brecht: vida e loadout corretos -> OK
+[TESTE] roster magnus: vida e loadout corretos -> OK
+[TESTE] roster vesna: vida e loadout corretos -> OK
+[TESTE] roster pip: vida e loadout corretos -> OK
+[TESTE] roster kestrel: vida e loadout corretos -> OK
+[TESTE] roster mara: vida e loadout corretos -> OK
+[TESTE] aplicar_personagem troca a vida -> OK
+[TESTE] aplicar_personagem troca a velocidade -> OK
+[TESTE] aplicar_personagem refaz o loadout -> OK
+[TESTE] GameManager guarda os personagens escolhidos -> OK
+[TESTE] mapa redimensiona o grid -> OK
+[TESTE] grid_to_world usa o novo tamanho -> OK
+[TESTE] restaura grid 12x12 -> OK
+[TESTE] obstacle box solta item ao quebrar -> OK
+[TESTE] bomb box explode e da dano -> OK
+[TESTE] lancador dispara projetil -> OK
+[TESTE] esteira empurra o combatente -> OK
+[TESTE] ponte dissolve a plasma -> OK
+[TESTE] plasma quebra a ponte -> OK
+[TESTE] mapa padrao instancia field traps -> OK
+[TESTE] mapa corredor instancia field traps -> OK
+[TESTE] mapa fortaleza instancia field traps -> OK
+[TESTE] audiomanager registra os sons -> OK
+[TESTE] audiomanager toca evento conhecido -> OK
+[TESTE] audiomanager ignora evento desconhecido -> OK
+[TESTE] screenshake ativa no tremor -> OK
+[TESTE] fx de explosao entra no grupo -> OK
+[TESTE] pausa ativa o paused -> OK
+[TESTE] pausa desativa o paused -> OK
+[TESTE] gamemanager guarda o modo -> OK
+[TESTE] player 2 usa gamepad 1 (sem teclado) -> OK
+[TESTE] radar mapeia o centro pro meio -> OK
+[TESTE] persistencia salva e le do disco -> OK
+[TESTE] modelo: monta o no Modelo -> OK
+[TESTE] modelo: esconde a capsula placeholder -> OK
+[TESTE] gravidade assenta no chao (y~1) -> OK
+[TESTE] personagem fica EM CIMA da ponte (y~3.75) -> OK
+[TESTE] ponte solida sem ninguem embaixo -> OK
+[TESTE] ponte fica transparente com alguem embaixo -> OK
+[TESTE] mapa vertical tem a flag e estruturas -> OK
+[TESTE] arena vertical registra 2 pontes -> OK
+[TESTE] player assenta no chao da arena vertical -> OK
+[TESTE] partida inicia em 90s -> OK
+[Arena] Healer do bot zerou — jogador venceu (placeholder).
+[TESTE] jogador vence quando bot zera -> OK
+[TESTE] RESULTADO: TODOS OS TESTES PASSARAM
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+   at: cleanup (core/object/object.cpp:2663)

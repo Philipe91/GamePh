@@ -63,17 +63,9 @@ func _ready() -> void:
 		add_child(preload("res://scenes/ui/pausa.tscn").instantiate())
 		GameManager.iniciar_partida([player, bot])
 		return
-	# Arena vertical COMPLETA jogável (pontes cruzadas + rampas). Rodar em casa.
+	# Arena vertical COMPLETA jogável: escolhe o mapa vertical e segue o fluxo normal.
 	if "--vertical" in args:
-		_montar_arena_vertical()
-		player.gravidade_ativa = true
-		bot.gravidade_ativa = true
-		player.global_position = Vector3(-11.0, 1.0, 11.0)
-		bot.global_position = Vector3(11.0, 1.0, -11.0)
-		$HUD.configurar(player, bot)
-		add_child(preload("res://scenes/ui/pausa.tscn").instantiate())
-		GameManager.iniciar_partida([player, bot])
-		return
+		GameManager.mapa = "res://resources/mapas/vertical.tres"
 	# Demo da arena vertical completa: screenshot.
 	if "--demo-vertical" in args:
 		_demo_vertical_e_capturar()
@@ -82,10 +74,14 @@ func _ready() -> void:
 	if "--capturar" in args:
 		_capturar_e_sair()
 		return
-	# Mapa por dados (Fase 6): redimensiona o grid, redesenha, posiciona spawns e Vaults.
-	var mapa: Resource = preload("res://resources/mapas/padrao.tres")
+	# Mapa por dados (Fase 6): escolhe o mapa (GameManager), redimensiona o grid e monta tudo.
+	var caminho_mapa := GameManager.mapa if GameManager.mapa != "" else "res://resources/mapas/padrao.tres"
+	var mapa: Resource = load(caminho_mapa)
 	GridManager.configurar_mapa(mapa)
 	_desenhar_grid()
+	if mapa.vertical:
+		player.gravidade_ativa = true
+		_montar_estruturas(mapa)   # chão, paredes, pontes, rampas (3D com colisão)
 	player.global_position = GridManager.grid_to_world(mapa.spawn_jogador)
 	player.global_position.y = 1.0
 	# Oponente: o bot (VS COM) ou um 2º jogador local com gamepad 1 (VS MAN — GDD 12).
@@ -100,6 +96,7 @@ func _ready() -> void:
 		oponente = p2
 	oponente.global_position = GridManager.grid_to_world(mapa.spawn_bot)
 	oponente.global_position.y = 1.0
+	oponente.gravidade_ativa = mapa.vertical
 	# Personagens escolhidos na tela de seleção (se houver).
 	if GameManager.personagem_jogador != "":
 		player.aplicar_personagem(load(GameManager.personagem_jogador))
@@ -811,7 +808,9 @@ func _rodar_teste() -> void:
 	ponte_oc.queue_free()
 	_pontes.clear()
 
-	# Arena vertical completa: monta e um player assenta no chão dela.
+	# Arena vertical por dados: a flag e as estruturas do .tres.
+	var mapa_v: Resource = load("res://resources/mapas/vertical.tres")
+	falhas += _checar("mapa vertical tem a flag e estruturas", mapa_v.vertical and mapa_v.estruturas.size() > 10)
 	_montar_arena_vertical()
 	falhas += _checar("arena vertical registra 2 pontes", _pontes.size() == 2)
 	var pv := preload("res://scenes/characters/player.tscn").instantiate()
@@ -974,19 +973,25 @@ func _rampa(baixo: Vector3, alto: Vector3, largura: float) -> StaticBody3D:
 	return sb
 
 
-## Arena vertical jogável: chão + perímetro + duas pontes cruzadas (+) no alto + 4 rampas.
+## Monta as estruturas 3D de um mapa vertical a partir dos DADOS (StatsMapa.estruturas).
+func _montar_estruturas(mapa: Resource) -> void:
+	for e in mapa.estruturas:
+		match String(e.get("tipo", "")):
+			"chao":
+				_caixa_solida(e["pos"], e["tam"], Color(0.12, 0.13, 0.18))
+			"parede":
+				_caixa_solida(e["pos"], e["tam"], Color(0.2, 0.22, 0.3))
+			"pilar":
+				_caixa_solida(e["pos"], e["tam"], Color(0.25, 0.26, 0.34))
+			"ponte":
+				_construir_ponte(e["pos"], e["tam"])
+			"rampa":
+				_rampa(e["de"], e["ate"], float(e.get("larg", 3.0)))
+
+
+## Builder da arena vertical (usado pelo --demo-vertical): carrega o mapa .tres por dados.
 func _montar_arena_vertical() -> void:
-	_caixa_solida(Vector3(0.0, -0.1, 0.0), Vector3(28.0, 0.2, 28.0), Color(0.12, 0.13, 0.18))  # chão
-	_caixa_solida(Vector3(0.0, 0.7, 14.0), Vector3(28.0, 1.4, 0.5), Color(0.2, 0.22, 0.3))     # perímetro N
-	_caixa_solida(Vector3(0.0, 0.7, -14.0), Vector3(28.0, 1.4, 0.5), Color(0.2, 0.22, 0.3))    # perímetro S
-	_caixa_solida(Vector3(14.0, 0.7, 0.0), Vector3(0.5, 1.4, 28.0), Color(0.2, 0.22, 0.3))     # perímetro L
-	_caixa_solida(Vector3(-14.0, 0.7, 0.0), Vector3(0.5, 1.4, 28.0), Color(0.2, 0.22, 0.3))    # perímetro O
-	_construir_ponte(Vector3(0.0, 2.6, 0.0), Vector3(3.0, 0.3, 16.0))   # ponte N-S
-	_construir_ponte(Vector3(0.0, 2.6, 0.0), Vector3(16.0, 0.3, 3.0))   # ponte E-O (cruza)
-	_rampa(Vector3(0.0, 0.0, 11.0), Vector3(0.0, 2.6, 8.0), 3.0)        # rampa sul
-	_rampa(Vector3(0.0, 0.0, -11.0), Vector3(0.0, 2.6, -8.0), 3.0)      # rampa norte
-	_rampa(Vector3(11.0, 0.0, 0.0), Vector3(8.0, 2.6, 0.0), 3.0)        # rampa leste
-	_rampa(Vector3(-11.0, 0.0, 0.0), Vector3(-8.0, 2.6, 0.0), 3.0)      # rampa oeste
+	_montar_estruturas(load("res://resources/mapas/vertical.tres"))
 
 
 ## Cria uma ponte sólida e a registra pra oclusão dinâmica (some quem passa por baixo vê).
