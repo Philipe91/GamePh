@@ -1218,7 +1218,8 @@ func _montar_estruturas(mapa: Resource) -> void:
 	for e in mapa.estruturas:
 		match String(e.get("tipo", "")):
 			"chao":
-				_caixa_solida(e["pos"], e["tam"], Color(0.12, 0.13, 0.18))
+				var sb_chao := _caixa_solida(e["pos"], e["tam"], Color(0.12, 0.13, 0.18))
+				_texturizar_chao(sb_chao, e["tam"])
 			"parede":
 				_caixa_solida(e["pos"], e["tam"], Color(0.2, 0.22, 0.3))
 			"pilar":
@@ -1227,6 +1228,42 @@ func _montar_estruturas(mapa: Resource) -> void:
 				_construir_ponte(e["pos"], e["tam"])
 			"rampa":
 				_rampa(e["de"], e["ate"], float(e.get("larg", 3.0)))
+
+
+## Carrega uma textura PNG crua (sem precisar importar pelo editor), com mipmaps.
+func _carregar_tex_arena(caminho: String) -> Texture2D:
+	if not FileAccess.file_exists(caminho):
+		return null
+	var img := Image.new()
+	if img.load(caminho) != OK:
+		return null
+	img.generate_mipmaps()                 # evita serrilhado no chão ladrilhado ao longe
+	return ImageTexture.create_from_image(img)
+
+
+## Aplica a textura de metal tileável (ambientCG) no chão estrutural, repetida pelo tamanho.
+## Sem os PNGs, mantém a cor cinza placeholder.
+func _texturizar_chao(sb: StaticBody3D, tam: Vector3) -> void:
+	var cor := _carregar_tex_arena("res://assets/sprites/chao_tile.png")
+	if cor == null:
+		return
+	var mi := sb.get_child(0) as MeshInstance3D
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = cor
+	mat.albedo_color = Color(1.5, 1.5, 1.65)                 # clareia o metal escuro (e leve azulado)
+	mat.uv1_scale = Vector3(tam.x / 4.0, tam.z / 4.0, 1.0)   # ~1 ladrilho a cada 4 unidades
+	var nrm := _carregar_tex_arena("res://assets/sprites/chao_tile_normal.png")
+	if nrm != null:
+		mat.normal_enabled = true
+		mat.normal_texture = nrm
+	var rough := _carregar_tex_arena("res://assets/sprites/chao_tile_rough.png")
+	if rough != null:
+		mat.roughness_texture = rough
+	var metal := _carregar_tex_arena("res://assets/sprites/chao_tile_metal.png")
+	if metal != null:
+		mat.metallic = 1.0
+		mat.metallic_texture = metal
+	mi.material_override = mat
 
 
 ## Builder da arena vertical (usado pelo --demo-vertical): carrega o mapa .tres por dados.
