@@ -33,6 +33,10 @@ func _ready() -> void:
 	if "--demo-desarme" in args:
 		_demo_desarme_e_capturar()
 		return
+	# Demo do menu radial: a roda das 6 armadilhas aberta com uma fatia destacada.
+	if "--demo-radial" in args:
+		_demo_radial_e_capturar()
+		return
 	# Modo captura automatizada (screenshot pro dev). Só roda se passado --capturar.
 	if "--capturar" in args:
 		_capturar_e_sair()
@@ -277,6 +281,13 @@ func _rodar_teste() -> void:
 	falhas += _checar("retomar devolve +1 ao inventario", int(player.inventario["cova"]) == inv_antes + 1)
 	player.ativar_caution(false)
 
+	# Fase 3 (UX): menu radial de seleção das 6 armadilhas.
+	falhas += _checar("radial: cima -> idx 0 (mina)", player._dir_para_idx(Vector2(0, -1)) == 0)
+	falhas += _checar("radial: baixo -> idx 3 (gas)", player._dir_para_idx(Vector2(0, 1)) == 3)
+	player.selecionar_idx(2)
+	falhas += _checar("radial: selecionar_idx troca a selecao", player.selecao == player.ORDEM[2])
+	player.selecionar_idx(0)  # volta pra mina
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX
@@ -367,6 +378,20 @@ func _demo_desarme_e_capturar() -> void:
 	player._atualizar_overlay_caution()
 	await get_tree().process_frame
 	await get_tree().process_frame  # deixa a HUD desenhar o painel de código
+	_capturar_e_sair()
+
+
+## Liga a HUD e abre o menu radial com uma fatia destacada, depois captura.
+func _demo_radial_e_capturar() -> void:
+	$HUD.configurar(player, bot)
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	await get_tree().physics_frame
+	player.global_position = GridManager.grid_to_world(Vector2i(6, 6))
+	player._radial_aberto = true
+	player._radial_idx = 3        # destaca o Gás na roda
+	await get_tree().process_frame
+	await get_tree().process_frame
 	_capturar_e_sair()
 
 

@@ -64,6 +64,10 @@ var _retomada_alvo: Node = null      # própria armadilha sob o prompt de retoma
 var _interagir_antes: bool = false   # borda do botão de confirmar (R / X)
 var _codigo_antes: int = -1          # borda da última seta do código (-1 = nenhuma)
 
+# Menu radial de seleção (GDD 6.4): segurar abre a roda; o direcional escolhe; soltar seleciona.
+var _radial_aberto: bool = false
+var _radial_idx: int = 0
+
 
 func _ready() -> void:
 	super._ready()
@@ -88,6 +92,12 @@ func _physics_process(delta: float) -> void:
 		_processar_desarme(delta)
 		_ler_caution()
 		_atualizar_overlay_caution()
+		return
+
+	# Menu radial aberto: player parado, o direcional só escolhe a fatia (não anda).
+	_ler_radial()
+	if _radial_aberto:
+		velocity = Vector3.ZERO
 		return
 
 	var dir := _obter_direcao()
@@ -164,6 +174,48 @@ func trocar_selecao(passo: int) -> void:
 	i = (i + passo + ORDEM.size()) % ORDEM.size()
 	selecao = ORDEM[i]
 	selecao_mudou.emit(selecao)
+
+
+## Seleciona a armadilha pelo índice na ORDEM (usado pelo menu radial e por testes).
+func selecionar_idx(i: int) -> void:
+	i = ((i % ORDEM.size()) + ORDEM.size()) % ORDEM.size()
+	selecao = ORDEM[i]
+	selecao_mudou.emit(selecao)
+
+
+# ───────────────────────── Menu radial de seleção (GDD 6.4) ─────────────────────────
+
+func radial_aberto() -> bool:
+	return _radial_aberto
+
+
+func radial_idx() -> int:
+	return _radial_idx
+
+
+## Mapeia uma direção (x dir., y p/ baixo) na fatia da roda. Índice 0 no topo, horário.
+func _dir_para_idx(dir: Vector2) -> int:
+	var passo := TAU / float(ORDEM.size())
+	var ang := atan2(dir.y, dir.x) + PI / 2.0   # topo (-90°) vira 0
+	var i := int(round(ang / passo))
+	return ((i % ORDEM.size()) + ORDEM.size()) % ORDEM.size()
+
+
+## Segurar Tab (teclado) / R1 (gamepad) abre a roda; o direcional escolhe a fatia;
+## soltar confirma a seleção (GDD 6.4). Q/E continua valendo como atalho rápido.
+func _ler_radial() -> void:
+	var aberto := Input.is_physical_key_pressed(KEY_TAB) \
+		or Input.is_joy_button_pressed(0, JOY_BUTTON_RIGHT_SHOULDER)
+	if aberto:
+		if not _radial_aberto:
+			_radial_aberto = true
+			_radial_idx = ORDEM.find(selecao)  # começa na atual
+		var dir := _obter_direcao()
+		if dir.length() > 0.5:                  # só muda com o direcional firme
+			_radial_idx = _dir_para_idx(dir)
+	elif _radial_aberto:
+		_radial_aberto = false
+		selecionar_idx(_radial_idx)             # soltou: confirma a fatia
 
 
 ## Planta a armadilha do tipo dado (ou a selecionada). Faz snap no tile. Retorna true.

@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://b3hud00vault01"]
+[gd_scene load_steps=3 format=3 uid="uid://b3hud00vault01"]
 
 [ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1"]
+[ext_resource type="Script" path="res://scenes/ui/radial_menu.gd" id="2"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1")
@@ -111,3 +112,9 @@ theme_override_colors/font_color = Color(0.4, 1, 0.6, 1)
 theme_override_font_sizes/font_size = 22
 text = "Retomar armadilha? (R)"
 horizontal_alignment = 1
+
+[node name="RadialMenu" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("2")

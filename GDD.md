@@ -196,7 +196,10 @@ Specs (tiradas do manual original, mantidas como base de balanceamento):
   `armadilha` lê o Resource e ramifica o comportamento por `tipo` (balanceia sem código).
 - **Seleção de armadilha (MVP):** menu **radial** — segurar um botão abre a roda com as
   6 armadilhas; soltar no setor escolhido seleciona. Planta a selecionada com o botão
-  de plantar. A HUD mostra a armadilha ativa e a contagem.
+  de plantar. A HUD mostra a armadilha ativa e a contagem. **Implementado:** segurar
+  **Tab** (teclado) / **R1** (gamepad) abre a roda; o **direcional** escolhe a fatia (o
+  player fica parado); soltar confirma. **Q/E** segue como atalho rápido de ciclo. As
+  fatias usam a `cor` do `.tres` e mostram a contagem; sem estoque, a fatia fica apagada.
 - **Bot:** além de perseguir, **planta armadilhas** simples (minas no caminho), pra dar
   alvo real ao Caution Mode/Desarme. Implementado: tenta plantar a cada 4s no tile
   atual, teto de 3 minas suas no mapa.

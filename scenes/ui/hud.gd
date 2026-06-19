@@ -33,6 +33,7 @@ func configurar(p1: Node, p2: Node) -> void:
 	p1.selecao_mudou.connect(_ao_selecao_mudar)
 	barra_p1.value = p1.healer
 	barra_p2.value = p2.healer
+	$RadialMenu.configurar(p1)  # a roda lê o estado do jogador
 	_atualizar_label_armadilha()
 
 
