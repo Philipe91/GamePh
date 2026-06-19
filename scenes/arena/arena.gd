@@ -18,6 +18,7 @@ var _oponente: Node = null
 
 
 func _ready() -> void:
+	_aplicar_textura_chao()
 	_desenhar_grid()
 	player.healer_zerou.connect(_ao_player_morrer)
 	bot.healer_zerou.connect(_ao_bot_morrer)
@@ -205,6 +206,25 @@ func _process(delta: float) -> void:
 		var cor: Color = mat.albedo_color
 		cor.a = lerpf(cor.a, 0.3 if alguem else 1.0, minf(1.0, delta * 8.0))
 		mat.albedo_color = cor
+
+
+## Aplica `assets/sprites/chao.png` como textura do chão (tileada), se o arquivo existir.
+## Plug-and-play: é só largar o PNG na pasta (igual os ícones das armadilhas).
+func _aplicar_textura_chao() -> void:
+	var caminho := "res://assets/sprites/chao.png"
+	if not FileAccess.file_exists(caminho):
+		return
+	var img := Image.new()
+	if img.load(caminho) != OK:
+		return
+	var chao := get_node_or_null("Chao") as MeshInstance3D
+	if chao == null:
+		return
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = ImageTexture.create_from_image(img)
+	mat.uv1_scale = Vector3(6.0, 6.0, 1.0)   # repete a textura pelo chão
+	mat.roughness = 0.9
+	chao.material_override = mat
 
 
 ## Por ora só registra; as regras completas de vitória vêm no bloco 5 (HUD/GameManager).
