@@ -78,6 +78,9 @@ func _ready() -> void:
 	if "--vertical" in args:
 		GameManager.mapa = "res://resources/mapas/vertical.tres"
 	# Demo da arena vertical completa: screenshot.
+	if "--demo-setor07" in args:
+		_demo_setor07_e_capturar()
+		return
 	if "--demo-vertical" in args:
 		_demo_vertical_e_capturar()
 		return
@@ -1046,6 +1049,12 @@ func _rodar_teste() -> void:
 		_seguir_camera = false
 		cam_t.position = pos_orig
 
+	# Mapa grande Setor 07 (Trap Gunner): carrega, é grande, pede câmera-segue e tem estruturas.
+	var m_setor: Resource = load("res://resources/mapas/setor07.tres")
+	falhas += _checar("setor07 carrega grande", m_setor.largura >= 30 and m_setor.altura >= 30)
+	falhas += _checar("setor07 pede camera-segue e vertical", m_setor.camera_segue and m_setor.vertical)
+	falhas += _checar("setor07 tem muitas estruturas", m_setor.estruturas.size() > 10)
+
 	# G3: regras de partida em ROUNDS (melhor de 3). Sem listener da arena no --teste,
 	# então reseto os Healers manualmente entre os rounds.
 	player.set_physics_process(false)
@@ -1233,6 +1242,29 @@ func _construir_ponte(pos: Vector3, tamanho: Vector3) -> StaticBody3D:
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA  # pra poder esmaecer
 	_pontes.append({"no": sb, "mat": mat, "centro": pos, "tamanho": tamanho})
 	return sb
+
+
+## Demo do mapa grande Setor 07 (Trap Gunner): monta as estruturas e segue o player.
+func _demo_setor07_e_capturar() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	var mapa: Resource = load("res://resources/mapas/setor07.tres")
+	var chao := get_node_or_null("Chao")
+	if chao != null:
+		chao.visible = false   # o chão do mapa (estrutura) cobre tudo
+	player.gravidade_ativa = true
+	bot.gravidade_ativa = true
+	_montar_estruturas(mapa)
+	var cam := get_node_or_null("Camera3D") as Camera3D
+	if cam != null:
+		_cam_offset = cam.position
+		_seguir_camera = true
+	await get_tree().physics_frame
+	player.global_position = Vector3(-12.0, 1.0, 14.0)
+	bot.global_position = Vector3(8.0, 1.0, 10.0)
+	for _i in range(40):
+		await get_tree().process_frame   # câmera converge + oclusão age
+	_capturar_e_sair()
 
 
 ## Demo da arena vertical completa: posiciona o player numa rampa subindo e o bot no alto.

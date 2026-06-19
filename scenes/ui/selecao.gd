@@ -13,6 +13,7 @@ const MAPAS: Array = [
 	{"nome": "Corredor", "path": "res://resources/mapas/corredor.tres"},
 	{"nome": "Fortaleza", "path": "res://resources/mapas/fortaleza.tres"},
 	{"nome": "Cruz Vertical", "path": "res://resources/mapas/vertical.tres"},
+	{"nome": "Setor 07 (grande)", "path": "res://resources/mapas/setor07.tres"},
 ]
 
 const UIEstilo := preload("res://scenes/ui/ui_estilo.gd")
