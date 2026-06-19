@@ -3,11 +3,53 @@
 Registro de onde o desenvolvimento parou. Fonte de design: `GDD.md`. Regras de
 trabalho: `CLAUDE.md`. Atualize este arquivo ao fim de cada bloco.
 
-**Última atualização:** 2026-06-17
+**Última atualização:** 2026-06-18
 
 ---
 
-## Estado atual: Fase 2 (vertical slice) — COMPLETA (blocos 1 a 5)
+## Estado atual: Fase 3 (sistema de armadilhas) — blocos 1 a 4 COMPLETOS
+
+As **6 armadilhas** do GDD implementadas (.tres balanceáveis) + **Caution Mode**,
+**Desarme** (Disarming Code) e **Retomada**. Teste headless: **34/34 passam**.
+
+### ✅ Bloco 1 — Arquitetura de armadilhas + Bomba/Detonador (`76a9b2d`)
+- `StatsArmadilha` (`scripts/stats_armadilha.gd`) como Resource; cada armadilha é um
+  `.tres` (dano, raio, knockback, tempos, params). `armadilha.gd` (Area3D) genérica
+  ramifica por `stats.tipo`. Acoplamento solto (grupos "armadilhas"/"combatentes",
+  `has_method`).
+- **Bomba** (não dispara por pisar) + **Detonador** (botão F/B aciona) + **combo**:
+  mina e detonador acionam as Bombas do **mesmo dono** dentro do raio.
+
+### ✅ Bloco 2 — Gás, Cova, Painel + efeitos de status (`03cca6d`)
+- **Cova**: imobiliza ao pisar. **Painel de Força**: arremessa na direção do plantio.
+  **Gás**: auto-emite após um tempo, nuvem ativa por uma duração com dano+slow+imobiliza
+  em área (afeta até o dono).
+- `combatente.gd`: `imobilizar`/`aplicar_slow`/`fator_velocidade`/`tentar_escapar`
+  (button-mash pra sair da Cova); `_process` decai os timers. Player e bot respeitam.
+
+### ✅ Bloco 3 — Caution Mode + bot planta minas (`0aea319`)
+- Segurar **C** (teclado) / **L1** (gamepad) liga o modo (contínuo, anda segurando).
+  Raio de **2 tiles**: tiles no alcance ficam **azuis**, armadilhas **inimigas** no raio
+  ganham **marcador amarelo**. Overlay montado em código (pool de malhas, `top_level`).
+- `GridManager.armadilhas_inimigas_no_raio()`. **Bot** agora planta minas simples
+  (a cada 4s, teto de 3) — dá alvo real ao Caution Mode.
+
+### ✅ Bloco 4 — Desarme (Disarming Code) e Retomada (`e0367b6`)
+- **Desarme**: encostar (≤1,6u) em armadilha inimiga **em Caution Mode** cancela o
+  gatilho e abre um **código de 4 setas** (↑↓←→ / D-pad) em **4s**; player fica parado.
+  Sucesso: armadilha some, inimigo a perde, Healer **+8**. Falha (seta errada / tempo /
+  tomar dano): **explosivas detonam**, demais **re-armam**. Cooldown de 1s.
+- **Retomada**: encostar na **própria** em Caution Mode → prompt **R/X** → recolhe e
+  devolve **+1** ao inventário na hora.
+- HUD: painel do código (setas + timer, acertos entre colchetes) e prompt de retomada.
+
+### ⏳ Falta na Fase 3
+- **Menu radial** de seleção das 6 armadilhas (hoje **Q/E** provisório).
+- Bot usar Caution Mode / desarme (IA).
+
+---
+
+## Estado anterior: Fase 2 (vertical slice) — COMPLETA (blocos 1 a 5)
 
 Loop jogável: mover (WASD/gamepad), plantar minas (Espaço/A), o bot persegue e pisa,
 toma dano + knockback, com timer de 90s, regras de vitória e HUD. Pronto pra Fase 3.
