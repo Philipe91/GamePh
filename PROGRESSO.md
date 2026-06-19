@@ -7,10 +7,11 @@ trabalho: `CLAUDE.md`. Atualize este arquivo ao fim de cada bloco.
 
 ---
 
-## Estado atual: Fase 3 (sistema de armadilhas) — blocos 1 a 4 COMPLETOS
+## Estado atual: Fase 3 (sistema de armadilhas) — blocos 1 a 4 + UX COMPLETOS
 
 As **6 armadilhas** do GDD implementadas (.tres balanceáveis) + **Caution Mode**,
-**Desarme** (Disarming Code) e **Retomada**. Teste headless: **34/34 passam**.
+**Desarme** (Disarming Code), **Retomada** e **menu radial** de seleção. Teste headless:
+**37/37 passam**.
 
 ### ✅ Bloco 1 — Arquitetura de armadilhas + Bomba/Detonador (`76a9b2d`)
 - `StatsArmadilha` (`scripts/stats_armadilha.gd`) como Resource; cada armadilha é um
@@ -43,9 +44,13 @@ As **6 armadilhas** do GDD implementadas (.tres balanceáveis) + **Caution Mode*
   devolve **+1** ao inventário na hora.
 - HUD: painel do código (setas + timer, acertos entre colchetes) e prompt de retomada.
 
+### ✅ UX — Menu radial de seleção (`c7ec79b`)
+- Segurar **Tab** / **R1** abre a roda das 6 armadilhas (player parado); o **direcional**
+  escolhe a fatia; soltar confirma. **Q/E** segue como atalho rápido. `radial_menu.gd`
+  (Control) desenha as bolhas na cor do `.tres` com nome + contagem; sem estoque, apaga.
+
 ### ⏳ Falta na Fase 3
-- **Menu radial** de seleção das 6 armadilhas (hoje **Q/E** provisório).
-- Bot usar Caution Mode / desarme (IA).
+- **IA do bot** usar Caution Mode / desarmar armadilhas do player.
 
 ---
 
