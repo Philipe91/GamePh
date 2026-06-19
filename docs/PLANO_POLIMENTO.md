@@ -1,8 +1,20 @@
-# VAULTBREAKER — Plano de polimento autônomo
+# VAULTBREAKER — Plano de trabalho autônomo
 
-Fila de fatias de **polimento (só código, sem depender de asset 3D/áudio ou playtest do
-humano)**. O agente desce a fila, **commita E dá push** em cada fatia, manda screenshot
-nos marcos, e agenda a próxima. Diário no fim.
+> **PIVÔ (2026-06-19):** o humano pediu pra focar em **desenvolver o JOGO (gameplay)**, não
+> no visual — o design/arte fica pra quando houver assets reais (o greybox parece amador
+> de propósito). Então P3–P7 (cosméticos) ficam **PAUSADOS**; a fila ativa agora é
+> **GAMEPLAY** (mais abaixo).
+
+Fila de fatias **(só código, sem depender de asset 3D/áudio ou playtest do humano)**. O
+agente desce a fila, **commita E dá push** em cada fatia, manda screenshot nos marcos.
+
+## Fila de GAMEPLAY (ativa)
+- [x] **G1. IA do bot — profundidade.** Recua/kite com pouca vida (atira de costas),
+  planta armadilhas variadas (Cova perto / Mina longe), usa a Unit quando tem. 110/110.
+- [ ] **G2. Níveis de dificuldade do bot** (fácil/normal/difícil) selecionáveis no título.
+- [ ] **G3. Sistema de rounds** (melhor de 3) — estrutura de partida.  *(checar design no GDD)*
+- [ ] **G4. Bot usa Caution Mode/desarme** nas armadilhas do player (GDD 6.4).
+- [ ] **G5. Passe de balanceamento** dos `.tres` (tempos/dano/velocidade) pro feel.
 
 ## Guardrails
 1. **Commit + push** a cada fatia (workflow atual é manter o GitHub sincronizado).

@@ -444,6 +444,32 @@ func _rodar_teste() -> void:
 	bot.global_position = GridManager.grid_to_world(Vector2i(0, 0))  # longe de tudo
 	falhas += _checar("sem armadilha perto, bot nao desvia", bot._desvio_de_armadilhas().length() < 0.001)
 
+	# IA do bot: recua (kite) quando com pouca vida.
+	player.set_physics_process(false)
+	player.global_position = Vector3(0.0, 1.0, 0.0)
+	bot.gravidade_ativa = false
+	bot.healer = 10.0                          # pouca vida -> foge
+	bot._imobilizado_restante = 0.0            # limpa resíduo de Cova/Gás dos testes
+	bot._slow_restante = 0.0
+	bot._derrubado_restante = 0.0
+	bot.global_position = Vector3(0.0, 1.0, -3.0)
+	bot._alvo = player
+	bot.set_physics_process(true)              # liga a IA
+	var dist_fuga: float = bot.global_position.distance_to(player.global_position)
+	for _i in range(40):
+		await get_tree().physics_frame
+	falhas += _checar("bot recua com pouca vida", bot.global_position.distance_to(player.global_position) > dist_fuga + 1.0)
+	bot.set_physics_process(false)
+	bot.healer = Combatente.HEALER_MAX
+	# IA do bot: planta Cova quando o player está perto (prende quem persegue).
+	var coord_cv := Vector2i(1, 4)
+	GridManager.remover_armadilha(coord_cv)
+	bot.global_position = GridManager.grid_to_world(coord_cv)
+	bot._armadilhas_ativas = 0
+	bot._plantar_situacional(3.0)              # dist < 6 -> cova
+	falhas += _checar("bot planta Cova com o player perto", GridManager.armadilha_em(coord_cv).get("tipo") == "cova")
+	GridManager.remover_armadilha(coord_cv)
+
 	# Bloco B1 (Fase 4): arma de projétil.
 	player.set_physics_process(false)
 	bot.set_physics_process(false)

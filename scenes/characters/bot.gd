@@ -13,16 +13,21 @@ const DIST_PARAR: float = 1.2       # encostou no alvo, para de empurrar
 const RAIO_DESVIO: float = 2.6
 const PESO_DESVIO: float = 1.6      # quão forte o desvio entorta a rota até o player
 const ALCANCE_TIRO: float = 14.0    # distância máx pra o bot abrir fogo no player
+const VIDA_FUGIR: float = 30.0      # abaixo disso o bot RECUA (kite) em vez de avançar
 
-# Plantio simples de minas (GDD 6.4): dá alvo real pro Caution Mode/Desarme do player.
+# Plantio de armadilhas variadas (IA): Cova pra prender quem persegue, Mina no caminho.
 const CENA_ARMADILHA := preload("res://scenes/traps/armadilha.tscn")
-const MINA := preload("res://resources/armadilhas/mina.tres")
-const INTERVALO_PLANTIO: float = 4.0   # tenta plantar a cada 4s enquanto persegue
-const MAX_MINAS: int = 3               # teto de minas suas no mapa ao mesmo tempo
+const TRAPS := {
+	"mina": preload("res://resources/armadilhas/mina.tres"),
+	"cova": preload("res://resources/armadilhas/cova.tres"),
+	"gas": preload("res://resources/armadilhas/gas.tres"),
+}
+const INTERVALO_PLANTIO: float = 3.5   # tenta plantar a cada 3.5s
+const MAX_ARMADILHAS: int = 4          # teto de armadilhas suas no mapa ao mesmo tempo
 
 var _alvo: Node3D = null
 var _t_plantio: float = 2.0            # cooldown atual até a próxima tentativa
-var _minas_ativas: int = 0
+var _armadilhas_ativas: int = 0
 
 
 func _ready() -> void:
@@ -45,12 +50,16 @@ func _physics_process(delta: float) -> void:
 		return
 	var para := _alvo.global_position - global_position
 	para.y = 0.0
+	var dist := para.length()
 	var vel := velocidade_base * fator_velocidade()  # base do personagem × slow/speed
-	if para.length() > DIST_PARAR:
-		# Persegue o player, mas entorta a rota pra fugir das armadilhas dele (A1).
-		var rumo := para.normalized() + _desvio_de_armadilhas() * PESO_DESVIO
+	# Com pouca vida e o player por perto, RECUA (kite) em vez de avançar.
+	var fugindo := healer < VIDA_FUGIR and dist < 11.0
+
+	if dist > DIST_PARAR or fugindo:
+		var base := (-para.normalized()) if fugindo else para.normalized()
+		var rumo := base + _desvio_de_armadilhas() * PESO_DESVIO  # sempre foge das armadilhas
 		if rumo.length() < 0.05:
-			rumo = para.normalized()
+			rumo = base
 		var d := rumo.normalized()
 		velocity.x = d.x * vel
 		velocity.z = d.z * vel
@@ -65,15 +74,22 @@ func _physics_process(delta: float) -> void:
 		velocity.y = 0.0
 		move_and_slide()
 		position.y = ALTURA_PISO
-	if velocity.length() > 0.01:
+	# Fugindo: encara o player (atira recuando). Senão: olha pra onde anda.
+	if fugindo and dist > 0.01:
+		rotation.y = lerp_angle(rotation.y, atan2(-para.x, -para.z), 0.25)
+	elif velocity.length() > 0.01:
 		rotation.y = lerp_angle(rotation.y, atan2(-velocity.x, -velocity.z), 0.2)
+
 	if _t_plantio <= 0.0:
-		_tentar_plantar_mina()
+		_plantar_situacional(dist)
 	# Atira no player quando está de frente e dentro do alcance (a cadência/recarga limitam).
-	if para.length() < ALCANCE_TIRO and _encara_alvo(para):
+	if dist < ALCANCE_TIRO and _encara_alvo(para):
 		atirar()
+	# Tem a Unit (item da Vault) e distância média: carrega a Plasma (GDD 9).
+	if tem_unit and plasma_bombs > 0 and dist > 4.0 and dist < ALCANCE_TIRO and not fugindo:
+		iniciar_carga_unit()
 	# Bem colado: parte pro soco (derruba). O cooldown do soco limita o ritmo.
-	if para.length() < SOCO_ALCANCE:
+	if dist < SOCO_ALCANCE:
 		socar()
 
 
@@ -101,24 +117,35 @@ func _desvio_de_armadilhas() -> Vector3:
 	return desvio
 
 
-## Tenta plantar uma mina no tile atual (sem snap fino: usa o tile onde o bot está).
-## Respeita o teto de minas e tiles já ocupados. Reseta o cooldown sempre que tenta.
+## Escolhe e planta uma armadilha conforme a situação: Cova quando o player está perto
+## (prende quem persegue), Mina quando longe (mina o caminho). Reseta o cooldown.
+func _plantar_situacional(dist: float) -> void:
+	_t_plantio = INTERVALO_PLANTIO
+	_plantar("cova" if dist < 6.0 else "mina")
+
+
+## Compat com testes/demos: planta uma mina no tile atual.
 func _tentar_plantar_mina() -> void:
 	_t_plantio = INTERVALO_PLANTIO
-	if _minas_ativas >= MAX_MINAS:
+	_plantar("mina")
+
+
+## Planta uma armadilha do `tipo` no tile atual. Respeita o teto e tiles ocupados.
+func _plantar(tipo: String) -> void:
+	if _armadilhas_ativas >= MAX_ARMADILHAS or not TRAPS.has(tipo):
 		return
 	var coord := GridManager.world_to_grid(global_position)
 	if not GridManager.pode_plantar(coord):
 		return
 	var a := CENA_ARMADILHA.instantiate()
-	a.stats = MINA
+	a.stats = TRAPS[tipo]
 	a.dono_id = id_jogador
 	a.coord_grid = coord
 	get_parent().add_child(a)
 	a.global_position = GridManager.grid_to_world(coord)
-	GridManager.registrar_armadilha(coord, id_jogador, "mina", a)
-	a.consumida.connect(func(): _minas_ativas = maxi(0, _minas_ativas - 1))
-	_minas_ativas += 1
+	GridManager.registrar_armadilha(coord, id_jogador, tipo, a)
+	a.consumida.connect(func(): _armadilhas_ativas = maxi(0, _armadilhas_ativas - 1))
+	_armadilhas_ativas += 1
 
 
 ## Acha o primeiro combatente de outro time (o player). Sem acoplamento por nome.
