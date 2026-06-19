@@ -64,10 +64,14 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
   Resource; 2–3 layouts. — `scripts/stats_mapa.gd` + `resources/mapas/{padrao,corredor}.tres`;
   GridManager.configurar_mapa() (LARGURA/ALTURA/TAMANHO_TILE viraram var); arena aplica o
   mapa (redesenha grid, posiciona spawns e Vaults). Teste 79/79.
-- [ ] **D2. Field traps.** Obstacle Box, Bomb Box, Laser/Rocket Launcher, Esteira
-  (tile que empurra). Destrutíveis por projétil/bomba.
-- [ ] **D3. Pontes/passarelas** (tile "azul claro") pra evasão da Plasma (some a ponte ao
-  ser atingida).
+- [x] **D2. Field traps.** Obstacle Box, Bomb Box, Laser/Rocket Launcher, Esteira
+  (tile que empurra). Destrutíveis por projétil/bomba. — `scenes/field_traps/{caixa,
+  esteira,lancador}.{gd,tscn}`; caixa "obstaculo" solta item / "bomba" explode+detona
+  bombas; lançador dispara projétil (dono 0 = acerta os dois); esteira empurra; explosão
+  de armadilha danifica o grupo "destrutiveis". Teste 83/83.
+- [x] **D3. Pontes/passarelas** (tile "azul claro") pra evasão da Plasma (some a ponte ao
+  ser atingida). — `scenes/field_traps/ponte.{gd,tscn}`; a Plasma checa o grupo "pontes"
+  e dissolve quebrando a ponte. Teste 85/85.
 
 ## BLOCO E — Fase 7: Juice, UI e modos
 

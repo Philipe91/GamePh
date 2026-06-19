@@ -177,6 +177,11 @@ func _detonar() -> void:
 			c.receber_dano(stats.dano)
 		if stats.knockback > 0.0 and c.has_method("aplicar_empurrao"):
 			c.aplicar_empurrao(c.global_position - global_position, stats.knockback)
+	# Field traps destrutíveis (caixas, lançadores) também levam dano da explosão (GDD 10).
+	for d in get_tree().get_nodes_in_group("destrutiveis"):
+		if is_instance_valid(d) and global_position.distance_to(d.global_position) <= stats.raio_efeito \
+				and d.has_method("receber_dano"):
+			d.receber_dano(stats.dano)
 	_mostrar_explosao()
 
 

@@ -545,6 +545,60 @@ func _rodar_teste() -> void:
 	GridManager.configurar_mapa(mp_pad)
 	falhas += _checar("restaura grid 12x12", GridManager.LARGURA == 12 and is_equal_approx(GridManager.grid_to_world(Vector2i(0, 0)).x, -11.0))
 
+	# Bloco D2 (Fase 6): field traps.
+	# Obstacle Box: ao quebrar, solta um item.
+	var n_itens: int = get_tree().get_nodes_in_group("itens").size()
+	var cx_obs := preload("res://scenes/field_traps/caixa.tscn").instantiate()
+	cx_obs.tipo = "obstaculo"
+	cx_obs.item_escondido = "healer"
+	add_child(cx_obs)
+	cx_obs.global_position = Vector3(-8.0, 1.0, -8.0)
+	cx_obs.receber_dano(99.0)
+	falhas += _checar("obstacle box solta item ao quebrar", get_tree().get_nodes_in_group("itens").size() > n_itens)
+	# Bomb Box: ao quebrar, explode e dá dano em área.
+	bot.healer = Combatente.HEALER_MAX
+	var cx_bomb := preload("res://scenes/field_traps/caixa.tscn").instantiate()
+	cx_bomb.tipo = "bomba"
+	add_child(cx_bomb)
+	cx_bomb.global_position = Vector3(-6.0, 1.0, -6.0)
+	bot.global_position = Vector3(-6.0, 1.0, -6.0)
+	cx_bomb.receber_dano(99.0)
+	falhas += _checar("bomb box explode e da dano", bot.healer < Combatente.HEALER_MAX)
+	# Lançador: dispara projétil.
+	var n_proj: int = get_tree().get_nodes_in_group("projeteis").size()
+	var lan := preload("res://scenes/field_traps/lancador.tscn").instantiate()
+	add_child(lan)
+	lan.global_position = Vector3(7.0, 1.0, 7.0)
+	lan._disparar()
+	falhas += _checar("lancador dispara projetil", get_tree().get_nodes_in_group("projeteis").size() > n_proj)
+	lan.queue_free()
+	# Esteira: empurra quem está em cima.
+	var est := preload("res://scenes/field_traps/esteira.tscn").instantiate()
+	est.direcao = Vector3(1, 0, 0)
+	est.velocidade = 6.0
+	add_child(est)
+	est.global_position = Vector3(0.0, 0.5, 0.0)
+	bot.global_position = Vector3(0.0, 1.0, 0.0)
+	var bot_x: float = bot.global_position.x
+	for _i in range(20):
+		await get_tree().physics_frame
+	falhas += _checar("esteira empurra o combatente", bot.global_position.x > bot_x + 0.1)
+	est.queue_free()
+
+	# Bloco D3 (Fase 6): ponte dissolve a Plasma (e quebra junto).
+	var ponte := preload("res://scenes/field_traps/ponte.tscn").instantiate()
+	add_child(ponte)
+	ponte.global_position = Vector3(3.0, 1.0, 3.0)
+	var pl := preload("res://scenes/projeteis/plasma.tscn").instantiate()
+	pl.alvo = null
+	pl.dono_id = 1
+	add_child(pl)
+	pl.global_position = Vector3(3.0, 1.0, 3.0)   # sobre a ponte
+	for _i in range(5):
+		await get_tree().physics_frame
+	falhas += _checar("ponte dissolve a plasma", not is_instance_valid(pl))
+	falhas += _checar("plasma quebra a ponte", not is_instance_valid(ponte))
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX

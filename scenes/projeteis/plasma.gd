@@ -30,6 +30,13 @@ func _physics_process(delta: float) -> void:
 		if is_instance_valid(e) and global_position.distance_to(e.global_position) < RAIO_EXPLOSAO:
 			queue_free()
 			return
+	# Evasão (GDD 9): atingir uma ponte/passarela dissolve a Plasma e quebra a ponte.
+	for pt in get_tree().get_nodes_in_group("pontes"):
+		if is_instance_valid(pt) and global_position.distance_to(pt.global_position) < RAIO_EXPLOSAO:
+			if pt.has_method("quebrar"):
+				pt.quebrar()
+			queue_free()
+			return
 	if alvo == null or not is_instance_valid(alvo):
 		alvo = _achar_inimigo()
 	if alvo != null:
