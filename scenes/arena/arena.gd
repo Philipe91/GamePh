@@ -515,6 +515,36 @@ func _rodar_teste() -> void:
 	falhas += _checar("bot desarma a armadilha do player", not GridManager.tem_armadilha(coord_dz))
 	bot.set_physics_process(false)
 
+	# G6: bot busca o Healer da Vault quando está com pouca vida.
+	for p in get_tree().get_nodes_in_group("projeteis"):
+		p.queue_free()
+	for a in get_tree().get_nodes_in_group("armadilhas"):
+		a.queue_free()
+	GridManager.configurar_mapa(preload("res://scripts/stats_mapa.gd").new())
+	await get_tree().physics_frame
+	player.global_position = Vector3(30.0, 1.0, 0.0)   # player bem longe
+	var heal := preload("res://scenes/items/item.tscn").instantiate()
+	heal.tipo = "healer"
+	add_child(heal)
+	heal.global_position = Vector3(0.0, 1.0, 8.0)       # item ao norte
+	bot._imobilizado_restante = 0.0
+	bot._slow_restante = 0.0
+	bot._derrubado_restante = 0.0
+	bot._desarmando = null
+	bot.healer = 10.0                                   # pouca vida -> busca cura
+	bot.gravidade_ativa = false
+	bot.global_position = Vector3(0.0, 1.0, 0.0)
+	bot._alvo = player
+	falhas += _checar("bot mira o Healer com pouca vida", bot._melhor_item() == heal)
+	var d_heal: float = bot.global_position.distance_to(heal.global_position)
+	bot.set_physics_process(true)
+	for _i in range(40):
+		await get_tree().physics_frame
+	falhas += _checar("bot anda em direcao ao Healer", bot.global_position.distance_to(heal.global_position) < d_heal - 1.0)
+	bot.set_physics_process(false)
+	bot.healer = Combatente.HEALER_MAX
+	heal.queue_free()
+
 	# Bloco B1 (Fase 4): arma de projétil.
 	player.set_physics_process(false)
 	bot.set_physics_process(false)

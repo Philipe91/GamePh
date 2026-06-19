@@ -17,7 +17,9 @@ agente desce a fila, **commita E dá push** em cada fatia, manda screenshot nos 
 - [x] **G4. Bot desarma armadilhas do player** (GDD 6.4): ao encostar (≤1.7m) numa
   armadilha do player, o bot para 1.5s e a remove; tomar dano interrompe e re-arma (o
   player pode salvar a armadilha acertando o bot). Só normal/difícil. 113/113.
-- [ ] **G6. Bot busca itens da Vault** (vai atrás de item, prioriza Healer com pouca vida).
+- [x] **G6. Bot busca itens da Vault**: com pouca vida corre pro Healer (até 16m); senão
+  pega itens próximos (≤7m) por oportunidade. Movimento mira o item, combate mira o player.
+  115/115.
 - [ ] **G5. Passe de balanceamento** dos `.tres` — ⚠ precisa do seu PLAYTEST (não dá pra
   "sentir" daqui); fica pra quando você jogar e me disser o que está forte/fraco.
 

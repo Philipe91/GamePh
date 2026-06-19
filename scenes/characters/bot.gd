@@ -26,6 +26,8 @@ const INTERVALO_PLANTIO: float = 3.5   # tenta plantar a cada 3.5s
 const MAX_ARMADILHAS: int = 4          # teto de armadilhas suas no mapa ao mesmo tempo
 const DESARME_DIST: float = 1.7        # encostou na armadilha do player -> pode desarmar
 const DESARME_TEMPO: float = 1.5       # segundos parado desarmando (exposto)
+const ITEM_INTERESSE: float = 7.0      # raio pra pegar item por oportunidade
+const ITEM_CURA_ALCANCE: float = 16.0  # com pouca vida, corre pro Healer mesmo longe
 
 var _alvo: Node3D = null
 var _t_plantio: float = 2.0            # cooldown atual até a próxima tentativa
@@ -96,7 +98,13 @@ func _physics_process(delta: float) -> void:
 		_alvo = _achar_alvo()
 	if _alvo == null:
 		return
-	var para := _alvo.global_position - global_position
+	var para_jog := _alvo.global_position - global_position
+	para_jog.y = 0.0
+	var dist_jog := para_jog.length()
+	# G6: alvo de MOVIMENTO pode ser um item da Vault (corre pro Healer com pouca vida,
+	# pega itens próximos por oportunidade). O COMBATE segue mirando no player (para_jog).
+	var item := _melhor_item()
+	var para := (item.global_position - global_position) if item != null else para_jog
 	para.y = 0.0
 	var dist := para.length()
 	# Encostou numa armadilha do player? Começa a desarmar (se a dificuldade deixa).
@@ -110,8 +118,8 @@ func _physics_process(delta: float) -> void:
 			_mover(delta)
 			return
 	var vel := velocidade_base * fator_velocidade()  # base do personagem × slow/speed
-	# Com pouca vida e o player por perto, RECUA (kite) em vez de avançar (se a dificuldade deixa).
-	var fugindo := _kite and healer < VIDA_FUGIR and dist < 11.0
+	# Com pouca vida e o player por perto, RECUA (kite) — mas não se está indo buscar item.
+	var fugindo := item == null and _kite and healer < VIDA_FUGIR and dist_jog < 11.0
 
 	if dist > DIST_PARAR or fugindo:
 		var base := (-para.normalized()) if fugindo else para.normalized()
@@ -132,16 +140,38 @@ func _physics_process(delta: float) -> void:
 		rotation.y = lerp_angle(rotation.y, atan2(-velocity.x, -velocity.z), 0.2)
 
 	if _t_plantio <= 0.0:
-		_plantar_situacional(dist)
+		_plantar_situacional(dist_jog)
 	# Atira no player quando está de frente e dentro do alcance (a cadência/recarga limitam).
-	if dist < ALCANCE_TIRO and _encara_alvo(para):
+	if dist_jog < ALCANCE_TIRO and _encara_alvo(para_jog):
 		atirar()
 	# Tem a Unit (item da Vault) e distância média: carrega a Plasma (GDD 9).
-	if tem_unit and plasma_bombs > 0 and dist > 4.0 and dist < ALCANCE_TIRO and not fugindo:
+	if tem_unit and plasma_bombs > 0 and dist_jog > 4.0 and dist_jog < ALCANCE_TIRO and not fugindo:
 		iniciar_carga_unit()
 	# Bem colado: parte pro soco (derruba). O cooldown do soco limita o ritmo.
-	if dist < SOCO_ALCANCE:
+	if dist_jog < SOCO_ALCANCE:
 		socar()
+
+
+## Melhor item da Vault pra buscar (G6): com pouca vida, vai atrás do Healer (mesmo longe);
+## senão pega qualquer item próximo por oportunidade. Null se não vale a pena.
+func _melhor_item() -> Node3D:
+	var precisa_cura := healer < VIDA_FUGIR
+	var melhor: Node3D = null
+	var melhor_d := 1.0e9
+	for it in get_tree().get_nodes_in_group("itens"):
+		if not is_instance_valid(it):
+			continue
+		var eh_cura := String(it.get("tipo")) == "healer"
+		var raio := ITEM_INTERESSE
+		if precisa_cura:
+			if not eh_cura:
+				continue          # com pouca vida só corre pro Healer
+			raio = ITEM_CURA_ALCANCE
+		var d := global_position.distance_to(it.global_position)
+		if d <= raio and d < melhor_d:
+			melhor_d = d
+			melhor = it
+	return melhor
 
 
 ## Aplica gravidade (mapas verticais) ou trava a altura (mapas planos) + move_and_slide.
