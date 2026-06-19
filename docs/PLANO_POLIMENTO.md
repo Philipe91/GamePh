@@ -66,3 +66,12 @@ placeholders. Ao esgotar, criar PLAYTEST.md e parar.
 - **G3 ✅** Rounds melhor de 3 (GameManager: v1/v2/round_num, round_comecou/round_acabou/
   placar_mudou; pausa entre rounds; arena reseta posições+vida+armadilhas; HUD placar +
   "ROUND N"). GDD 7.3 atualizado. 120/120.
+- **Settings ✅** tela de volume + persistência (Persistencia). `--demo-settings`. 122/122.
+- **Story ✅** esqueleto navegável (3 missões -> mapa/dificuldade -> seleção). GDD 12. 122/122.
+- **Áudio/juice ✅** sons "dano"/"derrubado" + screenshake no knockdown. 123/123.
+- **Chão plug-and-play ✅** carrega assets/sprites/chao.png automático.
+- **Cobertura ✅** reiniciar()/limpar_armadilhas testados. **127 testes.**
+- **Fase 5/6 conferidas:** já estavam completas (6 personagens .tres com valores do GDD +
+  seleção; 3+1 mapas com Vaults e field traps). Nada a refazer.
+- **FILA AUTÔNOMA ESGOTADA.** Criado `PLAYTEST.md` com tudo que precisa do feel/playtest do
+  humano (balanceamento, rampas verticais, aprovações). Parando e avisando. Sobra só G5.
