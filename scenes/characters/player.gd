@@ -167,6 +167,15 @@ func _ler_acoes() -> void:
 		trocar_selecao(ciclo)
 	_ciclo_antes = ciclo
 
+	# Atirar (botão esquerdo do mouse / J / gatilho direito). A cadência limita o ritmo;
+	# [decisão noturna 2026-06-18] o tiro sai na direção que o personagem encara (mira por
+	# movimento). Mira livre por mouse/stick fica pra uma fatia futura.
+	var atirar_p := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) \
+		or Input.is_physical_key_pressed(KEY_J) \
+		or Input.get_joy_axis(0, JOY_AXIS_TRIGGER_RIGHT) > 0.5
+	if atirar_p:
+		atirar()
+
 
 ## Troca a armadilha selecionada (passo +1/-1 na ORDEM).
 func trocar_selecao(passo: int) -> void:

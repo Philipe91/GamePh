@@ -8,6 +8,7 @@ extends CanvasLayer
 @onready var barra_p2: ProgressBar = $P2Bar
 @onready var lbl_timer: Label = $TimerLabel
 @onready var lbl_minas: Label = $MinasLabel
+@onready var lbl_municao: Label = $MunicaoLabel
 @onready var lbl_fim: Label = $FimLabel
 @onready var lbl_desarme: Label = $DesarmeLabel
 @onready var lbl_retomada: Label = $RetomadaLabel
@@ -31,8 +32,10 @@ func configurar(p1: Node, p2: Node) -> void:
 	p2.healer_mudou.connect(func(atual: float, _maximo: float): barra_p2.value = atual)
 	p1.inventario_mudou.connect(_ao_inventario_mudar)
 	p1.selecao_mudou.connect(_ao_selecao_mudar)
+	p1.municao_mudou.connect(_ao_municao_mudar)
 	barra_p1.value = p1.healer
 	barra_p2.value = p2.healer
+	_ao_municao_mudar(p1.municao, p1.MUNICAO_MAX)
 	$RadialMenu.configurar(p1)  # a roda lê o estado do jogador
 	_atualizar_label_armadilha()
 
@@ -54,6 +57,13 @@ func _ao_inventario_mudar(tipo: String, _atual: int, _maximo: int) -> void:
 
 func _ao_selecao_mudar(_tipo: String) -> void:
 	_atualizar_label_armadilha()
+
+
+func _ao_municao_mudar(atual: int, maximo: int) -> void:
+	if _jogador != null and _jogador.esta_recarregando():
+		lbl_municao.text = "Munição: recarregando…"
+	else:
+		lbl_municao.text = "Munição: %d/%d" % [atual, maximo]
 
 
 ## Painel de desarme e prompt de retomada são dinâmicos (timer correndo): leio o estado

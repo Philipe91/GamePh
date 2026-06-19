@@ -12,6 +12,7 @@ const DIST_PARAR: float = 1.2       # encostou no alvo, para de empurrar
 ## mais difícil sem precisar do Caution Mode completo na IA (isso fica pra depois).
 const RAIO_DESVIO: float = 2.6
 const PESO_DESVIO: float = 1.6      # quão forte o desvio entorta a rota até o player
+const ALCANCE_TIRO: float = 14.0    # distância máx pra o bot abrir fogo no player
 
 # Plantio simples de minas (GDD 6.4): dá alvo real pro Caution Mode/Desarme do player.
 const CENA_ARMADILHA := preload("res://scenes/traps/armadilha.tscn")
@@ -54,6 +55,18 @@ func _physics_process(delta: float) -> void:
 		rotation.y = lerp_angle(rotation.y, atan2(-velocity.x, -velocity.z), 0.2)
 	if _t_plantio <= 0.0:
 		_tentar_plantar_mina()
+	# Atira no player quando está de frente e dentro do alcance (a cadência/recarga limitam).
+	if para.length() < ALCANCE_TIRO and _encara_alvo(para):
+		atirar()
+
+
+## True se a frente do bot (-Z) aponta razoavelmente para o alvo (pra não atirar de costas).
+func _encara_alvo(para: Vector3) -> bool:
+	var frente := -global_transform.basis.z
+	frente.y = 0.0
+	if frente.length() < 0.01 or para.length() < 0.01:
+		return false
+	return frente.normalized().dot(para.normalized()) > 0.7
 
 
 ## Soma de empurrões pra LONGE de cada armadilha do player no raio (faro do bot, A1).

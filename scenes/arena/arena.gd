@@ -302,6 +302,37 @@ func _rodar_teste() -> void:
 	bot.global_position = GridManager.grid_to_world(Vector2i(0, 0))  # longe de tudo
 	falhas += _checar("sem armadilha perto, bot nao desvia", bot._desvio_de_armadilhas().length() < 0.001)
 
+	# Bloco B1 (Fase 4): arma de projétil.
+	player.set_physics_process(false)
+	bot.set_physics_process(false)
+	player.healer = Combatente.HEALER_MAX
+	bot.healer = Combatente.HEALER_MAX
+	player.municao = player.MUNICAO_MAX
+	player._cadencia_restante = 0.0
+	player._recarga_restante = 0.0
+	player._imobilizado_restante = 0.0              # limpa resíduo do teste do Gás
+	player._slow_restante = 0.0
+	player.global_position = Vector3(0.0, 1.0, 0.0)
+	player.rotation.y = 0.0                          # encara -Z
+	bot.global_position = Vector3(0.0, 1.0, -3.0)    # 3u na frente do player
+	var mun_pre: int = player.municao
+	var vida_bot_tiro: float = bot.healer
+	player.atirar()
+	falhas += _checar("tiro consome municao", player.municao == mun_pre - 1)
+	for _i in range(40):
+		await get_tree().physics_frame
+	falhas += _checar("projetil acerta o inimigo (dano)", bot.healer < vida_bot_tiro)
+	# Recarga: zera a munição e confirma que trava o tiro.
+	player.municao = 1
+	player._cadencia_restante = 0.0
+	player._recarga_restante = 0.0
+	player.atirar()                                  # munição -> 0, inicia recarga
+	falhas += _checar("municao zera dispara recarga", player.esta_recarregando())
+	var mun_durante: int = player.municao
+	player._cadencia_restante = 0.0
+	player.atirar()                                  # não deve atirar recarregando
+	falhas += _checar("nao atira durante a recarga", player.municao == mun_durante)
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX

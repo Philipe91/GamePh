@@ -30,7 +30,7 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
 
 ## BLOCO B — Fase 4: Combate
 
-- [ ] **B1. Arma de projétil.** `projetil.tscn` (Area3D em linha reta, tempo de vida);
+- [x] **B1. Arma de projétil.** `projetil.tscn` (Area3D em linha reta, tempo de vida);
   munição + recarga (recarregar trava o tiro e dura X s = vulnerável). Player atira na
   direção que olha; bot atira no player. Dano ao acertar combatente inimigo. HUD: munição.
   *Teste:* tiro baixa o Healer do alvo; munição decrementa; recarrega ao zerar.
@@ -100,3 +100,8 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
   pra longe das armadilhas do player no raio 2.6m (`PESO_DESVIO` 1.6). [decisão noturna:
   bot tem "faro" simples em vez de usar o Caution Mode completo na IA]. Teste 40/40.
   **Fase 3 COMPLETA.** Próximo: B1.
+- **B1 ✅** Arma de projétil: `scenes/projeteis/projetil.{gd,tscn}` (Area3D reto, vida 2s);
+  arma no `Combatente` (munição 6, cadência 0.28s, recarga 1.5s travando o tiro, dano 12,
+  rapidez 22). Player atira (mouse esq / J / R2), bot atira encarando o player a <14m.
+  HUD com munição. [decisão noturna: tiro na direção que encara; mira livre depois].
+  Teste 44/44. Próximo: B2 (corpo a corpo).
