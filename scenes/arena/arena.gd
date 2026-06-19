@@ -41,6 +41,10 @@ func _ready() -> void:
 	if "--demo-combate" in args:
 		_demo_combate_e_capturar()
 		return
+	# Demo de mapa: aplica um mapa com field traps (caixas, esteira, ponte, lançador).
+	if "--demo-mapa" in args:
+		_demo_mapa_e_capturar()
+		return
 	# Modo captura automatizada (screenshot pro dev). Só roda se passado --capturar.
 	if "--capturar" in args:
 		_capturar_e_sair()
@@ -62,8 +66,34 @@ func _ready() -> void:
 	$HUD.configurar(player, bot)
 	for c in mapa.vaults:
 		_colocar_vault(c)                           # Vaults do mapa (GDD 8)
+	_colocar_field_traps(mapa)                      # caixas, esteiras, lançadores, pontes
 	GameManager.faltam_30s.connect(_ao_faltar_30s)  # Spark Bit aos 30s (GDD 7.3)
 	GameManager.iniciar_partida([player, bot])
+
+
+## Instancia os field traps do mapa (GDD 10) nos tiles indicados. Posição antes do
+## add_child quando o _ready depende dela (esteira marca o tile).
+func _colocar_field_traps(mapa: Resource) -> void:
+	for c in mapa.obstaculos:
+		_instanciar_em("res://scenes/field_traps/caixa.tscn", c, {"tipo": "obstaculo"})
+	for c in mapa.bombas_caixa:
+		_instanciar_em("res://scenes/field_traps/caixa.tscn", c, {"tipo": "bomba"})
+	for c in mapa.esteiras:
+		_instanciar_em("res://scenes/field_traps/esteira.tscn", c, {})
+	for c in mapa.pontes:
+		_instanciar_em("res://scenes/field_traps/ponte.tscn", c, {})
+	for c in mapa.lancadores:
+		_instanciar_em("res://scenes/field_traps/lancador.tscn", c, {})
+
+
+## Carrega uma cena, define propriedades e posiciona no centro do tile (y do chão).
+func _instanciar_em(caminho: String, coord: Vector2i, props: Dictionary) -> Node:
+	var n: Node = load(caminho).instantiate()
+	for k in props:
+		n.set(k, props[k])
+	n.position = GridManager.grid_to_world(coord)  # antes do add_child (esteira lê o tile)
+	add_child(n)
+	return n
 
 
 ## Instancia uma Vault no centro de um tile (cospe itens durante a partida).
@@ -95,7 +125,7 @@ func _ao_bot_morrer() -> void:
 func _desenhar_grid() -> void:
 	var antigo := get_node_or_null("LinhasGrid")  # redesenho seguro (mapa pode mudar)
 	if antigo != null:
-		antigo.free()
+		antigo.queue_free()  # queue_free: seguro mesmo durante o _ready (árvore ocupada)
 	var linhas := MeshInstance3D.new()
 	linhas.name = "LinhasGrid"
 	var im := ImmediateMesh.new()
@@ -599,6 +629,22 @@ func _rodar_teste() -> void:
 	falhas += _checar("ponte dissolve a plasma", not is_instance_valid(pl))
 	falhas += _checar("plasma quebra a ponte", not is_instance_valid(ponte))
 
+	# Bloco D4 (Fase 6): os 3 mapas têm field traps e a arena os instancia.
+	for nome_mapa in ["padrao", "corredor", "fortaleza"]:
+		var m: Resource = load("res://resources/mapas/%s.tres" % nome_mapa)
+		var n_destr: int = get_tree().get_nodes_in_group("destrutiveis").size()
+		var n_pontes: int = get_tree().get_nodes_in_group("pontes").size()
+		_colocar_field_traps(m)
+		await get_tree().physics_frame
+		var ok: bool = get_tree().get_nodes_in_group("destrutiveis").size() > n_destr \
+			and get_tree().get_nodes_in_group("pontes").size() > n_pontes
+		falhas += _checar("mapa %s instancia field traps" % nome_mapa, ok)
+	# Limpa os field traps de teste pra não poluir o resto.
+	for grupo in ["destrutiveis", "esteiras", "pontes"]:
+		for n in get_tree().get_nodes_in_group(grupo):
+			n.queue_free()
+	await get_tree().physics_frame
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX
@@ -689,6 +735,26 @@ func _demo_desarme_e_capturar() -> void:
 	player._atualizar_overlay_caution()
 	await get_tree().process_frame
 	await get_tree().process_frame  # deixa a HUD desenhar o painel de código
+	_capturar_e_sair()
+
+
+## Demo de mapa: aplica um mapa com field traps e captura (mostra caixas/esteira/ponte/lançador).
+func _demo_mapa_e_capturar() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	var mapa: Resource = preload("res://resources/mapas/padrao.tres")
+	GridManager.configurar_mapa(mapa)
+	_desenhar_grid()
+	await get_tree().physics_frame
+	player.global_position = GridManager.grid_to_world(mapa.spawn_jogador)
+	player.global_position.y = 1.0
+	bot.global_position = GridManager.grid_to_world(mapa.spawn_bot)
+	bot.global_position.y = 1.0
+	for c in mapa.vaults:
+		_colocar_vault(c)
+	_colocar_field_traps(mapa)
+	await get_tree().process_frame
+	await get_tree().process_frame
 	_capturar_e_sair()
 
 

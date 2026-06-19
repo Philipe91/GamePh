@@ -11,3 +11,9 @@ tamanho_tile = 2.0
 spawn_jogador = Vector2i(3, 8)
 spawn_bot = Vector2i(9, 3)
 vaults = Array[Vector2i]([Vector2i(6, 6)])
+obstaculos = Array[Vector2i]([Vector2i(4, 4), Vector2i(8, 8)])
+bombas_caixa = Array[Vector2i]([Vector2i(8, 4)])
+esteiras = Array[Vector2i]([Vector2i(6, 2)])
+pontes = Array[Vector2i]([Vector2i(2, 6), Vector2i(10, 6)])
+lancadores = Array[Vector2i]([Vector2i(6, 10)])
+

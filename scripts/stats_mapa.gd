@@ -13,3 +13,10 @@ class_name StatsMapa
 @export var spawn_bot: Vector2i = Vector2i(9, 3)
 ## Tiles que recebem uma Vault (P.O.D.S.).
 @export var vaults: Array[Vector2i] = [Vector2i(6, 6)]
+
+## Field traps por posição (GDD 10). Direções usam defaults (esteira +X, lançador +Z).
+@export var obstaculos: Array[Vector2i] = []     # Obstacle Box (solta item)
+@export var bombas_caixa: Array[Vector2i] = []   # Bomb Box (explode)
+@export var esteiras: Array[Vector2i] = []       # Conveyer Belt
+@export var pontes: Array[Vector2i] = []         # passarela (evasão da Plasma)
+@export var lancadores: Array[Vector2i] = []     # Laser/Rocket Launcher

@@ -69,4 +69,5 @@ func _escolher(nome: String) -> void:
 
 
 func _ir_pra_arena() -> void:
-	get_tree().change_scene_to_file(ARENA)
+	# Deferido: chamar do _ready troca a cena com a árvore ocupada (warning de remove_child).
+	get_tree().change_scene_to_file.call_deferred(ARENA)

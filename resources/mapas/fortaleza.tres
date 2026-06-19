@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StatsMapa" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stats_mapa.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+nome = "Fortaleza"
+largura = 14
+altura = 14
+tamanho_tile = 2.0
+spawn_jogador = Vector2i(2, 7)
+spawn_bot = Vector2i(11, 7)
+vaults = Array[Vector2i]([Vector2i(7, 7), Vector2i(7, 2), Vector2i(7, 11)])
+obstaculos = Array[Vector2i]([Vector2i(5, 5), Vector2i(9, 5), Vector2i(5, 9), Vector2i(9, 9)])
+bombas_caixa = Array[Vector2i]([Vector2i(7, 5), Vector2i(7, 9)])
+esteiras = Array[Vector2i]([Vector2i(7, 0), Vector2i(7, 13)])
+pontes = Array[Vector2i]([Vector2i(0, 7), Vector2i(13, 7)])
+lancadores = Array[Vector2i]([Vector2i(2, 2), Vector2i(11, 11)])

@@ -102,6 +102,12 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
 > decisões noturnas tomadas, e o que ficou pendente.
 
 - (início) Plano criado. Fase 3 estava em `2392687` (37/37 testes). Começando por A1.
+- **Fase 6 ✅ (`ae6e89a`, `77b7d03`, +D4)** D1 mapa por dados (`StatsMapa`, grid configurável,
+  2 mapas); D2 field traps (`scenes/field_traps/{caixa,esteira,lancador}`); D3 pontes
+  (dissolvem a Plasma); D4 (extra) field traps fiados nos mapas via `StatsMapa.{obstaculos,
+  bombas_caixa,esteiras,pontes,lancadores}` + arena `_colocar_field_traps()` + 3º mapa
+  `fortaleza.tres`. Fix: `change_scene_to_file` deferido na seleção (sem warning de árvore
+  ocupada). **3 mapas jogáveis com field traps** — critério da Fase 6 atingido. Teste 88/88.
 - **A1 ✅** IA do bot: faro de armadilhas — `bot._desvio_de_armadilhas()` empurra a rota
   pra longe das armadilhas do player no raio 2.6m (`PESO_DESVIO` 1.6). [decisão noturna:
   bot tem "faro" simples em vez de usar o Caution Mode completo na IA]. Teste 40/40.
