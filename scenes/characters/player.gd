@@ -83,6 +83,10 @@ var _escape_antes: bool = false      # borda do "mash" pra sair da Cova
 
 
 func _physics_process(delta: float) -> void:
+	# Derrubado (knockdown): sem controle nenhum até passar (GDD 7.2).
+	if esta_derrubado():
+		velocity = Vector3.ZERO
+		return
 	if _desarme_cooldown > 0.0:
 		_desarme_cooldown = maxf(0.0, _desarme_cooldown - delta)
 
@@ -175,6 +179,11 @@ func _ler_acoes() -> void:
 		or Input.get_joy_axis(0, JOY_AXIS_TRIGGER_RIGHT) > 0.5
 	if atirar_p:
 		atirar()
+
+	# Soco corpo a corpo (K / botão Y). O cooldown limita; derruba quem acertar.
+	var socar_p := Input.is_physical_key_pressed(KEY_K) or Input.is_joy_button_pressed(0, JOY_BUTTON_Y)
+	if socar_p:
+		socar()
 
 
 ## Troca a armadilha selecionada (passo +1/-1 na ORDEM).

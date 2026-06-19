@@ -27,6 +27,9 @@ var _minas_ativas: int = 0
 
 func _physics_process(delta: float) -> void:
 	_t_plantio -= delta
+	if esta_derrubado():
+		velocity = Vector3.ZERO  # knockdown: sem controle até passar
+		return
 	if esta_imobilizado():
 		velocity = Vector3.ZERO  # preso por Cova/Gás, espera passar
 		return
@@ -58,6 +61,9 @@ func _physics_process(delta: float) -> void:
 	# Atira no player quando está de frente e dentro do alcance (a cadência/recarga limitam).
 	if para.length() < ALCANCE_TIRO and _encara_alvo(para):
 		atirar()
+	# Bem colado: parte pro soco (derruba). O cooldown do soco limita o ritmo.
+	if para.length() < SOCO_ALCANCE:
+		socar()
 
 
 ## True se a frente do bot (-Z) aponta razoavelmente para o alvo (pra não atirar de costas).

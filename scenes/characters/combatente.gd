@@ -39,6 +39,15 @@ var _slow_fator: float = 1.0             # multiplicador de velocidade enquanto 
 var _cadencia_restante: float = 0.0
 var _recarga_restante: float = 0.0
 
+# Corpo a corpo (GDD 7.2): soco de curto alcance que DERRUBA. Derrubado = sem controle.
+const SOCO_ALCANCE: float = 1.9
+const SOCO_DANO: float = 10.0
+const SOCO_COOLDOWN: float = 0.6
+const DERRUBADO_TEMPO: float = 0.9
+const DERRUBADO_EMPURRAO: float = 3.0
+var _soco_cd: float = 0.0
+var _derrubado_restante: float = 0.0
+
 
 func _ready() -> void:
 	add_to_group("combatentes")
@@ -62,6 +71,10 @@ func _process(delta: float) -> void:
 		if _recarga_restante == 0.0:        # recarga terminou: pente cheio
 			municao = MUNICAO_MAX
 			municao_mudou.emit(municao, MUNICAO_MAX)
+	if _soco_cd > 0.0:
+		_soco_cd = maxf(0.0, _soco_cd - delta)
+	if _derrubado_restante > 0.0:
+		_derrubado_restante = maxf(0.0, _derrubado_restante - delta)
 
 
 ## True enquanto recarrega (não pode atirar — GDD 7.1, fica vulnerável).
@@ -69,13 +82,53 @@ func esta_recarregando() -> bool:
 	return _recarga_restante > 0.0
 
 
+func esta_derrubado() -> bool:
+	return _derrubado_restante > 0.0
+
+
+## Soco de curto alcance (GDD 7.2): acerta o inimigo mais próximo no alcance, dá dano e
+## o DERRUBA. Bloqueado em cooldown, preso ou já derrubado.
+func socar() -> void:
+	if _soco_cd > 0.0 or _derrubado_restante > 0.0 or _imobilizado_restante > 0.0:
+		return
+	_soco_cd = SOCO_COOLDOWN
+	var alvo := _inimigo_no_alcance(SOCO_ALCANCE)
+	if alvo == null:
+		return
+	alvo.receber_dano(SOCO_DANO)
+	if alvo.has_method("derrubar"):
+		alvo.derrubar(alvo.global_position - global_position, DERRUBADO_EMPURRAO)
+
+
+## Sofre um knockdown: empurrão + tempo sem controle (GDD 7.2). Sobrescritível p/ a Unit.
+func derrubar(direcao: Vector3, forca: float) -> void:
+	_derrubado_restante = DERRUBADO_TEMPO
+	aplicar_empurrao(direcao, forca)
+
+
+## Inimigo (outro time) mais próximo dentro de `raio`, ou null.
+func _inimigo_no_alcance(raio: float) -> Node:
+	var melhor: Node = null
+	var melhor_d := raio
+	for c in get_tree().get_nodes_in_group("combatentes"):
+		if c == self or not is_instance_valid(c):
+			continue
+		if int(c.get("id_jogador")) == id_jogador:
+			continue
+		var d := global_position.distance_to(c.global_position)
+		if d <= melhor_d:
+			melhor_d = d
+			melhor = c
+	return melhor
+
+
 ## Dispara um tiro na frente (-Z do personagem), se houver munição e cadência liberada.
 ## Ao zerar a munição, começa a recarga automaticamente.
 func atirar() -> void:
 	if _recarga_restante > 0.0 or _cadencia_restante > 0.0 or municao <= 0:
 		return
-	if _imobilizado_restante > 0.0:
-		return  # preso na Cova/Gás não atira
+	if _imobilizado_restante > 0.0 or _derrubado_restante > 0.0:
+		return  # preso na Cova/Gás ou derrubado não atira
 	var dir := -global_transform.basis.z
 	dir.y = 0.0
 	if dir.length() < 0.01:

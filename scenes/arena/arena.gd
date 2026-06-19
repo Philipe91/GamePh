@@ -333,6 +333,27 @@ func _rodar_teste() -> void:
 	player.atirar()                                  # não deve atirar recarregando
 	falhas += _checar("nao atira durante a recarga", player.municao == mun_durante)
 
+	# Bloco B2 (Fase 4): corpo a corpo (knockdown).
+	player.healer = Combatente.HEALER_MAX
+	bot.healer = Combatente.HEALER_MAX
+	player._soco_cd = 0.0
+	player._derrubado_restante = 0.0
+	player._imobilizado_restante = 0.0
+	bot._derrubado_restante = 0.0
+	player.global_position = Vector3(0.0, 1.0, 0.0)
+	bot.global_position = Vector3(0.0, 1.0, -1.2)    # colado, na frente
+	var vida_bot_soco: float = bot.healer
+	player.socar()
+	falhas += _checar("soco de perto da dano", bot.healer < vida_bot_soco)
+	falhas += _checar("soco derruba o inimigo", bot.esta_derrubado())
+	# Longe não acerta.
+	player._soco_cd = 0.0
+	bot._derrubado_restante = 0.0
+	bot.global_position = Vector3(0.0, 1.0, -6.0)
+	var vida_bot_longe: float = bot.healer
+	player.socar()
+	falhas += _checar("soco longe nao acerta", is_equal_approx(bot.healer, vida_bot_longe))
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX

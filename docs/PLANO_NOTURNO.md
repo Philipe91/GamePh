@@ -34,7 +34,7 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
   munição + recarga (recarregar trava o tiro e dura X s = vulnerável). Player atira na
   direção que olha; bot atira no player. Dano ao acertar combatente inimigo. HUD: munição.
   *Teste:* tiro baixa o Healer do alvo; munição decrementa; recarrega ao zerar.
-- [ ] **B2. Corpo a corpo (knockdown).** Soco de curto alcance (botão); qualquer acerto
+- [x] **B2. Corpo a corpo (knockdown).** Soco de curto alcance (botão); qualquer acerto
   **derruba** (knockdown = empurrão + breve estado sem controle). *Teste:* soco perto
   derruba e dá dano; longe não acerta.
 - [ ] **B3. Unit (Plasma) — a super.** Barra de carga (enche com o tempo / dano causado);
@@ -105,3 +105,7 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
   rapidez 22). Player atira (mouse esq / J / R2), bot atira encarando o player a <14m.
   HUD com munição. [decisão noturna: tiro na direção que encara; mira livre depois].
   Teste 44/44. Próximo: B2 (corpo a corpo).
+- **B2 ✅** Corpo a corpo: `socar()` no Combatente (alcance 1.9m, dano 10, cooldown 0.6s)
+  acerta o inimigo mais perto e o DERRUBA (`derrubar()` = empurrão + 0.9s sem controle).
+  Derrubado não anda/atira/soca. Player soca com K/Y; bot soca colado. Teste 47/47.
+  Próximo: B3 (Unit/Plasma).
