@@ -650,6 +650,18 @@ func _rodar_teste() -> void:
 	falhas += _checar("audiomanager toca evento conhecido", AudioManager.tocar("explodir"))
 	falhas += _checar("audiomanager ignora evento desconhecido", not AudioManager.tocar("inexistente"))
 
+	# Bloco E2 (Fase 7): juice — screenshake + partículas de explosão.
+	var cam := get_node("Camera3D")
+	get_tree().call_group("camera", "tremer", 0.5)
+	falhas += _checar("screenshake ativa no tremor", cam.em_tremor())
+	var n_fx: int = get_tree().get_nodes_in_group("fx").size()
+	var fx := preload("res://scenes/arena/explosao_fx.tscn").instantiate()
+	add_child(fx)
+	fx.global_position = Vector3(0.0, 1.0, 0.0)
+	await get_tree().process_frame
+	falhas += _checar("fx de explosao entra no grupo", get_tree().get_nodes_in_group("fx").size() > n_fx and fx.emitting)
+	fx.queue_free()
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX

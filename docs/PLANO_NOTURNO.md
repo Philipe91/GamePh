@@ -80,7 +80,11 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
   `tocar(evento)` com pool de players; sons são beeps procedurais (usa `assets/audio/
   <evento>.wav` se existir). Ligado em explodir/tiro/plantar/soco/desarme/item/vitória.
   Teste 91/91.
-- [ ] **E2. Juice:** partículas nas explosões/acertos, screenshake na câmera, flash.
+- [x] **E2. Juice:** partículas nas explosões/acertos, screenshake na câmera, flash.
+  — `scenes/arena/camera_tremor.gd` (câmera no grupo "camera", `tremer(intensidade)` com
+  decaimento) + `scenes/arena/explosao_fx.{gd,tscn}` (CPUParticles one-shot). Explosão de
+  armadilha chama screenshake + spawna o FX. [nota: `script` precisa vir 1º no .tscn de
+  CPUParticles, senão não anexa]. Teste 93/93.
 - [ ] **E3. Menus:** título, seleção, pausa, fim com rematch.
 - [ ] **E4. Modos:** VS COM (atual) e VS MAN (2 jogadores local, input dividido);
   esqueleto de Story.

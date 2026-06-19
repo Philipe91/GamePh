@@ -1,9 +1,10 @@
-[gd_scene load_steps=8 format=3 uid="uid://cudiluw2rqqwf"]
+[gd_scene load_steps=9 format=3 uid="uid://cudiluw2rqqwf"]
 
 [ext_resource type="Script" uid="uid://di1e0sv1hxui" path="res://scenes/arena/arena.gd" id="1_1qjuf"]
 [ext_resource type="PackedScene" uid="uid://bhuuacvmg4tqo" path="res://scenes/characters/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/characters/bot.tscn" id="3_bot"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="4_hud"]
+[ext_resource type="Script" path="res://scenes/arena/camera_tremor.gd" id="5_cam"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_chao"]
 size = Vector2(24, 24)
@@ -27,6 +28,7 @@ transform = Transform3D(1, 0, 0, 0, 0.5, 0.8660254, 0, -0.8660254, 0.5, 0, 26, 1
 projection = 1
 size = 30.0
 current = true
+script = ExtResource("5_cam")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.642788, 0.766044, 0, -0.766044, 0.642788, 0, 0, 0)
