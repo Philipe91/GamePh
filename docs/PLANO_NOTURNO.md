@@ -102,13 +102,15 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
 - [x] **F1. Persistência local** (settings, progressão simples). — `autoloads/
   persistencia.gd` (ConfigFile em `user://`): set/get_config, salvar/carregar,
   registrar_resultado (vitórias/derrotas); GameManager grava no fim da partida. Teste 99/99.
-- [ ] **F2. Online** — ⚠ FORA do escopo noturno (precisa infra/decisão do humano);
-  deixar só um documento de design.
+- [x] **F2. Online** — ⚠ FORA do escopo noturno (precisa infra/decisão do humano);
+  deixar só um documento de design. — `docs/ONLINE.md` (abordagem ENet host-autoritativo,
+  o que já ajuda, decisões pro humano). Nada implementado, como combinado.
 
 ## BLOCO G — Fase 9: Export
 
-- [ ] **G1. Preset de export PC (Windows)** + ícone + config. ⚠ validar export pode
-  precisar de templates baixados pelo humano.
+- [x] **G1. Preset de export PC (Windows)** + ícone + config. ⚠ validar export pode
+  precisar de templates baixados pelo humano. — `export_presets.cfg` (Windows Desktop,
+  saída `build/`) + `docs/EXPORT.md` (passos; precisa instalar os export templates 4.6.3).
 
 ---
 
