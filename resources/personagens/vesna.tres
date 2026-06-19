@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="StatsPersonagem" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stats_personagem.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+nome = "VESNA"
+cor_time = Color(0.4, 1, 0.5, 1)
+vida_max = 100.0
+velocidade = 8.0
+municao_max = 6
+arma = "handgun"
+loadout = {
+"gas": 1,
+"mina": 5,
+"painel": 3
+}

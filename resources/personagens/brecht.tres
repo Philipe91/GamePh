@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="StatsPersonagem" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stats_personagem.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+nome = "BRECHT"
+cor_time = Color(1, 0.55, 0.1, 1)
+vida_max = 100.0
+velocidade = 7.0
+municao_max = 5
+arma = "pistola"
+loadout = {
+"bomba": 4,
+"detonador": 1,
+"mina": 4
+}

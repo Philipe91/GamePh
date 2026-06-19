@@ -50,10 +50,10 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
 
 ## BLOCO C — Fase 5: Roster
 
-- [ ] **C1. `StatsPersonagem` (.tres) + refactor.** Player/bot leem `vida_max`,
+- [x] **C1. `StatsPersonagem` (.tres) + refactor.** Player/bot leem `vida_max`,
   `velocidade`, `arma`, `loadout` do Resource (em vez de consts). *Teste:* aplicar um
   stats muda velocidade/vida/inventário inicial.
-- [ ] **C2. Os 6 personagens (.tres).** Brecht, Magnus, Vesna, Pip, Kestrel, Mara com
+- [x] **C2. Os 6 personagens (.tres).** Brecht, Magnus, Vesna, Pip, Kestrel, Mara com
   arma/loadout/velocidade/vida da seção 4 do GDD. *Teste:* cada um aplica o loadout certo.
 - [ ] **C3. Tela de seleção de personagem.** UI simples antes da partida; o bot escolhe
   um. *Teste:* a seleção define o personagem que entra na arena.
@@ -119,3 +119,11 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
   ganhou o tipo "plasma" que fura o Protect. Spark Bit (dano ao toque) nasce aos 30s
   (GameManager.faltam_30s → arena). Arena já põe uma Vault no centro nas partidas.
   **FASE 4 (COMBATE) COMPLETA.** Teste 61/61. Próximo: Bloco C (Fase 5 — Roster).
+- **C1 ✅** `scripts/stats_personagem.gd` (Resource): nome, cor, vida_max, velocidade,
+  municao_max, arma, loadout. Combatente lê no `_ready` (vida/velocidade/munição) e o
+  player monta o inventário do loadout (`inventario_max` capa recarga/retomada). HUD lê
+  os máximos do personagem. [decisão noturna: usar preload do StatsPersonagem como const,
+  não o class_name global — senão não resolve em headless]. Teste 66/66.
+- **C2 ✅** `resources/personagens/{brecht,magnus,vesna,pip,kestrel,mara}.tres` com os
+  loadouts/arma/velocidade/vida da seção 4 do GDD (Magnus vida 130, Kestrel 75/veloz, etc).
+  Teste 72/72. Próximo: C3 (tela de seleção).

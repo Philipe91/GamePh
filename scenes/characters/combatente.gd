@@ -24,8 +24,19 @@ const TIRO_DANO: float = 12.0
 const TIRO_RAPIDEZ: float = 22.0    # m/s do projétil
 const PROJETIL := preload("res://scenes/projeteis/projetil.tscn")
 
+## Preload (não o class_name global) pra resolver o tipo em headless — mesmo truque do
+## StatsArmadilha (ver memória godot-mcp-lib-quirks).
+const StatsPersonagem := preload("res://scripts/stats_personagem.gd")
+
 ## Identidade de time. 1 = jogador, 2 = bot. A Mina usa isto pra saber quem é inimigo.
 @export var id_jogador: int = 1
+## Stats do personagem (.tres, Fase 5). Se nulo, usa os valores-base abaixo.
+@export var stats: StatsPersonagem = null
+
+# Valores efetivos (preenchidos do stats no _ready, ou caem nos defaults-base).
+var vida_max: float = HEALER_MAX
+var municao_max: int = MUNICAO_MAX
+var velocidade_base: float = 7.0
 
 var healer: float = HEALER_MAX
 var municao: int = MUNICAO_MAX
@@ -69,10 +80,20 @@ var _carga_restante: float = 0.0
 func _ready() -> void:
 	add_to_group("combatentes")
 	position.y = ALTURA_PISO
-	healer = HEALER_MAX
-	municao = MUNICAO_MAX
-	healer_mudou.emit(healer, HEALER_MAX)
-	municao_mudou.emit(municao, MUNICAO_MAX)
+	aplicar_stats()
+	healer = vida_max
+	municao = municao_max
+	healer_mudou.emit(healer, vida_max)
+	municao_mudou.emit(municao, municao_max)
+
+
+## Lê o StatsPersonagem (se houver) pros valores efetivos. Subclasses sobrescrevem o
+## default de velocidade quando não há stats (player 7, bot 5).
+func aplicar_stats() -> void:
+	if stats != null:
+		vida_max = stats.vida_max
+		municao_max = stats.municao_max
+		velocidade_base = stats.velocidade
 
 
 ## Decai os timers de status e da arma. Roda na base (subclasses só fazem _physics_process).
@@ -90,8 +111,8 @@ func _process(delta: float) -> void:
 	if _recarga_restante > 0.0:
 		_recarga_restante = maxf(0.0, _recarga_restante - delta)
 		if _recarga_restante == 0.0:        # recarga terminou: pente cheio
-			municao = MUNICAO_MAX
-			municao_mudou.emit(municao, MUNICAO_MAX)
+			municao = municao_max
+			municao_mudou.emit(municao, municao_max)
 	if _soco_cd > 0.0:
 		_soco_cd = maxf(0.0, _soco_cd - delta)
 	if _derrubado_restante > 0.0:
@@ -229,7 +250,7 @@ func atirar() -> void:
 	p.global_position.y = 1.0
 	municao -= 1
 	_cadencia_restante = CADENCIA
-	municao_mudou.emit(municao, MUNICAO_MAX)
+	municao_mudou.emit(municao, municao_max)
 	if municao <= 0:
 		_recarga_restante = RECARGA_TEMPO
 
@@ -285,8 +306,8 @@ func tentar_escapar(quantidade: float) -> void:
 func curar(qtd: float) -> void:
 	if qtd <= 0.0:
 		return
-	healer = minf(HEALER_MAX, healer + qtd)
-	healer_mudou.emit(healer, HEALER_MAX)
+	healer = minf(vida_max, healer + qtd)
+	healer_mudou.emit(healer, vida_max)
 
 
 ## Aplica dano ao Healer. Emite os sinais. Chamado pela Mina e pelo combate.
@@ -300,7 +321,7 @@ func receber_dano(qtd: float, tipo_dano: String = "normal") -> void:
 	if _carregando_unit:
 		_cancelar_carga()
 	healer = maxf(0.0, healer - qtd)
-	healer_mudou.emit(healer, HEALER_MAX)
+	healer_mudou.emit(healer, vida_max)
 	if healer <= 0.0:
 		healer_zerou.emit()
 

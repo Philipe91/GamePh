@@ -29,14 +29,16 @@ func _ready() -> void:
 ## Liga as barras aos Healers e o contador à armadilha selecionada do jogador.
 func configurar(p1: Node, p2: Node) -> void:
 	_jogador = p1
-	p1.healer_mudou.connect(func(atual: float, _maximo: float): barra_p1.value = atual)
-	p2.healer_mudou.connect(func(atual: float, _maximo: float): barra_p2.value = atual)
+	p1.healer_mudou.connect(func(atual: float, maximo: float): barra_p1.max_value = maximo; barra_p1.value = atual)
+	p2.healer_mudou.connect(func(atual: float, maximo: float): barra_p2.max_value = maximo; barra_p2.value = atual)
 	p1.inventario_mudou.connect(_ao_inventario_mudar)
 	p1.selecao_mudou.connect(_ao_selecao_mudar)
 	p1.municao_mudou.connect(_ao_municao_mudar)
+	barra_p1.max_value = p1.vida_max
 	barra_p1.value = p1.healer
+	barra_p2.max_value = p2.vida_max
 	barra_p2.value = p2.healer
-	_ao_municao_mudar(p1.municao, p1.MUNICAO_MAX)
+	_ao_municao_mudar(p1.municao, p1.municao_max)
 	$RadialMenu.configurar(p1)  # a roda lê o estado do jogador
 	_atualizar_label_armadilha()
 

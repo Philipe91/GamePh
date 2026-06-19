@@ -462,6 +462,46 @@ func _rodar_teste() -> void:
 	spark.queue_free()
 	vault_b.queue_free()
 
+	# Bloco C1 (Fase 5): StatsPersonagem aplica vida/velocidade/munição/loadout.
+	var sp := preload("res://scripts/stats_personagem.gd").new()
+	sp.vida_max = 130.0
+	sp.velocidade = 4.0
+	sp.municao_max = 8
+	sp.loadout = {"mina": 5, "gas": 1}
+	var p_teste := preload("res://scenes/characters/player.tscn").instantiate()
+	p_teste.stats = sp
+	add_child(p_teste)
+	await get_tree().physics_frame  # roda o _ready (aplica stats + loadout)
+	falhas += _checar("stats aplica vida_max", is_equal_approx(p_teste.vida_max, 130.0))
+	falhas += _checar("stats aplica velocidade", is_equal_approx(p_teste.velocidade_base, 4.0))
+	falhas += _checar("stats aplica municao_max", p_teste.municao_max == 8)
+	falhas += _checar("loadout define o inventario", int(p_teste.inventario["mina"]) == 5 and int(p_teste.inventario["gas"]) == 1)
+	falhas += _checar("loadout zera tipos fora dele", int(p_teste.inventario["bomba"]) == 0)
+	p_teste.queue_free()
+
+	# Bloco C2 (Fase 5): os 6 personagens carregam com os loadouts da seção 4 do GDD.
+	var roster := {
+		"brecht": {"vida": 100.0, "traps": {"mina": 4, "bomba": 4, "detonador": 1}},
+		"magnus": {"vida": 130.0, "traps": {"bomba": 6, "detonador": 2, "gas": 2}},
+		"vesna": {"vida": 100.0, "traps": {"mina": 5, "painel": 3, "gas": 1}},
+		"pip": {"vida": 100.0, "traps": {"cova": 4, "painel": 4, "detonador": 3}},
+		"kestrel": {"vida": 75.0, "traps": {"mina": 2, "cova": 3, "painel": 2}},
+		"mara": {"vida": 100.0, "traps": {"cova": 6, "gas": 2, "mina": 3}},
+	}
+	for nome in roster:
+		var st: Resource = load("res://resources/personagens/%s.tres" % nome)
+		var pc := preload("res://scenes/characters/player.tscn").instantiate()
+		pc.stats = st
+		add_child(pc)
+		await get_tree().physics_frame
+		var esp: Dictionary = roster[nome]
+		var ok: bool = is_equal_approx(pc.vida_max, float(esp["vida"]))
+		for tipo in esp["traps"]:
+			if int(pc.inventario.get(tipo, 0)) != int(esp["traps"][tipo]):
+				ok = false
+		falhas += _checar("roster %s: vida e loadout corretos" % nome, ok)
+		pc.queue_free()
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX

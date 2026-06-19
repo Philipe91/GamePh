@@ -42,6 +42,7 @@ const STATS := {
 const ORDEM: Array[String] = ["mina", "bomba", "detonador", "gas", "cova", "painel"]
 
 var inventario: Dictionary = {}      # tipo -> quantidade disponível
+var inventario_max: Dictionary = {}  # tipo -> teto (do loadout; recarga/retomada capam aqui)
 var selecao: String = "mina"
 
 var _plantar_antes: bool = false
@@ -71,12 +72,23 @@ var _radial_idx: int = 0
 
 func _ready() -> void:
 	super._ready()
+	if stats == null:
+		velocidade_base = VELOCIDADE   # default do player quando não há StatsPersonagem
 	for tipo in ORDEM:
-		inventario[tipo] = STATS[tipo].inventario_inicial
-		inventario_mudou.emit(tipo, inventario[tipo], STATS[tipo].inventario_inicial)
+		var ini := _qtd_inicial(tipo)
+		inventario_max[tipo] = ini
+		inventario[tipo] = ini
+		inventario_mudou.emit(tipo, ini, ini)
 	selecao = "mina"
 	selecao_mudou.emit(selecao)
 	_construir_overlay_caution()
+
+
+## Quantidade inicial de um tipo: do loadout do personagem, ou o default do .tres da armadilha.
+func _qtd_inicial(tipo: String) -> int:
+	if stats != null and not stats.loadout.is_empty():
+		return int(stats.loadout.get(tipo, 0))
+	return int(STATS[tipo].inventario_inicial)
 
 
 var _escape_antes: bool = false      # borda do "mash" pra sair da Cova
@@ -114,7 +126,7 @@ func _physics_process(delta: float) -> void:
 		_escape_antes = mash
 	else:
 		_escape_antes = false
-		var vel := VELOCIDADE * fator_velocidade()  # slow do Gás reduz a velocidade
+		var vel := velocidade_base * fator_velocidade()  # base do personagem × slow/speed
 		velocity.x = dir.x * vel
 		velocity.z = dir.y * vel
 		velocity.y = 0.0
@@ -276,11 +288,12 @@ func acionar_detonadores() -> void:
 			a.acionar()
 
 
-## Recarrega 1 unidade do tipo após o tempo de retorno (GDD).
+## Recarrega 1 unidade do tipo após o tempo de retorno (GDD). Capa no teto do loadout.
 func _ao_armadilha_consumida(tipo: String) -> void:
 	await get_tree().create_timer(STATS[tipo].tempo_retorno).timeout
-	inventario[tipo] = mini(int(inventario[tipo]) + 1, int(STATS[tipo].inventario_inicial))
-	inventario_mudou.emit(tipo, inventario[tipo], STATS[tipo].inventario_inicial)
+	var teto := int(inventario_max.get(tipo, 0))
+	inventario[tipo] = mini(int(inventario[tipo]) + 1, teto)
+	inventario_mudou.emit(tipo, inventario[tipo], teto)
 
 
 # ───────────────────────────── Caution Mode (GDD 6.1) ─────────────────────────────
@@ -421,12 +434,15 @@ func receber_dano(qtd: float, tipo_dano: String = "normal") -> void:
 		_falhar_desarme()
 
 
-## Ganha uma armadilha de um tipo (item da Vault): +1 no inventário, capado no inicial.
+## Ganha uma armadilha de um tipo (item da Vault): +1 no inventário. Pode passar do
+## loadout (item concede tipos que o personagem não tinha), elevando o teto.
 func ganhar_armadilha(tipo: String) -> void:
 	if not STATS.has(tipo):
 		return
-	inventario[tipo] = mini(int(inventario.get(tipo, 0)) + 1, int(STATS[tipo].inventario_inicial))
-	inventario_mudou.emit(tipo, inventario[tipo], STATS[tipo].inventario_inicial)
+	var novo := int(inventario.get(tipo, 0)) + 1
+	inventario_max[tipo] = maxi(int(inventario_max.get(tipo, 0)), novo)
+	inventario[tipo] = novo
+	inventario_mudou.emit(tipo, novo, int(inventario_max[tipo]))
 
 
 func desarme_ativo() -> bool:
@@ -564,7 +580,8 @@ func _encerrar_desarme(sucesso: bool) -> void:
 func _retomar(a: Node) -> void:
 	var tipo := String(a.stats.tipo)
 	a.recolher()
-	inventario[tipo] = mini(int(inventario.get(tipo, 0)) + 1, int(STATS[tipo].inventario_inicial))
-	inventario_mudou.emit(tipo, inventario[tipo], STATS[tipo].inventario_inicial)
+	var teto := int(inventario_max.get(tipo, 0))
+	inventario[tipo] = mini(int(inventario.get(tipo, 0)) + 1, teto)
+	inventario_mudou.emit(tipo, inventario[tipo], teto)
 	_retomada_alvo = null
 	_desarme_cooldown = DESARME_COOLDOWN

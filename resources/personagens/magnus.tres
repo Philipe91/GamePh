@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="StatsPersonagem" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stats_personagem.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+nome = "MAGNUS"
+cor_time = Color(1, 0.3, 0.25, 1)
+vida_max = 130.0
+velocidade = 6.0
+municao_max = 2
+arma = "shotgun"
+loadout = {
+"bomba": 6,
+"detonador": 2,
+"gas": 2
+}

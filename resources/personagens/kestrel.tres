@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="StatsPersonagem" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stats_personagem.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+nome = "KESTREL"
+cor_time = Color(0.2, 0.9, 1, 1)
+vida_max = 75.0
+velocidade = 9.0
+municao_max = 7
+arma = "laminas"
+loadout = {
+"cova": 3,
+"mina": 2,
+"painel": 2
+}

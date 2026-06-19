@@ -25,6 +25,12 @@ var _t_plantio: float = 2.0            # cooldown atual até a próxima tentativ
 var _minas_ativas: int = 0
 
 
+func _ready() -> void:
+	super._ready()
+	if stats == null:
+		velocidade_base = VELOCIDADE   # bot é um pouco mais lento que o player
+
+
 func _physics_process(delta: float) -> void:
 	_t_plantio -= delta
 	if esta_derrubado():
@@ -39,7 +45,7 @@ func _physics_process(delta: float) -> void:
 		return
 	var para := _alvo.global_position - global_position
 	para.y = 0.0
-	var vel := VELOCIDADE * fator_velocidade()  # slow do Gás
+	var vel := velocidade_base * fator_velocidade()  # base do personagem × slow/speed
 	if para.length() > DIST_PARAR:
 		# Persegue o player, mas entorta a rota pra fugir das armadilhas dele (A1).
 		var rumo := para.normalized() + _desvio_de_armadilhas() * PESO_DESVIO
