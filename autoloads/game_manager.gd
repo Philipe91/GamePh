@@ -25,6 +25,10 @@ var _estado: Estado = Estado.OCIOSO
 var _combatentes: Array = []
 var _avisou_30s: bool = false
 
+## Personagens escolhidos na tela de seleção (caminho do .tres). "" = usa o default.
+var personagem_jogador: String = ""
+var personagem_bot: String = ""
+
 
 ## Inicia (ou reinicia) a partida com a lista de combatentes (nós com Healer e id).
 func iniciar_partida(combatentes: Array) -> void:

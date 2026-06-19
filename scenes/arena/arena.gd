@@ -45,6 +45,11 @@ func _ready() -> void:
 	if "--capturar" in args:
 		_capturar_e_sair()
 		return
+	# Personagens escolhidos na tela de seleção (se houver).
+	if GameManager.personagem_jogador != "":
+		player.aplicar_personagem(load(GameManager.personagem_jogador))
+	if GameManager.personagem_bot != "":
+		bot.aplicar_personagem(load(GameManager.personagem_bot))
 	# Modo normal de jogo: liga a HUD e inicia a partida (timer + regras de vitória).
 	$HUD.configurar(player, bot)
 	_colocar_vault(Vector2i(6, 6))                  # Vault no centro (GDD 8)
@@ -501,6 +506,18 @@ func _rodar_teste() -> void:
 				ok = false
 		falhas += _checar("roster %s: vida e loadout corretos" % nome, ok)
 		pc.queue_free()
+
+	# Bloco C3 (Fase 5): seleção aplica o personagem em runtime.
+	var st_kestrel: Resource = load("res://resources/personagens/kestrel.tres")
+	player.aplicar_personagem(st_kestrel)
+	falhas += _checar("aplicar_personagem troca a vida", is_equal_approx(player.vida_max, 75.0))
+	falhas += _checar("aplicar_personagem troca a velocidade", is_equal_approx(player.velocidade_base, 9.0))
+	falhas += _checar("aplicar_personagem refaz o loadout", int(player.inventario["mina"]) == 2 and int(player.inventario["cova"]) == 3)
+	GameManager.personagem_jogador = "res://resources/personagens/vesna.tres"
+	GameManager.personagem_bot = "res://resources/personagens/mara.tres"
+	falhas += _checar("GameManager guarda os personagens escolhidos", GameManager.personagem_jogador.ends_with("vesna.tres") and GameManager.personagem_bot.ends_with("mara.tres"))
+	GameManager.personagem_jogador = ""
+	GameManager.personagem_bot = ""
 
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX

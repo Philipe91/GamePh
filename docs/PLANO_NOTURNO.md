@@ -55,7 +55,7 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
   stats muda velocidade/vida/inventário inicial.
 - [x] **C2. Os 6 personagens (.tres).** Brecht, Magnus, Vesna, Pip, Kestrel, Mara com
   arma/loadout/velocidade/vida da seção 4 do GDD. *Teste:* cada um aplica o loadout certo.
-- [ ] **C3. Tela de seleção de personagem.** UI simples antes da partida; o bot escolhe
+- [x] **C3. Tela de seleção de personagem.** UI simples antes da partida; o bot escolhe
   um. *Teste:* a seleção define o personagem que entra na arena.
 
 ## BLOCO D — Fase 6: Arenas e field traps
@@ -127,3 +127,9 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
 - **C2 ✅** `resources/personagens/{brecht,magnus,vesna,pip,kestrel,mara}.tres` com os
   loadouts/arma/velocidade/vida da seção 4 do GDD (Magnus vida 130, Kestrel 75/veloz, etc).
   Teste 72/72. Próximo: C3 (tela de seleção).
+- **C3 ✅** `scenes/ui/selecao.{gd,tscn}`: tela com os 6, ao escolher grava no GameManager
+  (`personagem_jogador/_bot`) e vai pra arena; bot pega o próximo. `aplicar_personagem()`
+  troca em runtime (Combatente + player refaz loadout). Cena PRINCIPAL agora é a seleção;
+  com qualquer arg `--…` ela encaminha direto pra arena (testes/demos intactos). Teste
+  **76/76**. **FASE 5 (ROSTER) COMPLETA — meta da noite atingida.** Próximo: Bloco D
+  (Fase 6 — arenas e field traps), seguindo enquanto houver fila.

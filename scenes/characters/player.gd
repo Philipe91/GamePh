@@ -91,6 +91,18 @@ func _qtd_inicial(tipo: String) -> int:
 	return int(STATS[tipo].inventario_inicial)
 
 
+## Troca o personagem em runtime: reaplica stats (base) e refaz o inventário do loadout.
+func aplicar_personagem(novo: Resource) -> void:
+	super.aplicar_personagem(novo)
+	inventario.clear()
+	inventario_max.clear()
+	for tipo in ORDEM:
+		var ini := _qtd_inicial(tipo)
+		inventario_max[tipo] = ini
+		inventario[tipo] = ini
+		inventario_mudou.emit(tipo, ini, ini)
+
+
 var _escape_antes: bool = false      # borda do "mash" pra sair da Cova
 
 

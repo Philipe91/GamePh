@@ -96,6 +96,17 @@ func aplicar_stats() -> void:
 		velocidade_base = stats.velocidade
 
 
+## Troca o personagem em runtime (escolha da tela de seleção): reaplica os valores e
+## reseta vida/munição. Subclasses estendem (o player refaz o inventário do loadout).
+func aplicar_personagem(novo: Resource) -> void:
+	stats = novo
+	aplicar_stats()
+	healer = vida_max
+	municao = municao_max
+	healer_mudou.emit(healer, vida_max)
+	municao_mudou.emit(municao, municao_max)
+
+
 ## Decai os timers de status e da arma. Roda na base (subclasses só fazem _physics_process).
 func _process(delta: float) -> void:
 	if _imobilizado_restante > 0.0:
