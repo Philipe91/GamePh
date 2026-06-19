@@ -12,6 +12,7 @@ const PASTA_ICONES := "res://assets/sprites/armadilhas/"
 
 var _jogador: Node = null
 var _icones: Dictionary = {}   # tipo -> Texture2D (ou null se não houver arquivo)
+var _t: float = 0.0            # tempo acumulado (pulso/animação do neon)
 
 
 func _ready() -> void:
@@ -40,8 +41,16 @@ func configurar(jogador: Node) -> void:
 	set_process(true)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_t += delta
 	queue_redraw()  # roda barata; redesenha enquanto a cena vive
+
+
+## Halo neon (bloom fake) com camadas concêntricas decaindo o alfa.
+func _halo(p: Vector2, cor: Color, raio_base: float, intensidade: float) -> void:
+	for c in range(5):
+		var r := raio_base + float(c) * 5.0
+		draw_circle(p, r, Color(cor.r, cor.g, cor.b, intensidade * (1.0 - float(c) / 5.0)))
 
 
 func _draw() -> void:
@@ -52,9 +61,12 @@ func _draw() -> void:
 	var idx: int = _jogador.radial_idx()
 	var fonte := get_theme_default_font()
 	var passo := TAU / float(ordem.size())
+	var pulso := 0.5 + 0.5 * sin(_t * 5.0)   # 0..1 pulsante (anima o neon da seleção)
 
-	# Fundo escurecido pra destacar a roda.
-	draw_circle(centro, RAIO_RODA + 70.0, Color(0.0, 0.0, 0.0, 0.55))
+	# Fundo: disco escuro com vinheta + leve tom ciano + anel neon conectando as fatias.
+	draw_circle(centro, RAIO_RODA + 95.0, Color(0.02, 0.03, 0.06, 0.78))
+	draw_circle(centro, RAIO_RODA + 95.0, Color(0.0, 0.85, 1.0, 0.04))
+	draw_arc(centro, RAIO_RODA, 0.0, TAU, 80, Color(0.3, 0.7, 1.0, 0.18), 2.0, true)
 
 	for i in ordem.size():
 		var ang := -PI / 2.0 + float(i) * passo   # índice 0 no topo, sentido horário
@@ -65,25 +77,48 @@ func _draw() -> void:
 		var qtd: int = int(_jogador.inventario.get(tipo, 0))
 		var sel := i == idx
 		var raio := RAIO_SELE if sel else RAIO_FATIA
-		# Armadilha sem estoque fica apagada.
-		var alfa := (0.95 if sel else 0.55) * (1.0 if qtd > 0 else 0.3)
+		var vivo := qtd > 0
+
+		# Linha neon do centro até a fatia selecionada.
+		if sel:
+			draw_line(centro, p, Color(cor.r, cor.g, cor.b, 0.35), 2.0, true)
+
+		# Halo / bloom atrás (mais forte e pulsante na selecionada).
+		var inten := (0.16 + 0.12 * pulso) if sel else 0.05
+		if vivo:
+			_halo(p, cor, raio + 2.0, inten)
+		# "Pod" base escuro pra o ícone descansar.
+		draw_circle(p, raio + 3.0, Color(0.05, 0.06, 0.10, 0.9))
+
+		# Ícone (ou bolha colorida fallback). Selecionado fica maior.
 		var icone := _icone(tipo)
 		if icone != null:
-			# Tem PNG: desenha o ícone (apaga se sem estoque). Mantém o anel de seleção.
-			var lado := raio * 2.4
+			var lado := raio * (2.9 if sel else 2.5)
 			draw_texture_rect(icone, Rect2(p - Vector2(lado, lado) * 0.5, Vector2(lado, lado)),
-				false, Color(1, 1, 1, 1.0 if qtd > 0 else 0.35))
+				false, Color(1, 1, 1, 1.0 if vivo else 0.3))
 		else:
-			# Sem PNG: bolha colorida (placeholder atual).
-			draw_circle(p, raio, Color(cor.r, cor.g, cor.b, alfa))
-		if sel:
-			draw_arc(p, raio + 5.0, 0.0, TAU, 40, Color(1, 1, 1, 0.95), 3.0)
-		draw_string(fonte, p + Vector2(-60.0, raio + 18.0), nome,
-			HORIZONTAL_ALIGNMENT_CENTER, 120.0, 18, Color.WHITE)
-		draw_string(fonte, p + Vector2(-60.0, raio + 38.0), "x%d" % qtd,
-			HORIZONTAL_ALIGNMENT_CENTER, 120.0, 18, cor)
+			draw_circle(p, raio, Color(cor.r, cor.g, cor.b, 0.9 if vivo else 0.3))
 
-	# Nome grande da fatia atual no miolo.
+		# Anel neon da fatia. Selecionado: duplo anel pulsante (branco + cor).
+		if sel:
+			draw_arc(p, raio + 6.0 + 3.0 * pulso, 0.0, TAU, 48, Color(1, 1, 1, 0.95), 3.0, true)
+			draw_arc(p, raio + 11.0 + 3.0 * pulso, 0.0, TAU, 48, Color(cor.r, cor.g, cor.b, 0.5), 5.0, true)
+		else:
+			draw_arc(p, raio + 4.0, 0.0, TAU, 40, Color(cor.r, cor.g, cor.b, 0.45), 2.0, true)
+
+		# Rótulos: nome (branco/apagado) + contagem na cor do tipo.
+		var cor_nome := Color(1, 1, 1) if vivo else Color(0.55, 0.55, 0.6)
+		draw_string(fonte, p + Vector2(-70.0, raio + 22.0), nome,
+			HORIZONTAL_ALIGNMENT_CENTER, 140.0, 20 if sel else 18, cor_nome)
+		draw_string(fonte, p + Vector2(-70.0, raio + 42.0), "x%d" % qtd,
+			HORIZONTAL_ALIGNMENT_CENTER, 140.0, 18, cor)
+
+	# Miolo: hub escuro com aro neon + nome grande da fatia atual, na cor dela.
 	var atual: String = ordem[idx]
-	draw_string(fonte, centro + Vector2(-90.0, 8.0), _jogador.STATS[atual].nome,
-		HORIZONTAL_ALIGNMENT_CENTER, 180.0, 26, Color.WHITE)
+	var cor_atual: Color = _jogador.STATS[atual].cor
+	var nome_atual: String = _jogador.STATS[atual].nome
+	_halo(centro, cor_atual, 22.0, 0.10 + 0.08 * pulso)
+	draw_circle(centro, 26.0, Color(0.05, 0.06, 0.10, 0.95))
+	draw_arc(centro, 30.0, 0.0, TAU, 48, Color(cor_atual.r, cor_atual.g, cor_atual.b, 0.6), 2.0, true)
+	draw_string(fonte, centro + Vector2(-120.0, 6.0), nome_atual,
+		HORIZONTAL_ALIGNMENT_CENTER, 240.0, 30, cor_atual)
