@@ -1250,19 +1250,14 @@ func _texturizar_chao(sb: StaticBody3D, tam: Vector3) -> void:
 	var mi := sb.get_child(0) as MeshInstance3D
 	var mat := StandardMaterial3D.new()
 	mat.albedo_texture = cor
-	mat.albedo_color = Color(1.5, 1.5, 1.65)                 # clareia o metal escuro (e leve azulado)
-	mat.uv1_scale = Vector3(tam.x / 4.0, tam.z / 4.0, 1.0)   # ~1 ladrilho a cada 4 unidades
-	var nrm := _carregar_tex_arena("res://assets/sprites/chao_tile_normal.png")
-	if nrm != null:
-		mat.normal_enabled = true
-		mat.normal_texture = nrm
+	mat.albedo_color = Color(1.35, 1.35, 1.45)               # clareia um tom (leve azulado)
+	mat.uv1_scale = Vector3(tam.x / 8.0, tam.z / 8.0, 1.0)   # placas maiores (menos repetitivo)
+	mat.metallic = 0.25                                       # metal fosco (sem virar espelho escuro)
 	var rough := _carregar_tex_arena("res://assets/sprites/chao_tile_rough.png")
 	if rough != null:
 		mat.roughness_texture = rough
-	var metal := _carregar_tex_arena("res://assets/sprites/chao_tile_metal.png")
-	if metal != null:
-		mat.metallic = 1.0
-		mat.metallic_texture = metal
+	else:
+		mat.roughness = 0.7
 	mi.material_override = mat
 
 
