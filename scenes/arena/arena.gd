@@ -10,6 +10,9 @@ extends Node3D
 @onready var player: CharacterBody3D = $Player
 @onready var bot: CharacterBody3D = $Bot
 
+## Pontes com oclusão dinâmica (somem quando alguém passa embaixo — GDD 11).
+var _pontes: Array = []
+
 
 func _ready() -> void:
 	_desenhar_grid()
@@ -136,6 +139,27 @@ func _ao_faltar_30s() -> void:
 	var s := preload("res://scenes/items/spark_bit.tscn").instantiate()
 	add_child(s)
 	s.global_position = Vector3(0.0, 1.0, 0.0)
+
+
+## Oclusão das pontes: cada ponte fica transparente quando há um combatente embaixo dela
+## (mesma vertical, y menor), e volta a sólida quando ninguém está. Fade suave.
+func _process(delta: float) -> void:
+	if _pontes.is_empty():
+		return
+	for p in _pontes:
+		var alguem := false
+		for c in get_tree().get_nodes_in_group("combatentes"):
+			if not is_instance_valid(c):
+				continue
+			var d: Vector3 = c.global_position - p["centro"]
+			if absf(d.x) <= p["tamanho"].x * 0.5 and absf(d.z) <= p["tamanho"].z * 0.5 \
+					and c.global_position.y < p["centro"].y - 0.2:
+				alguem = true
+				break
+		var mat: StandardMaterial3D = p["mat"]
+		var cor: Color = mat.albedo_color
+		cor.a = lerpf(cor.a, 0.3 if alguem else 1.0, minf(1.0, delta * 8.0))
+		mat.albedo_color = cor
 
 
 ## Por ora só registra; as regras completas de vitória vêm no bloco 5 (HUD/GameManager).
@@ -753,6 +777,25 @@ func _rodar_teste() -> void:
 	chao_g.queue_free()
 	ponte_g.queue_free()
 
+	# Oclusão da ponte: sólida sem ninguém embaixo, some quando alguém passa por baixo.
+	_pontes.clear()
+	var ponte_oc := _construir_ponte(Vector3(15.0, 2.6, 15.0), Vector3(4.0, 0.3, 4.0))
+	var mat_oc: StandardMaterial3D = _pontes[-1]["mat"]
+	mat_oc.albedo_color.a = 1.0
+	for _i in range(10):
+		await get_tree().process_frame          # ninguém embaixo: continua sólida
+	falhas += _checar("ponte solida sem ninguem embaixo", mat_oc.albedo_color.a > 0.8)
+	var pu := preload("res://scenes/characters/player.tscn").instantiate()
+	add_child(pu)
+	pu.set_physics_process(false)
+	pu.global_position = Vector3(15.0, 1.0, 15.0)   # embaixo da ponte
+	for _i in range(30):
+		await get_tree().process_frame          # fade pra transparente
+	falhas += _checar("ponte fica transparente com alguem embaixo", mat_oc.albedo_color.a < 0.6)
+	pu.queue_free()
+	ponte_oc.queue_free()
+	_pontes.clear()
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX
@@ -875,10 +918,20 @@ func _caixa_solida(pos: Vector3, tamanho: Vector3, cor: Color, rot_x: float = 0.
 ## dar pra ver quem passa embaixo (solução simples de oclusão por enquanto).
 func _construir_greybox() -> void:
 	_caixa_solida(Vector3(0.0, -0.1, 0.0), Vector3(24.0, 0.2, 24.0), Color(0.12, 0.13, 0.18))  # chão
-	_caixa_solida(Vector3(0.0, 2.6, 0.0), Vector3(12.0, 0.3, 3.0), Color(0.5, 0.55, 0.7, 0.55))  # ponte
+	_construir_ponte(Vector3(0.0, 2.6, 0.0), Vector3(12.0, 0.3, 3.0))                            # ponte (oclui)
 	_caixa_solida(Vector3(0.0, 1.3, -5.5), Vector3(3.0, 0.3, 6.0), Color(0.45, 0.5, 0.65), deg_to_rad(-25.0))  # rampa
 	_caixa_solida(Vector3(-9.0, 0.6, 0.0), Vector3(0.4, 1.2, 18.0), Color(0.2, 0.22, 0.3))  # parede
 	_caixa_solida(Vector3(9.0, 0.6, 0.0), Vector3(0.4, 1.2, 18.0), Color(0.2, 0.22, 0.3))   # parede
+
+
+## Cria uma ponte sólida e a registra pra oclusão dinâmica (some quem passa por baixo vê).
+func _construir_ponte(pos: Vector3, tamanho: Vector3) -> StaticBody3D:
+	var sb := _caixa_solida(pos, tamanho, Color(0.5, 0.55, 0.7, 1.0))
+	var mi := sb.get_child(0) as MeshInstance3D
+	var mat := mi.material_override as StandardMaterial3D
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA  # pra poder esmaecer
+	_pontes.append({"no": sb, "mat": mat, "centro": pos, "tamanho": tamanho})
+	return sb
 
 
 ## Demo do greybox vertical: posiciona um no chão SOB a ponte e outro EM CIMA dela, captura.
@@ -889,8 +942,8 @@ func _demo_greybox_e_capturar() -> void:
 	await get_tree().physics_frame
 	player.global_position = Vector3(0.0, 1.0, 1.0)    # no chão, embaixo da ponte
 	bot.global_position = Vector3(0.0, 3.6, 0.0)       # em cima da ponte (2.6 + 1.0)
-	await get_tree().process_frame
-	await get_tree().process_frame
+	for _i in range(30):
+		await get_tree().process_frame  # deixa a ponte esmaecer (oclusão)
 	_capturar_e_sair()
 
 
