@@ -4,6 +4,7 @@ extends Control
 ## arena), mantendo a suíte headless intacta.
 
 const SELECAO := "res://scenes/ui/selecao.tscn"
+const UIEstilo := preload("res://scenes/ui/ui_estilo.gd")
 
 
 func _ready() -> void:
@@ -27,10 +28,7 @@ func _capturar() -> void:
 
 
 func _montar_ui() -> void:
-	var fundo := ColorRect.new()
-	fundo.color = Color(0.04, 0.05, 0.09)
-	fundo.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(fundo)
+	UIEstilo.fundo_neon(self)
 
 	var centro := CenterContainer.new()
 	centro.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -44,6 +42,7 @@ func _montar_ui() -> void:
 	titulo.text = "VAULTBREAKER"
 	titulo.add_theme_font_size_override("font_size", 56)
 	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UIEstilo.titulo_glow(titulo)
 	caixa.add_child(titulo)
 
 	var sub := Label.new()
@@ -54,12 +53,14 @@ func _montar_ui() -> void:
 	var vs_com := Button.new()
 	vs_com.text = "VS COM  (contra o bot)"
 	vs_com.custom_minimum_size = Vector2(320, 52)
+	UIEstilo.estilizar_botao(vs_com)
 	vs_com.pressed.connect(_jogar.bind("vs_com"))
 	caixa.add_child(vs_com)
 
 	var vs_man := Button.new()
 	vs_man.text = "VS MAN  (2 jogadores)"
 	vs_man.custom_minimum_size = Vector2(320, 52)
+	UIEstilo.estilizar_botao(vs_man, Color(1.0, 0.35, 0.4))
 	vs_man.pressed.connect(_jogar.bind("vs_man"))
 	caixa.add_child(vs_man)
 

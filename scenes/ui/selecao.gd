@@ -15,6 +15,8 @@ const MAPAS: Array = [
 	{"nome": "Cruz Vertical", "path": "res://resources/mapas/vertical.tres"},
 ]
 
+const UIEstilo := preload("res://scenes/ui/ui_estilo.gd")
+
 var _mapa_path: String = "res://resources/mapas/padrao.tres"
 var _mapa_label: Label = null
 
@@ -42,10 +44,7 @@ func _capturar() -> void:
 
 
 func _montar_ui() -> void:
-	var fundo := ColorRect.new()
-	fundo.color = Color(0.05, 0.06, 0.1)
-	fundo.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(fundo)
+	UIEstilo.fundo_neon(self)
 
 	# CenterContainer ocupa a tela e centraliza a coluna de botões.
 	var centro := CenterContainer.new()
@@ -58,8 +57,9 @@ func _montar_ui() -> void:
 
 	var titulo := Label.new()
 	titulo.text = "VAULTBREAKER"
-	titulo.add_theme_font_size_override("font_size", 32)
+	titulo.add_theme_font_size_override("font_size", 36)
 	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UIEstilo.titulo_glow(titulo)
 	caixa.add_child(titulo)
 
 	# Linha de seleção de mapa.
@@ -77,6 +77,7 @@ func _montar_ui() -> void:
 		var mb := Button.new()
 		mb.text = m["nome"]
 		mb.custom_minimum_size = Vector2(150, 38)
+		UIEstilo.estilizar_botao(mb, Color(0.5, 0.8, 1.0))
 		mb.pressed.connect(_escolher_mapa.bind(String(m["path"]), String(m["nome"])))
 		linha_mapas.add_child(mb)
 
@@ -88,8 +89,9 @@ func _montar_ui() -> void:
 	for nome in ROSTER:
 		var st: Resource = load("res://resources/personagens/%s.tres" % nome)
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(420, 44)
+		b.custom_minimum_size = Vector2(440, 46)
 		b.text = "%s   —   vida %d · vel %.1f · %s" % [st.nome, int(st.vida_max), st.velocidade, st.arma]
+		UIEstilo.estilizar_botao(b, st.cor_time)   # cada um na sua cor
 		b.pressed.connect(_escolher.bind(nome))
 		caixa.add_child(b)
 

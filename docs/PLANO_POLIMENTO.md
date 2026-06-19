@@ -1,0 +1,33 @@
+# VAULTBREAKER — Plano de polimento autônomo
+
+Fila de fatias de **polimento (só código, sem depender de asset 3D/áudio ou playtest do
+humano)**. O agente desce a fila, **commita E dá push** em cada fatia, manda screenshot
+nos marcos, e agenda a próxima. Diário no fim.
+
+## Guardrails
+1. **Commit + push** a cada fatia (workflow atual é manter o GitHub sincronizado).
+2. Só tarefas que **não precisam de asset novo** nem de eu sentir o movimento. Skinnar /
+   personagens 3D ficam pro humano trazer os `.glb`.
+3. Cada fatia: implementar → **teste headless** → só commitar se 100% passa → push.
+4. Nunca rodar o Godot bloqueante (testes `--headless --teste`; screenshots `--demo*`).
+5. Atualizar o DIÁRIO abaixo a cada fatia.
+
+## Fila
+- [x] **P1. Menus premium** — título/seleção com botões de neon (hover glow), fundo
+  escuro com acento no topo, logo com brilho. `scenes/ui/ui_estilo.gd` (estilizar_botao /
+  titulo_glow / fundo_neon); personagens com botão na cor de time. 108/108.
+- [ ] **P2. Tela de fim premium** — VITÓRIA/DERROTA/EMPATE com neon, glow e destaque.
+- [ ] **P3. Marcador da armadilha no chão** — usa o ícone mini do tipo (discreto pro
+  inimigo; respeita a regra de visibilidade da armadilha).
+- [ ] **P4. Radar premium** — borda neon, glow nos pontos, fundo com vinheta.
+- [ ] **P5. Escadas na arena vertical** — tipo de estrutura "escada" (degraus) + um mapa
+  que usa.
+- [ ] **P6. Câmera com juice** — leve zoom-in suave no início da partida.
+- [ ] **P7. Mais um mapa vertical** — layout novo por dados (ex.: torre/níveis) pra variar.
+
+## DIÁRIO
+- (início) Plano criado em 2026-06-19 sobre `d6b1aad` (108 testes, HUD/roda premium,
+  arena vertical data-driven, seleção de mapa). Começando por P1.
+- **P1 ✅** Menus premium: `ui_estilo.gd` compartilhado (botões neon com hover glow, título
+  com glow, fundo escuro + acento). Aplicado em título (VS COM ciano / VS MAN vermelho) e
+  seleção (mapas ciano, personagens na cor de time). 108/108. Próximo: P2 (tela de fim).
