@@ -322,6 +322,9 @@ Alguns mapas têm armadilhas fixas que são obstáculos:
 - MVP: VS COM (contra bot) local e VS MAN (contra humano) local em tela dividida.
 - Story Mode: campanha de um personagem até o chefe da VECTOR. Algumas missões não
   são matar o oponente, são desarmar todas as armadilhas e obstáculos da fase.
+  **[estado 2026-06-19] ESQUELETO navegável** (`scenes/ui/story.tscn`): 3 missões
+  placeholder que escolhem mapa+dificuldade e caem no fluxo de partida. Objetivos
+  especiais (desarme total), diálogo e chefe ficam pra uma fase futura.
 - Camada futura: online, ranqueado, progressão.
 
 ---

@@ -18,6 +18,9 @@ func _ready() -> void:
 	if "--demo-settings" in args:
 		get_tree().change_scene_to_file.call_deferred("res://scenes/ui/settings.tscn")
 		return
+	if "--demo-story" in args:
+		get_tree().change_scene_to_file.call_deferred("res://scenes/ui/story.tscn")
+		return
 	if not args.is_empty():
 		_ir_pra_selecao()
 		return
@@ -87,6 +90,13 @@ func _montar_ui() -> void:
 	UIEstilo.estilizar_botao(vs_man, Color(1.0, 0.35, 0.4))
 	vs_man.pressed.connect(_jogar.bind("vs_man"))
 	caixa.add_child(vs_man)
+
+	var story := Button.new()
+	story.text = "STORY  (campanha)"
+	story.custom_minimum_size = Vector2(320, 44)
+	UIEstilo.estilizar_botao(story, Color(0.8, 0.6, 0.3))
+	story.pressed.connect(func(): get_tree().change_scene_to_file.call_deferred("res://scenes/ui/story.tscn"))
+	caixa.add_child(story)
 
 	var settings := Button.new()
 	settings.text = "Configurações"
