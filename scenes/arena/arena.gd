@@ -52,6 +52,10 @@ func _ready() -> void:
 	if "--demo-mapa" in args:
 		_demo_mapa_e_capturar()
 		return
+	# Demo do modelo 3D (Kenney): troca a cápsula pelo boneco.
+	if "--demo-modelo" in args:
+		_demo_modelo_e_capturar()
+		return
 	# Greybox vertical: ponte (over/under), rampa, paredes — gravidade ligada. Screenshot.
 	if "--demo-greybox" in args:
 		_demo_greybox_e_capturar()
@@ -1220,6 +1224,45 @@ func _demo_greybox_e_capturar() -> void:
 	for _i in range(30):
 		await get_tree().process_frame  # deixa a ponte esmaecer (oclusão)
 	_capturar_e_sair()
+
+
+## Demo do modelo 3D (Kenney Character.gltf): aplica no player e no bot e captura.
+func _demo_modelo_e_capturar() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	var sp := preload("res://scripts/stats_personagem.gd").new()
+	sp.cena_modelo = load("res://assets/models/kenney/Character/Character.gltf")
+	sp.escala_modelo = 6.5
+	sp.rotacao_modelo_y = 0.0
+	sp.offset_modelo_y = -1.0
+	player.aplicar_personagem(sp)
+	bot.aplicar_personagem(sp)
+	await get_tree().physics_frame
+	player.global_position = Vector3(-1.5, 1.0, 1.5)
+	bot.global_position = Vector3(1.5, 1.0, 1.5)
+	var modelo := player.get_node_or_null("Modelo")
+	if modelo != null:
+		print("[MODELO] tamanho(x,y,z)=", _aabb_no(modelo).size, " (y maior = em pe)")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_capturar_e_sair()
+
+
+## Junta os AABB de todos os MeshInstance3D sob um nó (espaço local do nó), pra medir tamanho.
+func _aabb_no(no: Node) -> AABB:
+	var total := AABB()
+	var achou := false
+	for filho in no.find_children("*", "MeshInstance3D", true, false):
+		var mi := filho as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		var ab := mi.get_aabb()
+		if not achou:
+			total = ab
+			achou = true
+		else:
+			total = total.merge(ab)
+	return total
 
 
 ## Demo de mapa: aplica um mapa com field traps e captura (mostra caixas/esteira/ponte/lançador).

@@ -111,6 +111,7 @@ func _montar_modelo() -> void:
 	add_child(m)
 	m.scale = Vector3.ONE * stats.escala_modelo
 	m.rotation.y = deg_to_rad(stats.rotacao_modelo_y)
+	m.position.y = stats.offset_modelo_y   # pivot nos pés -> desce pro chão
 
 
 ## Lê o StatsPersonagem (se houver) pros valores efetivos. Subclasses sobrescrevem o

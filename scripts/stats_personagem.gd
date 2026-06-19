@@ -21,6 +21,7 @@ class_name StatsPersonagem
 ## Modelo 3D (.glb importado). Se setado, o Combatente esconde a cápsula e usa este modelo.
 ## Vazio = mantém a cápsula placeholder. Permite trocar arte sem mexer em código.
 @export var cena_modelo: PackedScene = null
-## Ajustes do modelo (assets variam de escala/orientação — ex. Kenney são pequenos).
+## Ajustes do modelo (assets variam de escala/orientação/pivot).
 @export var escala_modelo: float = 1.0
-@export var rotacao_modelo_y: float = 0.0   # graus, p/ virar o modelo pra frente (-Z)
+@export var rotacao_modelo_y: float = 0.0    # graus, p/ virar o modelo pra frente (-Z)
+@export var offset_modelo_y: float = -1.0     # desce o modelo (pivot nos pés) p/ os pés no chão
