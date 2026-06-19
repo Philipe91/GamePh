@@ -85,7 +85,10 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
   decaimento) + `scenes/arena/explosao_fx.{gd,tscn}` (CPUParticles one-shot). Explosão de
   armadilha chama screenshake + spawna o FX. [nota: `script` precisa vir 1º no .tscn de
   CPUParticles, senão não anexa]. Teste 93/93.
-- [ ] **E3. Menus:** título, seleção, pausa, fim com rematch.
+- [x] **E3. Menus:** título, seleção, pausa, fim com rematch. — `scenes/ui/titulo.{gd,
+  tscn}` (nova cena principal, Título→Seleção→Arena; encaminha sob `--…`); `scenes/ui/
+  pausa.{gd,tscn}` (ESC alterna, process_mode ALWAYS); HUD: rematch com Enter no fim.
+  Teste 95/95.
 - [ ] **E4. Modos:** VS COM (atual) e VS MAN (2 jogadores local, input dividido);
   esqueleto de Story.
 - [ ] **E5. Radar/minimapa** com as cores do GDD seção 11.

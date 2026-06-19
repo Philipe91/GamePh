@@ -18,6 +18,7 @@ extends CanvasLayer
 const SETAS: Array[String] = ["↑", "↓", "←", "→"]
 
 var _jogador: Node = null
+var _fim: bool = false   # partida acabou: habilita o rematch (Enter)
 
 
 func _ready() -> void:
@@ -72,6 +73,10 @@ func _ao_municao_mudar(atual: int, maximo: int) -> void:
 ## Painel de desarme e prompt de retomada são dinâmicos (timer correndo): leio o estado
 ## do jogador a cada frame em vez de mil signals por segundo.
 func _process(_delta: float) -> void:
+	# Rematch: ao fim da partida, Enter volta pra seleção de personagem.
+	if _fim and Input.is_action_just_pressed("ui_accept"):
+		get_tree().change_scene_to_file.call_deferred("res://scenes/ui/selecao.tscn")
+		return
 	if _jogador == null:
 		return
 	if _jogador.desarme_ativo():
@@ -109,4 +114,6 @@ func _ao_partida_acabar(vencedor_id: int, motivo: String) -> void:
 		lbl_fim.text = "VOCÊ VENCEU\n(%s)" % motivo
 	else:
 		lbl_fim.text = "VOCÊ PERDEU\n(%s)" % motivo
+	lbl_fim.text += "\n\nEnter: jogar de novo"
 	lbl_fim.visible = true
+	_fim = true

@@ -67,6 +67,7 @@ func _ready() -> void:
 	for c in mapa.vaults:
 		_colocar_vault(c)                           # Vaults do mapa (GDD 8)
 	_colocar_field_traps(mapa)                      # caixas, esteiras, lançadores, pontes
+	add_child(preload("res://scenes/ui/pausa.tscn").instantiate())  # menu de pausa (ESC)
 	GameManager.faltam_30s.connect(_ao_faltar_30s)  # Spark Bit aos 30s (GDD 7.3)
 	GameManager.iniciar_partida([player, bot])
 
@@ -661,6 +662,15 @@ func _rodar_teste() -> void:
 	await get_tree().process_frame
 	falhas += _checar("fx de explosao entra no grupo", get_tree().get_nodes_in_group("fx").size() > n_fx and fx.emitting)
 	fx.queue_free()
+
+	# Bloco E3 (Fase 7): menus — pausa alterna o estado. (Sem await com a árvore pausada!)
+	var pausa := preload("res://scenes/ui/pausa.tscn").instantiate()
+	add_child(pausa)
+	pausa.alternar()
+	falhas += _checar("pausa ativa o paused", get_tree().paused)
+	pausa.alternar()
+	falhas += _checar("pausa desativa o paused", not get_tree().paused)
+	pausa.queue_free()
 
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX

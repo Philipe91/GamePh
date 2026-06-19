@@ -12,7 +12,7 @@ config_version=5
 
 config/name="VAULTBREAKER"
 config/description="Arena fighter 2.5D top-down de armadilhas. Remake com mundo e arte originais."
-run/main_scene="res://scenes/ui/selecao.tscn"
+run/main_scene="res://scenes/ui/titulo.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 
 [autoload]
