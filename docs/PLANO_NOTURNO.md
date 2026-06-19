@@ -99,7 +99,9 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
 
 ## BLOCO F — Fase 8: Camada moderna
 
-- [ ] **F1. Persistência local** (settings, progressão simples).
+- [x] **F1. Persistência local** (settings, progressão simples). — `autoloads/
+  persistencia.gd` (ConfigFile em `user://`): set/get_config, salvar/carregar,
+  registrar_resultado (vitórias/derrotas); GameManager grava no fim da partida. Teste 99/99.
 - [ ] **F2. Online** — ⚠ FORA do escopo noturno (precisa infra/decisão do humano);
   deixar só um documento de design.
 

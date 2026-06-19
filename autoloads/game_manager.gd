@@ -81,6 +81,7 @@ func _decidir_por_tempo() -> void:
 func _terminar(vencedor_id: int, motivo: String) -> void:
 	_estado = Estado.ACABOU
 	AudioManager.tocar("vitoria")
+	Persistencia.registrar_resultado(vencedor_id)  # progressão local (vitórias/derrotas)
 	partida_acabou.emit(vencedor_id, motivo)
 
 

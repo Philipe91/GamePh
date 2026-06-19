@@ -699,6 +699,12 @@ func _rodar_teste() -> void:
 	falhas += _checar("radar mapeia o centro pro meio", meio.is_equal_approx(Vector2(50.0, 50.0)))
 	radar.free()
 
+	# Bloco F1 (Fase 8): persistência local (salva e relê do disco).
+	Persistencia.set_config("teste", "x", 42)
+	Persistencia.salvar()
+	Persistencia.carregar()
+	falhas += _checar("persistencia salva e le do disco", int(Persistencia.get_config("teste", "x", 0)) == 42)
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX
