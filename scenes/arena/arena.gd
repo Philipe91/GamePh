@@ -63,6 +63,21 @@ func _ready() -> void:
 		add_child(preload("res://scenes/ui/pausa.tscn").instantiate())
 		GameManager.iniciar_partida([player, bot])
 		return
+	# Arena vertical COMPLETA jogável (pontes cruzadas + rampas). Rodar em casa.
+	if "--vertical" in args:
+		_montar_arena_vertical()
+		player.gravidade_ativa = true
+		bot.gravidade_ativa = true
+		player.global_position = Vector3(-11.0, 1.0, 11.0)
+		bot.global_position = Vector3(11.0, 1.0, -11.0)
+		$HUD.configurar(player, bot)
+		add_child(preload("res://scenes/ui/pausa.tscn").instantiate())
+		GameManager.iniciar_partida([player, bot])
+		return
+	# Demo da arena vertical completa: screenshot.
+	if "--demo-vertical" in args:
+		_demo_vertical_e_capturar()
+		return
 	# Modo captura automatizada (screenshot pro dev). Só roda se passado --capturar.
 	if "--capturar" in args:
 		_capturar_e_sair()
@@ -796,6 +811,22 @@ func _rodar_teste() -> void:
 	ponte_oc.queue_free()
 	_pontes.clear()
 
+	# Arena vertical completa: monta e um player assenta no chão dela.
+	_montar_arena_vertical()
+	falhas += _checar("arena vertical registra 2 pontes", _pontes.size() == 2)
+	var pv := preload("res://scenes/characters/player.tscn").instantiate()
+	pv.gravidade_ativa = true
+	add_child(pv)
+	pv.global_position = Vector3(-11.0, 5.0, 11.0)   # cai num canto livre do chão
+	for _i in range(70):
+		await get_tree().physics_frame
+	falhas += _checar("player assenta no chao da arena vertical", absf(pv.global_position.y - 1.0) < 0.4)
+	pv.queue_free()
+	for n in get_tree().get_nodes_in_group("geometria"):
+		n.queue_free()
+	_pontes.clear()
+	await get_tree().physics_frame
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX
@@ -907,6 +938,7 @@ func _caixa_solida(pos: Vector3, tamanho: Vector3, cor: Color, rot_x: float = 0.
 	box.size = tamanho
 	cs.shape = box
 	sb.add_child(cs)
+	sb.add_to_group("geometria")   # facilita limpar nos testes
 	add_child(sb)
 	sb.position = pos
 	sb.rotation.x = rot_x
@@ -924,6 +956,39 @@ func _construir_greybox() -> void:
 	_caixa_solida(Vector3(9.0, 0.6, 0.0), Vector3(0.4, 1.2, 18.0), Color(0.2, 0.22, 0.3))   # parede
 
 
+## Cria uma rampa inclinada ligando um ponto baixo a um alto (ao longo de X ou Z).
+func _rampa(baixo: Vector3, alto: Vector3, largura: float) -> StaticBody3D:
+	var meio := (baixo + alto) * 0.5
+	var delta := alto - baixo
+	var sb: StaticBody3D
+	if absf(delta.z) >= absf(delta.x):           # rampa ao longo de Z (norte/sul)
+		var comp := absf(delta.z) + 1.0
+		sb = _caixa_solida(meio, Vector3(largura, 0.3, comp), Color(0.45, 0.5, 0.65))
+		var ang := atan2(delta.y, absf(delta.z))
+		sb.rotation.x = ang if delta.z < 0.0 else -ang
+	else:                                        # rampa ao longo de X (leste/oeste)
+		var comp := absf(delta.x) + 1.0
+		sb = _caixa_solida(meio, Vector3(comp, 0.3, largura), Color(0.45, 0.5, 0.65))
+		var ang := atan2(delta.y, absf(delta.x))
+		sb.rotation.z = -ang if delta.x < 0.0 else ang
+	return sb
+
+
+## Arena vertical jogável: chão + perímetro + duas pontes cruzadas (+) no alto + 4 rampas.
+func _montar_arena_vertical() -> void:
+	_caixa_solida(Vector3(0.0, -0.1, 0.0), Vector3(28.0, 0.2, 28.0), Color(0.12, 0.13, 0.18))  # chão
+	_caixa_solida(Vector3(0.0, 0.7, 14.0), Vector3(28.0, 1.4, 0.5), Color(0.2, 0.22, 0.3))     # perímetro N
+	_caixa_solida(Vector3(0.0, 0.7, -14.0), Vector3(28.0, 1.4, 0.5), Color(0.2, 0.22, 0.3))    # perímetro S
+	_caixa_solida(Vector3(14.0, 0.7, 0.0), Vector3(0.5, 1.4, 28.0), Color(0.2, 0.22, 0.3))     # perímetro L
+	_caixa_solida(Vector3(-14.0, 0.7, 0.0), Vector3(0.5, 1.4, 28.0), Color(0.2, 0.22, 0.3))    # perímetro O
+	_construir_ponte(Vector3(0.0, 2.6, 0.0), Vector3(3.0, 0.3, 16.0))   # ponte N-S
+	_construir_ponte(Vector3(0.0, 2.6, 0.0), Vector3(16.0, 0.3, 3.0))   # ponte E-O (cruza)
+	_rampa(Vector3(0.0, 0.0, 11.0), Vector3(0.0, 2.6, 8.0), 3.0)        # rampa sul
+	_rampa(Vector3(0.0, 0.0, -11.0), Vector3(0.0, 2.6, -8.0), 3.0)      # rampa norte
+	_rampa(Vector3(11.0, 0.0, 0.0), Vector3(8.0, 2.6, 0.0), 3.0)        # rampa leste
+	_rampa(Vector3(-11.0, 0.0, 0.0), Vector3(-8.0, 2.6, 0.0), 3.0)      # rampa oeste
+
+
 ## Cria uma ponte sólida e a registra pra oclusão dinâmica (some quem passa por baixo vê).
 func _construir_ponte(pos: Vector3, tamanho: Vector3) -> StaticBody3D:
 	var sb := _caixa_solida(pos, tamanho, Color(0.5, 0.55, 0.7, 1.0))
@@ -932,6 +997,19 @@ func _construir_ponte(pos: Vector3, tamanho: Vector3) -> StaticBody3D:
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA  # pra poder esmaecer
 	_pontes.append({"no": sb, "mat": mat, "centro": pos, "tamanho": tamanho})
 	return sb
+
+
+## Demo da arena vertical completa: posiciona o player numa rampa subindo e o bot no alto.
+func _demo_vertical_e_capturar() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	_montar_arena_vertical()
+	await get_tree().physics_frame
+	player.global_position = Vector3(0.0, 1.0, 6.0)    # no chão, embaixo das pontes
+	bot.global_position = Vector3(0.0, 3.6, 0.0)       # no cruzamento das pontes (alto)
+	for _i in range(30):
+		await get_tree().process_frame                 # deixa a oclusão agir
+	_capturar_e_sair()
 
 
 ## Demo do greybox vertical: posiciona um no chão SOB a ponte e outro EM CIMA dela, captura.
