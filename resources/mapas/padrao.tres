@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="StatsMapa" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stats_mapa.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+nome = "Padrão"
+largura = 12
+altura = 12
+tamanho_tile = 2.0
+spawn_jogador = Vector2i(3, 8)
+spawn_bot = Vector2i(9, 3)
+vaults = Array[Vector2i]([Vector2i(6, 6)])

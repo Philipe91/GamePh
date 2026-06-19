@@ -60,8 +60,10 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
 
 ## BLOCO D — Fase 6: Arenas e field traps
 
-- [ ] **D1. Mapa por dados.** Arena parametrizável (tamanho, spawns, tiles especiais) via
-  Resource; 2–3 layouts.
+- [x] **D1. Mapa por dados.** Arena parametrizável (tamanho, spawns, tiles especiais) via
+  Resource; 2–3 layouts. — `scripts/stats_mapa.gd` + `resources/mapas/{padrao,corredor}.tres`;
+  GridManager.configurar_mapa() (LARGURA/ALTURA/TAMANHO_TILE viraram var); arena aplica o
+  mapa (redesenha grid, posiciona spawns e Vaults). Teste 79/79.
 - [ ] **D2. Field traps.** Obstacle Box, Bomb Box, Laser/Rocket Launcher, Esteira
   (tile que empurra). Destrutíveis por projétil/bomba.
 - [ ] **D3. Pontes/passarelas** (tile "azul claro") pra evasão da Plasma (some a ponte ao

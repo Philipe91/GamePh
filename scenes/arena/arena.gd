@@ -45,6 +45,14 @@ func _ready() -> void:
 	if "--capturar" in args:
 		_capturar_e_sair()
 		return
+	# Mapa por dados (Fase 6): redimensiona o grid, redesenha, posiciona spawns e Vaults.
+	var mapa: Resource = preload("res://resources/mapas/padrao.tres")
+	GridManager.configurar_mapa(mapa)
+	_desenhar_grid()
+	player.global_position = GridManager.grid_to_world(mapa.spawn_jogador)
+	player.global_position.y = 1.0
+	bot.global_position = GridManager.grid_to_world(mapa.spawn_bot)
+	bot.global_position.y = 1.0
 	# Personagens escolhidos na tela de seleção (se houver).
 	if GameManager.personagem_jogador != "":
 		player.aplicar_personagem(load(GameManager.personagem_jogador))
@@ -52,7 +60,8 @@ func _ready() -> void:
 		bot.aplicar_personagem(load(GameManager.personagem_bot))
 	# Modo normal de jogo: liga a HUD e inicia a partida (timer + regras de vitória).
 	$HUD.configurar(player, bot)
-	_colocar_vault(Vector2i(6, 6))                  # Vault no centro (GDD 8)
+	for c in mapa.vaults:
+		_colocar_vault(c)                           # Vaults do mapa (GDD 8)
 	GameManager.faltam_30s.connect(_ao_faltar_30s)  # Spark Bit aos 30s (GDD 7.3)
 	GameManager.iniciar_partida([player, bot])
 
@@ -84,6 +93,9 @@ func _ao_bot_morrer() -> void:
 
 ## Desenha as linhas do grid como ImmediateMesh, em neon ciano discreto. Roda ao jogar.
 func _desenhar_grid() -> void:
+	var antigo := get_node_or_null("LinhasGrid")  # redesenho seguro (mapa pode mudar)
+	if antigo != null:
+		antigo.free()
 	var linhas := MeshInstance3D.new()
 	linhas.name = "LinhasGrid"
 	var im := ImmediateMesh.new()
@@ -518,6 +530,20 @@ func _rodar_teste() -> void:
 	falhas += _checar("GameManager guarda os personagens escolhidos", GameManager.personagem_jogador.ends_with("vesna.tres") and GameManager.personagem_bot.ends_with("mara.tres"))
 	GameManager.personagem_jogador = ""
 	GameManager.personagem_bot = ""
+
+	# Bloco D1 (Fase 6): mapa por dados redimensiona o grid.
+	var mp: Resource = preload("res://scripts/stats_mapa.gd").new()
+	mp.largura = 16
+	mp.altura = 10
+	mp.tamanho_tile = 2.0
+	GridManager.configurar_mapa(mp)
+	falhas += _checar("mapa redimensiona o grid", GridManager.LARGURA == 16 and GridManager.ALTURA == 10)
+	# grid_to_world reflete o novo tamanho: canto (0,0) em x = 0.5*2 - 16*2*0.5 = -15.
+	falhas += _checar("grid_to_world usa o novo tamanho", is_equal_approx(GridManager.grid_to_world(Vector2i(0, 0)).x, -15.0))
+	# Restaura 12x12 pro resto do teste.
+	var mp_pad: Resource = preload("res://scripts/stats_mapa.gd").new()
+	GridManager.configurar_mapa(mp_pad)
+	falhas += _checar("restaura grid 12x12", GridManager.LARGURA == 12 and is_equal_approx(GridManager.grid_to_world(Vector2i(0, 0)).x, -11.0))
 
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX

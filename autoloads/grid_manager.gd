@@ -14,11 +14,12 @@ signal armadilha_plantada(coord: Vector2i, dono: int, tipo: String)
 ## Sinal emitido quando uma armadilha é removida de um tile (explodiu, retomada, etc).
 signal armadilha_removida(coord: Vector2i, dono: int, tipo: String)
 
-## Dimensões lógicas da arena, em tiles. Começa 12x12 (GDD seção 5), ajustável por mapa.
-const LARGURA: int = 12
-const ALTURA: int = 12
+## Dimensões lógicas da arena, em tiles. Começa 12x12 (GDD seção 5); um mapa pode mudar
+## via configurar_mapa() (Fase 6). São var (não const) justamente pra serem ajustáveis.
+var LARGURA: int = 12
+var ALTURA: int = 12
 ## Tamanho de cada tile em unidades de mundo. Tiles de 2x2 dão espaço pra cápsula andar.
-const TAMANHO_TILE: float = 2.0
+var TAMANHO_TILE: float = 2.0
 
 ## Tipos de tile que NÃO aceitam armadilha (GDD seção 5).
 ## Por enquanto só usamos LIVRE e ARMADILHA; os demais entram nas próximas fases.
@@ -28,6 +29,16 @@ enum TipoTile { LIVRE, VAULT, ESCADA, RAMPA, ESTEIRA }
 var _armadilhas: Dictionary = {}
 ## Tipo de cada tile (para regras de plantio). Vazio = LIVRE.
 var _tipos_tile: Dictionary = {}
+
+
+## Aplica um StatsMapa: redimensiona o grid e limpa o estado (Fase 6). Chamado pela arena
+## no início da partida. Recebe Resource (duck-typed) pra não depender do class_name global.
+func configurar_mapa(m: Resource) -> void:
+	LARGURA = int(m.largura)
+	ALTURA = int(m.altura)
+	TAMANHO_TILE = float(m.tamanho_tile)
+	_armadilhas.clear()
+	_tipos_tile.clear()
 
 
 ## Retorna true se a coordenada está dentro dos limites do grid.
