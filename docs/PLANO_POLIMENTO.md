@@ -46,8 +46,12 @@ agente desce a fila, **commita E dá push** em cada fatia, manda screenshot nos 
 - [ ] **P7. Mais um mapa vertical** — layout novo por dados (ex.: torre/níveis) pra variar.
 
 ## DIÁRIO
-- (início) Plano criado em 2026-06-19 sobre `d6b1aad` (108 testes, HUD/roda premium,
-  arena vertical data-driven, seleção de mapa). Começando por P1.
+- (início) Plano criado em 2026-06-19 sobre `d6b1aad`. P1/P2 (menus/fim premium) feitos.
+  PIVÔ pra gameplay: G1 (IA profunda), G2 (dificuldades), G4 (bot desarma), G6 (bot busca
+  itens) — todos feitos e pushados (115 testes).
+- **PARADA (loop autônomo encerrado):** sobraram só G3 (rounds — precisa aprovação de
+  design do humano) e G5 (balanceamento — precisa PLAYTEST do humano). Aguardando o humano
+  pra: aprovar rounds, jogar e dar feedback de balanceamento, ou apontar novo rumo.
 - **P1 ✅** Menus premium: `ui_estilo.gd` compartilhado (botões neon com hover glow, título
   com glow, fundo escuro + acento). Aplicado em título (VS COM ciano / VS MAN vermelho) e
   seleção (mapas ciano, personagens na cor de time). 108/108. Próximo: P2 (tela de fim).
