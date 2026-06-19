@@ -234,7 +234,71 @@ Hoje há `CPUParticles` na explosão (laranja) + flash + screenshake. Pode evolu
 
 ---
 
+---
+
+## 11. TESTAR AGORA com assets CC0 do Kenney.nl (sem Blender) — passo a passo
+
+**Por que Kenney:** assets de jogo **CC0** (domínio público — uso comercial liberado, sem
+atribuição), já vêm prontos em **`.glb`/`.gltf`** (não precisa de Blender pra usar), estilo
+low-poly limpo que **lê muito bem no top-down**. Perfeito pra **testar o jogo agora** com
+arte de verdade. Depois, em casa, a gente **refaz/aprimora no Blender**.
+
+### Passo a passo (pelo celular ou PC)
+1. Abra **https://kenney.nl/assets** e filtre por **3D** (e, se der, por CC0 — tudo do
+   Kenney é CC0).
+2. Baixe os packs (botão **Download**; é grátis — a doação é opcional). Cada pack vem num
+   `.zip`.
+3. Dentro do `.zip`, procure a pasta de **`Models/GLB`** ou **`glTF`**. **Guarde os arquivos
+   `.glb`** (ignore `.fbx`/`.obj`/`.blend` por enquanto).
+4. Me mande os `.glb` (ou coloque em `assets/models/` e me avise) → **eu plugo no jogo**.
+
+### Quais packs pegar (mapeados pro VAULTBREAKER)
+> Os nomes podem variar no site — filtre por 3D e pegue o que mais se parece. Não precisa
+> ser perfeito: é pra **testar o pipeline**.
+
+| Asset do jogo | Pack do Kenney (procure por…) |
+|---------------|-------------------------------|
+| **Personagens** | um pack de **personagens** — de preferência que diga **"Animated"/"rigged"** (vem com idle/run/etc). Ex.: "Animated Characters 1/2", "Mini Characters 1", "Blocky Characters" |
+| **Armas (tiro)** | **"Blaster Kit"** (armas sci-fi) |
+| **Caixas / barris** (Obstacle/Bomb Box) | **"Prototype Kit"**, **"Survival Kit"** ou **"Platformer Kit"** (crates/barrels) |
+| **Props sci-fi / lançadores / Vault** | **"Space Kit"** ou **"Tower Defense Kit"** |
+| **Chão / piso** | **"Prototype Textures"** (texturas de placeholder com grid — ótimas) |
+| **Itens / pickups** | **"Generic Items"** / coins-gems de um Platformer pack |
+
+### Importante (tira o medo de errar)
+- **Animações:** se o personagem vier **rigado/animado**, os clipes podem ter nomes em
+  inglês (idle, run, attack…) em vez dos nossos (`parado/correr/...`). **Não se preocupe** —
+  me mande como está; **eu mapeio** os nomes no código.
+- **Escala:** os modelos do Kenney costumam ser pequenos. Eu ajusto a escala pra bater com
+  o jogo (personagem ~2 m). Você não precisa redimensionar.
+- **Formato:** prefira **`.glb`** (um arquivo só, com textura embutida). Se só tiver
+  `.gltf` + texturas soltas, mande a pasta inteira.
+- É **CC0** → pode usar **comercialmente, sem atribuição**. (Ainda assim, é elegante creditar
+  o Kenney nos créditos do jogo.)
+
+### O plano combinado
+1. **Agora (longe de casa):** pegar o máximo do Kenney → eu integro → **testar o jogo** com
+   arte real.
+2. **Em casa (testes ok):** abrir no **Blender** e **refazer/aprimorar** o design (originais,
+   look VECTOR). Como tudo pluga por `StatsPersonagem`/pastas, **trocar a arte não mexe no
+   código**.
+
+---
+
+## 12. Licença / release comercial (resumo)
+
+- **CC0 (Kenney, Quaternius, Poly Pizza):** uso comercial **liberado**, sem atribuição. **O
+  caminho mais seguro e barato** pra lançar.
+- **Synty (POLYGON):** pago mas barato; licença comercial clara; muito usado por indies.
+- **IA gen (Meshy/Tripo/Rodin):** free tier geralmente **não** libera comercial — precisa de
+  **plano pago** pra vender. Copyright de obra 100% gerada por IA é **juridicamente nebuloso**;
+  pra release, refine no Blender (vira autoria sua).
+- **Blender / modelar você mesmo:** grátis, **posse total**, inequivocamente original.
+- ⚠️ Sempre confira o **ToS/licença atual** da ferramenta antes de publicar.
+
+---
+
 Docs relacionados: `docs/ARTE.md` (direção visual), `docs/CRIACAO_DE_PERSONAGENS.md`
 (contrato técnico de personagem), `docs/HANDOFF.md` (retomar o projeto), `GDD.md` (design).
-Tudo é placeholder hoje — este documento é o alvo. Ao gerar os assets, me mande que eu
-integro (trocar malhas, ligar anims, aplicar áudio).
+Tudo é placeholder hoje — este documento é o alvo. Ao gerar/baixar os assets, me mande que
+eu integro (trocar malhas, ligar anims, aplicar áudio).
