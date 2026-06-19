@@ -72,6 +72,8 @@ var _radial_idx: int = 0
 
 func _ready() -> void:
 	super._ready()
+	_gamepad = jogador_num - 1          # p1 → gamepad 0, p2 → gamepad 1
+	_usa_teclado = jogador_num == 1     # só o p1 usa teclado/mouse (VS MAN é 2 gamepads)
 	if stats == null:
 		velocidade_base = VELOCIDADE   # default do player quando não há StatsPersonagem
 	for tipo in ORDEM:
@@ -104,6 +106,28 @@ func aplicar_personagem(novo: Resource) -> void:
 
 
 var _escape_antes: bool = false      # borda do "mash" pra sair da Cova
+
+## Qual jogador controla este Player: 1 = teclado + gamepad 0; 2 = gamepad 1 (VS MAN).
+@export var jogador_num: int = 1
+var _gamepad: int = 0
+var _usa_teclado: bool = true
+
+
+# ───────────────────────── Helpers de input por dispositivo ─────────────────────────
+func _tecla(codigo: int) -> bool:
+	return _usa_teclado and Input.is_physical_key_pressed(codigo)
+
+
+func _botao(jb: int) -> bool:
+	return Input.is_joy_button_pressed(_gamepad, jb)
+
+
+func _eixo(ax: int) -> float:
+	return Input.get_joy_axis(_gamepad, ax)
+
+
+func _mouse(mb: int) -> bool:
+	return _usa_teclado and Input.is_mouse_button_pressed(mb)
 
 
 func _physics_process(delta: float) -> void:
@@ -155,16 +179,16 @@ func _physics_process(delta: float) -> void:
 
 func _obter_direcao() -> Vector2:
 	var dir := Vector2.ZERO
-	if Input.is_physical_key_pressed(KEY_D):
+	if _tecla(KEY_D):
 		dir.x += 1.0
-	if Input.is_physical_key_pressed(KEY_A):
+	if _tecla(KEY_A):
 		dir.x -= 1.0
-	if Input.is_physical_key_pressed(KEY_S):
+	if _tecla(KEY_S):
 		dir.y += 1.0
-	if Input.is_physical_key_pressed(KEY_W):
+	if _tecla(KEY_W):
 		dir.y -= 1.0
-	var gx := Input.get_joy_axis(0, JOY_AXIS_LEFT_X)
-	var gy := Input.get_joy_axis(0, JOY_AXIS_LEFT_Y)
+	var gx := _eixo(JOY_AXIS_LEFT_X)
+	var gy := _eixo(JOY_AXIS_LEFT_Y)
 	if absf(gx) > ZONA_MORTA:
 		dir.x += gx
 	if absf(gy) > ZONA_MORTA:
@@ -174,44 +198,40 @@ func _obter_direcao() -> Vector2:
 
 ## Lê plantar (Espaço/A), detonar (F/B) e ciclar seleção (Q/E), todos por borda.
 func _ler_acoes() -> void:
-	var plantar_p := Input.is_physical_key_pressed(KEY_SPACE) \
-		or Input.is_joy_button_pressed(0, JOY_BUTTON_A)
+	var plantar_p := _tecla(KEY_SPACE) or _botao(JOY_BUTTON_A)
 	if plantar_p and not _plantar_antes:
 		plantar()
 	_plantar_antes = plantar_p
 
-	var detonar_p := Input.is_physical_key_pressed(KEY_F) \
-		or Input.is_joy_button_pressed(0, JOY_BUTTON_B)
+	var detonar_p := _tecla(KEY_F) or _botao(JOY_BUTTON_B)
 	if detonar_p and not _detonar_antes:
 		acionar_detonadores()
 	_detonar_antes = detonar_p
 
 	var ciclo := 0
-	if Input.is_physical_key_pressed(KEY_E):
+	if _tecla(KEY_E):
 		ciclo = 1
-	elif Input.is_physical_key_pressed(KEY_Q):
+	elif _tecla(KEY_Q):
 		ciclo = -1
 	if ciclo != 0 and _ciclo_antes == 0:
 		trocar_selecao(ciclo)
 	_ciclo_antes = ciclo
 
-	# Atirar (botão esquerdo do mouse / J / gatilho direito). A cadência limita o ritmo;
+	# Atirar (mouse esq / J / gatilho direito). A cadência limita o ritmo;
 	# [decisão noturna 2026-06-18] o tiro sai na direção que o personagem encara (mira por
 	# movimento). Mira livre por mouse/stick fica pra uma fatia futura.
-	var atirar_p := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) \
-		or Input.is_physical_key_pressed(KEY_J) \
-		or Input.get_joy_axis(0, JOY_AXIS_TRIGGER_RIGHT) > 0.5
+	var atirar_p := _mouse(MOUSE_BUTTON_LEFT) or _tecla(KEY_J) \
+		or _eixo(JOY_AXIS_TRIGGER_RIGHT) > 0.5
 	if atirar_p:
 		atirar()
 
 	# Soco corpo a corpo (K / botão Y). O cooldown limita; derruba quem acertar.
-	var socar_p := Input.is_physical_key_pressed(KEY_K) or Input.is_joy_button_pressed(0, JOY_BUTTON_Y)
-	if socar_p:
+	if _tecla(KEY_K) or _botao(JOY_BUTTON_Y):
 		socar()
 
 	# Unit/Plasma (segurar U / gatilho esquerdo): carrega e dispara ao completar. Soltar
 	# antes do fim cancela. Só funciona com a Unit no estoque (item da Vault).
-	var unit_p := Input.is_physical_key_pressed(KEY_U) or Input.get_joy_axis(0, JOY_AXIS_TRIGGER_LEFT) > 0.5
+	var unit_p := _tecla(KEY_U) or _eixo(JOY_AXIS_TRIGGER_LEFT) > 0.5
 	if unit_p:
 		iniciar_carga_unit()
 	elif esta_carregando_unit():
@@ -254,8 +274,7 @@ func _dir_para_idx(dir: Vector2) -> int:
 ## Segurar Tab (teclado) / R1 (gamepad) abre a roda; o direcional escolhe a fatia;
 ## soltar confirma a seleção (GDD 6.4). Q/E continua valendo como atalho rápido.
 func _ler_radial() -> void:
-	var aberto := Input.is_physical_key_pressed(KEY_TAB) \
-		or Input.is_joy_button_pressed(0, JOY_BUTTON_RIGHT_SHOULDER)
+	var aberto := _tecla(KEY_TAB) or _botao(JOY_BUTTON_RIGHT_SHOULDER)
 	if aberto:
 		if not _radial_aberto:
 			_radial_aberto = true
@@ -337,9 +356,7 @@ func armadilhas_detectadas() -> Array[Vector2i]:
 
 ## Lê o botão de Caution (segurar C / L1). Estado contínuo, não por borda — anda segurando.
 func _ler_caution() -> void:
-	var segurando := Input.is_physical_key_pressed(KEY_C) \
-		or Input.is_joy_button_pressed(0, JOY_BUTTON_LEFT_SHOULDER)
-	ativar_caution(segurando)
+	ativar_caution(_tecla(KEY_C) or _botao(JOY_BUTTON_LEFT_SHOULDER))
 
 
 ## Monta os pools de malhas do overlay uma vez (highlights de tile + marcadores), ocultos.
@@ -476,7 +493,7 @@ func retomada_disponivel() -> bool:
 func _ler_interacao() -> void:
 	_retomada_alvo = null
 	if not _caution_ativo or _desarme_cooldown > 0.0:
-		_interagir_antes = Input.is_physical_key_pressed(KEY_R)  # consome a borda
+		_interagir_antes = _tecla(KEY_R)  # consome a borda
 		return
 	var inim := _armadilha_proxima(false)
 	if inim != null:
@@ -485,7 +502,7 @@ func _ler_interacao() -> void:
 	var propria := _armadilha_proxima(true)
 	if propria != null:
 		_retomada_alvo = propria
-	var confirmar := Input.is_physical_key_pressed(KEY_R) or Input.is_joy_button_pressed(0, JOY_BUTTON_X)
+	var confirmar := _tecla(KEY_R) or _botao(JOY_BUTTON_X)
 	if confirmar and not _interagir_antes and _retomada_alvo != null:
 		_retomar(_retomada_alvo)
 	_interagir_antes = confirmar
@@ -536,13 +553,13 @@ func _processar_desarme(delta: float) -> void:
 ## Lê UMA seta por borda (setas do teclado / D-pad). -1 = nada novo apertado.
 func _ler_direcao_codigo() -> int:
 	var d := -1
-	if Input.is_physical_key_pressed(KEY_UP) or Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_UP):
+	if _tecla(KEY_UP) or _botao(JOY_BUTTON_DPAD_UP):
 		d = 0
-	elif Input.is_physical_key_pressed(KEY_DOWN) or Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_DOWN):
+	elif _tecla(KEY_DOWN) or _botao(JOY_BUTTON_DPAD_DOWN):
 		d = 1
-	elif Input.is_physical_key_pressed(KEY_LEFT) or Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_LEFT):
+	elif _tecla(KEY_LEFT) or _botao(JOY_BUTTON_DPAD_LEFT):
 		d = 2
-	elif Input.is_physical_key_pressed(KEY_RIGHT) or Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_RIGHT):
+	elif _tecla(KEY_RIGHT) or _botao(JOY_BUTTON_DPAD_RIGHT):
 		d = 3
 	var saida := d if d != _codigo_antes else -1
 	_codigo_antes = d

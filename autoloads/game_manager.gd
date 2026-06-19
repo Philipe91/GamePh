@@ -29,6 +29,9 @@ var _avisou_30s: bool = false
 var personagem_jogador: String = ""
 var personagem_bot: String = ""
 
+## Modo da partida (GDD 12): "vs_com" (contra o bot) ou "vs_man" (2 jogadores locais).
+var modo: String = "vs_com"
+
 
 ## Inicia (ou reinicia) a partida com a lista de combatentes (nós com Healer e id).
 func iniciar_partida(combatentes: Array) -> void:

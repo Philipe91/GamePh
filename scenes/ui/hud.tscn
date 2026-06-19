@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://b3hud00vault01"]
+[gd_scene load_steps=4 format=3 uid="uid://b3hud00vault01"]
 
 [ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/ui/radial_menu.gd" id="2"]
+[ext_resource type="Script" path="res://scenes/ui/radar.gd" id="3"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1")
@@ -141,3 +142,15 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 script = ExtResource("2")
+
+[node name="Radar" type="Control" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -150.0
+offset_right = -16.0
+offset_bottom = -16.0
+mouse_filter = 2
+script = ExtResource("3")

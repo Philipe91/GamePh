@@ -51,11 +51,22 @@ func _montar_ui() -> void:
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caixa.add_child(sub)
 
-	var jogar := Button.new()
-	jogar.text = "JOGAR"
-	jogar.custom_minimum_size = Vector2(280, 56)
-	jogar.pressed.connect(_ir_pra_selecao)
-	caixa.add_child(jogar)
+	var vs_com := Button.new()
+	vs_com.text = "VS COM  (contra o bot)"
+	vs_com.custom_minimum_size = Vector2(320, 52)
+	vs_com.pressed.connect(_jogar.bind("vs_com"))
+	caixa.add_child(vs_com)
+
+	var vs_man := Button.new()
+	vs_man.text = "VS MAN  (2 jogadores)"
+	vs_man.custom_minimum_size = Vector2(320, 52)
+	vs_man.pressed.connect(_jogar.bind("vs_man"))
+	caixa.add_child(vs_man)
+
+
+func _jogar(modo: String) -> void:
+	GameManager.modo = modo
+	_ir_pra_selecao()
 
 
 func _ir_pra_selecao() -> void:

@@ -55,21 +55,31 @@ func _ready() -> void:
 	_desenhar_grid()
 	player.global_position = GridManager.grid_to_world(mapa.spawn_jogador)
 	player.global_position.y = 1.0
-	bot.global_position = GridManager.grid_to_world(mapa.spawn_bot)
-	bot.global_position.y = 1.0
+	# Oponente: o bot (VS COM) ou um 2º jogador local com gamepad 1 (VS MAN — GDD 12).
+	var oponente: Node = bot
+	if GameManager.modo == "vs_man":
+		bot.queue_free()
+		var p2 := preload("res://scenes/characters/player.tscn").instantiate()
+		p2.id_jogador = 2
+		p2.jogador_num = 2
+		add_child(p2)
+		p2.healer_zerou.connect(_ao_bot_morrer)
+		oponente = p2
+	oponente.global_position = GridManager.grid_to_world(mapa.spawn_bot)
+	oponente.global_position.y = 1.0
 	# Personagens escolhidos na tela de seleção (se houver).
 	if GameManager.personagem_jogador != "":
 		player.aplicar_personagem(load(GameManager.personagem_jogador))
 	if GameManager.personagem_bot != "":
-		bot.aplicar_personagem(load(GameManager.personagem_bot))
+		oponente.aplicar_personagem(load(GameManager.personagem_bot))
 	# Modo normal de jogo: liga a HUD e inicia a partida (timer + regras de vitória).
-	$HUD.configurar(player, bot)
+	$HUD.configurar(player, oponente)
 	for c in mapa.vaults:
 		_colocar_vault(c)                           # Vaults do mapa (GDD 8)
 	_colocar_field_traps(mapa)                      # caixas, esteiras, lançadores, pontes
 	add_child(preload("res://scenes/ui/pausa.tscn").instantiate())  # menu de pausa (ESC)
 	GameManager.faltam_30s.connect(_ao_faltar_30s)  # Spark Bit aos 30s (GDD 7.3)
-	GameManager.iniciar_partida([player, bot])
+	GameManager.iniciar_partida([player, oponente])
 
 
 ## Instancia os field traps do mapa (GDD 10) nos tiles indicados. Posição antes do
@@ -671,6 +681,23 @@ func _rodar_teste() -> void:
 	pausa.alternar()
 	falhas += _checar("pausa desativa o paused", not get_tree().paused)
 	pausa.queue_free()
+
+	# Bloco E4 (Fase 7): modos — VS MAN cria um 2º jogador no gamepad 1.
+	GameManager.modo = "vs_man"
+	falhas += _checar("gamemanager guarda o modo", GameManager.modo == "vs_man")
+	var p2 := preload("res://scenes/characters/player.tscn").instantiate()
+	p2.jogador_num = 2
+	add_child(p2)
+	await get_tree().physics_frame
+	falhas += _checar("player 2 usa gamepad 1 (sem teclado)", p2._gamepad == 1 and not p2._usa_teclado)
+	p2.queue_free()
+	GameManager.modo = "vs_com"  # restaura o default
+
+	# Bloco E5 (Fase 7): radar mapeia o mundo pro minimapa.
+	var radar: Control = preload("res://scenes/ui/radar.gd").new()
+	var meio: Vector2 = radar.mundo_para_radar(Vector3(0.0, 0.0, 0.0), Vector2(100.0, 100.0))
+	falhas += _checar("radar mapeia o centro pro meio", meio.is_equal_approx(Vector2(50.0, 50.0)))
+	radar.free()
 
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX

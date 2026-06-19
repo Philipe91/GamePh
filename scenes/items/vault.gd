@@ -16,6 +16,7 @@ var _item_atual: Node = null
 
 
 func _ready() -> void:
+	add_to_group("vaults")  # aparece no radar (GDD 11)
 	coord = GridManager.world_to_grid(global_position)
 	GridManager.definir_tipo_tile(coord, GridManager.TipoTile.VAULT)  # não aceita armadilha
 

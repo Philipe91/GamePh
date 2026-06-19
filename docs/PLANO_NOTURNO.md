@@ -89,9 +89,13 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
   tscn}` (nova cena principal, Título→Seleção→Arena; encaminha sob `--…`); `scenes/ui/
   pausa.{gd,tscn}` (ESC alterna, process_mode ALWAYS); HUD: rematch com Enter no fim.
   Teste 95/95.
-- [ ] **E4. Modos:** VS COM (atual) e VS MAN (2 jogadores local, input dividido);
-  esqueleto de Story.
-- [ ] **E5. Radar/minimapa** com as cores do GDD seção 11.
+- [x] **E4. Modos:** VS COM (atual) e VS MAN (2 jogadores local, input dividido);
+  esqueleto de Story. — input do Player parametrizado por dispositivo (`jogador_num`,
+  helpers `_tecla/_botao/_eixo/_mouse`; p2 = gamepad 1, sem teclado); `GameManager.modo`;
+  arena troca o bot por um 2º Player no VS MAN; título com botões VS COM/VS MAN. Teste 97/97.
+- [x] **E5. Radar/minimapa** com as cores do GDD seção 11. — `scenes/ui/radar.gd` (nó na
+  HUD): desenha grupos vaults(verde)/pontes(azul claro)/destrutiveis(amarelo)/combatentes
+  (azul=p1, vermelho=p2). `mundo_para_radar()` testável. Teste 98/98. **FASE 7 COMPLETA.**
 
 ## BLOCO F — Fase 8: Camada moderna
 
