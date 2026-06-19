@@ -33,6 +33,8 @@ var personagem_bot: String = ""
 var modo: String = "vs_com"
 ## Caminho do mapa escolhido (.tres). "" = padrão.
 var mapa: String = ""
+## Dificuldade do bot: "facil" | "normal" | "dificil".
+var dificuldade: String = "normal"
 
 
 ## Inicia (ou reinicia) a partida com a lista de combatentes (nós com Healer e id).

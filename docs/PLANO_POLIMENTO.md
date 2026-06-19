@@ -11,7 +11,8 @@ agente desce a fila, **commita E dá push** em cada fatia, manda screenshot nos 
 ## Fila de GAMEPLAY (ativa)
 - [x] **G1. IA do bot — profundidade.** Recua/kite com pouca vida (atira de costas),
   planta armadilhas variadas (Cova perto / Mina longe), usa a Unit quando tem. 110/110.
-- [ ] **G2. Níveis de dificuldade do bot** (fácil/normal/difícil) selecionáveis no título.
+- [x] **G2. Níveis de dificuldade do bot** (fácil/normal/difícil) no título. Ajusta cadência
+  de armadilha, mira (limiar do tiro), teto de armadilhas, kite e velocidade. 112/112.
 - [ ] **G3. Sistema de rounds** (melhor de 3) — estrutura de partida.  *(checar design no GDD)*
 - [ ] **G4. Bot usa Caution Mode/desarme** nas armadilhas do player (GDD 6.4).
 - [ ] **G5. Passe de balanceamento** dos `.tres` (tempos/dano/velocidade) pro feel.

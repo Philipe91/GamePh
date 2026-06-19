@@ -29,11 +29,41 @@ var _alvo: Node3D = null
 var _t_plantio: float = 2.0            # cooldown atual até a próxima tentativa
 var _armadilhas_ativas: int = 0
 
+# Parâmetros ajustados pela dificuldade (preenchidos no _ready).
+var _intervalo_plantio: float = INTERVALO_PLANTIO
+var _max_armadilhas: int = MAX_ARMADILHAS
+var _limiar_tiro: float = 0.7          # quão alinhado precisa estar pra atirar (dot)
+var _kite: bool = true                 # recua com pouca vida?
+
 
 func _ready() -> void:
 	super._ready()
 	if stats == null:
 		velocidade_base = VELOCIDADE   # bot é um pouco mais lento que o player
+	_aplicar_dificuldade()
+
+
+## Ajusta a IA conforme GameManager.dificuldade (G2): frequência de armadilha, mira,
+## teto de armadilhas, kite e velocidade.
+func _aplicar_dificuldade() -> void:
+	match GameManager.dificuldade:
+		"facil":
+			_intervalo_plantio = INTERVALO_PLANTIO * 1.7
+			_max_armadilhas = 2
+			_limiar_tiro = 0.92        # só atira bem de frente -> erra mais
+			_kite = false              # não foge: mais burro
+			velocidade_base *= 0.9
+		"dificil":
+			_intervalo_plantio = INTERVALO_PLANTIO * 0.6
+			_max_armadilhas = 6
+			_limiar_tiro = 0.5         # atira mais fácil
+			_kite = true
+			velocidade_base *= 1.12
+		_:                              # normal
+			_intervalo_plantio = INTERVALO_PLANTIO
+			_max_armadilhas = MAX_ARMADILHAS
+			_limiar_tiro = 0.7
+			_kite = true
 
 
 func _physics_process(delta: float) -> void:
@@ -52,8 +82,8 @@ func _physics_process(delta: float) -> void:
 	para.y = 0.0
 	var dist := para.length()
 	var vel := velocidade_base * fator_velocidade()  # base do personagem × slow/speed
-	# Com pouca vida e o player por perto, RECUA (kite) em vez de avançar.
-	var fugindo := healer < VIDA_FUGIR and dist < 11.0
+	# Com pouca vida e o player por perto, RECUA (kite) em vez de avançar (se a dificuldade deixa).
+	var fugindo := _kite and healer < VIDA_FUGIR and dist < 11.0
 
 	if dist > DIST_PARAR or fugindo:
 		var base := (-para.normalized()) if fugindo else para.normalized()
@@ -99,7 +129,7 @@ func _encara_alvo(para: Vector3) -> bool:
 	frente.y = 0.0
 	if frente.length() < 0.01 or para.length() < 0.01:
 		return false
-	return frente.normalized().dot(para.normalized()) > 0.7
+	return frente.normalized().dot(para.normalized()) > _limiar_tiro
 
 
 ## Soma de empurrões pra LONGE de cada armadilha do player no raio (faro do bot, A1).
@@ -120,19 +150,19 @@ func _desvio_de_armadilhas() -> Vector3:
 ## Escolhe e planta uma armadilha conforme a situação: Cova quando o player está perto
 ## (prende quem persegue), Mina quando longe (mina o caminho). Reseta o cooldown.
 func _plantar_situacional(dist: float) -> void:
-	_t_plantio = INTERVALO_PLANTIO
+	_t_plantio = _intervalo_plantio
 	_plantar("cova" if dist < 6.0 else "mina")
 
 
 ## Compat com testes/demos: planta uma mina no tile atual.
 func _tentar_plantar_mina() -> void:
-	_t_plantio = INTERVALO_PLANTIO
+	_t_plantio = _intervalo_plantio
 	_plantar("mina")
 
 
 ## Planta uma armadilha do `tipo` no tile atual. Respeita o teto e tiles ocupados.
 func _plantar(tipo: String) -> void:
-	if _armadilhas_ativas >= MAX_ARMADILHAS or not TRAPS.has(tipo):
+	if _armadilhas_ativas >= _max_armadilhas or not TRAPS.has(tipo):
 		return
 	var coord := GridManager.world_to_grid(global_position)
 	if not GridManager.pode_plantar(coord):

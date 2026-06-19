@@ -6,6 +6,8 @@ extends Control
 const SELECAO := "res://scenes/ui/selecao.tscn"
 const UIEstilo := preload("res://scenes/ui/ui_estilo.gd")
 
+var _dif_label: Label = null
+
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -50,6 +52,25 @@ func _montar_ui() -> void:
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caixa.add_child(sub)
 
+	# Dificuldade do bot.
+	_dif_label = Label.new()
+	_dif_label.text = "Dificuldade: Normal"
+	_dif_label.add_theme_color_override("font_color", Color(0.5, 0.8, 1))
+	_dif_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caixa.add_child(_dif_label)
+
+	var linha_dif := HBoxContainer.new()
+	linha_dif.alignment = BoxContainer.ALIGNMENT_CENTER
+	linha_dif.add_theme_constant_override("separation", 8)
+	caixa.add_child(linha_dif)
+	for d in [["facil", "Fácil"], ["normal", "Normal"], ["dificil", "Difícil"]]:
+		var db := Button.new()
+		db.text = d[1]
+		db.custom_minimum_size = Vector2(120, 38)
+		UIEstilo.estilizar_botao(db, Color(0.6, 0.9, 0.6))
+		db.pressed.connect(_escolher_dif.bind(String(d[0]), String(d[1])))
+		linha_dif.add_child(db)
+
 	var vs_com := Button.new()
 	vs_com.text = "VS COM  (contra o bot)"
 	vs_com.custom_minimum_size = Vector2(320, 52)
@@ -63,6 +84,11 @@ func _montar_ui() -> void:
 	UIEstilo.estilizar_botao(vs_man, Color(1.0, 0.35, 0.4))
 	vs_man.pressed.connect(_jogar.bind("vs_man"))
 	caixa.add_child(vs_man)
+
+
+func _escolher_dif(chave: String, nome: String) -> void:
+	GameManager.dificuldade = chave
+	_dif_label.text = "Dificuldade: " + nome
 
 
 func _jogar(modo: String) -> void:

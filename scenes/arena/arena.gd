@@ -470,6 +470,23 @@ func _rodar_teste() -> void:
 	falhas += _checar("bot planta Cova com o player perto", GridManager.armadilha_em(coord_cv).get("tipo") == "cova")
 	GridManager.remover_armadilha(coord_cv)
 
+	# G2: dificuldade do bot ajusta a IA (params setados no _ready; physics off pra não agir).
+	GameManager.dificuldade = "dificil"
+	var bot_dif := preload("res://scenes/characters/bot.tscn").instantiate()
+	bot_dif.position = Vector3(60.0, 1.0, 60.0)
+	add_child(bot_dif)
+	bot_dif.set_physics_process(false)
+	falhas += _checar("dificil: mais armadilhas e mira melhor", bot_dif._max_armadilhas == 6 and bot_dif._limiar_tiro < 0.6)
+	bot_dif.queue_free()
+	GameManager.dificuldade = "facil"
+	var bot_facil := preload("res://scenes/characters/bot.tscn").instantiate()
+	bot_facil.position = Vector3(60.0, 1.0, -60.0)
+	add_child(bot_facil)
+	bot_facil.set_physics_process(false)
+	falhas += _checar("facil: nao kita e poucas armadilhas", (not bot_facil._kite) and bot_facil._max_armadilhas <= 2)
+	bot_facil.queue_free()
+	GameManager.dificuldade = "normal"
+
 	# Bloco B1 (Fase 4): arma de projétil.
 	player.set_physics_process(false)
 	bot.set_physics_process(false)
