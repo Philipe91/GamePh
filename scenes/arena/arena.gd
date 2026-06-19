@@ -37,13 +37,35 @@ func _ready() -> void:
 	if "--demo-radial" in args:
 		_demo_radial_e_capturar()
 		return
+	# Demo de combate: Vault com item, projétil e Plasma em voo, HUD de munição/Unit.
+	if "--demo-combate" in args:
+		_demo_combate_e_capturar()
+		return
 	# Modo captura automatizada (screenshot pro dev). Só roda se passado --capturar.
 	if "--capturar" in args:
 		_capturar_e_sair()
 		return
 	# Modo normal de jogo: liga a HUD e inicia a partida (timer + regras de vitória).
 	$HUD.configurar(player, bot)
+	_colocar_vault(Vector2i(6, 6))                  # Vault no centro (GDD 8)
+	GameManager.faltam_30s.connect(_ao_faltar_30s)  # Spark Bit aos 30s (GDD 7.3)
 	GameManager.iniciar_partida([player, bot])
+
+
+## Instancia uma Vault no centro de um tile (cospe itens durante a partida).
+## Define a posição ANTES do add_child pro _ready da Vault ler o tile certo.
+func _colocar_vault(coord: Vector2i) -> Node:
+	var v := preload("res://scenes/items/vault.tscn").instantiate()
+	v.position = GridManager.grid_to_world(coord)  # arena na origem: local == mundo
+	add_child(v)
+	return v
+
+
+## Spark Bit no centro da arena quando faltam 30s (perigo que força ação).
+func _ao_faltar_30s() -> void:
+	var s := preload("res://scenes/items/spark_bit.tscn").instantiate()
+	add_child(s)
+	s.global_position = Vector3(0.0, 1.0, 0.0)
 
 
 ## Por ora só registra; as regras completas de vitória vêm no bloco 5 (HUD/GameManager).
@@ -384,6 +406,62 @@ func _rodar_teste() -> void:
 	falhas += _checar("carga completa gasta a plasma bomb", player.plasma_bombs == 0)
 	falhas += _checar("plasma persegue e da dano massivo", bot.healer <= vida_bot_plasma - 30.0)
 
+	# Bloco B4 (Fase 4): Vault, itens e Spark Bit.
+	var ItemCena := preload("res://scenes/items/item.tscn")
+	var vault_b := _colocar_vault(Vector2i(2, 10))
+	await get_tree().physics_frame  # _ready da Vault marca o tile
+	falhas += _checar("vault bloqueia plantio no tile", not GridManager.pode_plantar(Vector2i(2, 10)))
+	# Speed Up dobra a velocidade.
+	player._speed_restante = 0.0
+	player._slow_restante = 0.0
+	var it_speed := ItemCena.instantiate()
+	it_speed.tipo = "speed"
+	it_speed._aplicar(player)
+	it_speed.free()
+	falhas += _checar("speed up acelera o player", player.fator_velocidade() > 1.5)
+	# Healer cura.
+	player.healer = 50.0
+	var it_heal := ItemCena.instantiate()
+	it_heal.tipo = "healer"
+	it_heal._aplicar(player)
+	it_heal.free()
+	falhas += _checar("item healer cura", player.healer > 50.0)
+	# Protect bloqueia dano normal, mas não a Plasma.
+	var it_prot := ItemCena.instantiate()
+	it_prot.tipo = "protect"
+	it_prot._aplicar(player)
+	it_prot.free()
+	player.healer = 100.0
+	player.receber_dano(20.0, "normal")
+	falhas += _checar("protect bloqueia dano normal", is_equal_approx(player.healer, 100.0))
+	player.receber_dano(20.0, "plasma")
+	falhas += _checar("protect nao bloqueia a plasma", player.healer < 100.0)
+	player._protegido_restante = 0.0
+	# Item de armadilha soma no inventário.
+	player.inventario["bomba"] = 0
+	var it_arm := ItemCena.instantiate()
+	it_arm.tipo = "armadilha"
+	it_arm.tipo_armadilha = "bomba"
+	it_arm._aplicar(player)
+	it_arm.free()
+	falhas += _checar("item de armadilha soma no inventario", int(player.inventario["bomba"]) == 1)
+	# Item Unit concede a Unit.
+	player.tem_unit = false
+	player.plasma_bombs = 0
+	var it_unit := ItemCena.instantiate()
+	it_unit.tipo = "unit"
+	it_unit._aplicar(player)
+	it_unit.free()
+	falhas += _checar("item unit concede a unit", player.tem_unit and player.plasma_bombs == 1)
+	# Spark Bit dá dano ao tocar.
+	var spark := preload("res://scenes/items/spark_bit.tscn").instantiate()
+	add_child(spark)
+	bot.healer = 100.0
+	spark._ao_corpo_entrar(bot)
+	falhas += _checar("spark bit da dano ao tocar", bot.healer < 100.0)
+	spark.queue_free()
+	vault_b.queue_free()
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX
@@ -474,6 +552,28 @@ func _demo_desarme_e_capturar() -> void:
 	player._atualizar_overlay_caution()
 	await get_tree().process_frame
 	await get_tree().process_frame  # deixa a HUD desenhar o painel de código
+	_capturar_e_sair()
+
+
+## Demo de combate: Vault soltando item, projétil e Plasma em voo, e HUD com Unit.
+func _demo_combate_e_capturar() -> void:
+	$HUD.configurar(player, bot)
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	await get_tree().physics_frame
+	player.global_position = Vector3(-4.0, 1.0, 4.0)
+	bot.global_position = Vector3(4.0, 1.0, -4.0)
+	player.conceder_unit(2)                       # HUD mostra a Unit
+	var vault := _colocar_vault(Vector2i(6, 6))
+	vault._soltar_item()                          # item visível na Vault
+	# Um projétil e uma Plasma "parados" pra aparecerem na foto.
+	var pr := preload("res://scenes/projeteis/projetil.tscn").instantiate()
+	add_child(pr); pr.global_position = Vector3(0.0, 1.0, 2.0)
+	var pl := preload("res://scenes/projeteis/plasma.tscn").instantiate()
+	pl.alvo = null
+	add_child(pl); pl.global_position = Vector3(-1.0, 1.0, -1.0)
+	await get_tree().process_frame
+	await get_tree().process_frame
 	_capturar_e_sair()
 
 

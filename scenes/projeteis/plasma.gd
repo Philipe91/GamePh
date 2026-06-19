@@ -46,7 +46,7 @@ func _ao_corpo_entrar(corpo: Node) -> void:
 	var d := dano
 	if corpo.has_method("esta_derrubado") and corpo.esta_derrubado():
 		d *= MULT_DERRUBADO
-	corpo.receber_dano(d)
+	corpo.receber_dano(d, "plasma")  # "plasma" fura o Protect (GDD 8)
 	queue_free()
 
 

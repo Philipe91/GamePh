@@ -35,6 +35,11 @@ var _imobilizado_restante: float = 0.0   # segundos sem poder andar (Cova/Gás)
 var _slow_restante: float = 0.0          # segundos com velocidade reduzida (Gás)
 var _slow_fator: float = 1.0             # multiplicador de velocidade enquanto no slow
 
+# Itens da Vault (GDD 8): Speed Up e Protect.
+var _speed_restante: float = 0.0         # segundos com velocidade aumentada
+var _speed_fator: float = 1.0            # multiplicador (2.0 = dobro)
+var _protegido_restante: float = 0.0     # invencível (menos contra a Plasma)
+
 # Arma: timers de cadência e recarga.
 var _cadencia_restante: float = 0.0
 var _recarga_restante: float = 0.0
@@ -76,6 +81,10 @@ func _process(delta: float) -> void:
 		_imobilizado_restante = maxf(0.0, _imobilizado_restante - delta)
 	if _slow_restante > 0.0:
 		_slow_restante = maxf(0.0, _slow_restante - delta)
+	if _speed_restante > 0.0:
+		_speed_restante = maxf(0.0, _speed_restante - delta)
+	if _protegido_restante > 0.0:
+		_protegido_restante = maxf(0.0, _protegido_restante - delta)
 	if _cadencia_restante > 0.0:
 		_cadencia_restante = maxf(0.0, _cadencia_restante - delta)
 	if _recarga_restante > 0.0:
@@ -242,9 +251,29 @@ func esta_imobilizado() -> bool:
 	return _imobilizado_restante > 0.0
 
 
-## Multiplicador de velocidade atual (1.0 = normal; <1 enquanto no slow).
+## Multiplicador de velocidade atual: combina o slow do Gás e o Speed Up da Vault.
 func fator_velocidade() -> float:
-	return _slow_fator if _slow_restante > 0.0 else 1.0
+	var f := 1.0
+	if _slow_restante > 0.0:
+		f *= _slow_fator
+	if _speed_restante > 0.0:
+		f *= _speed_fator
+	return f
+
+
+## Speed Up (item da Vault): acelera por um tempo (GDD 8).
+func aplicar_speed(fator: float, duracao: float) -> void:
+	_speed_fator = fator
+	_speed_restante = maxf(_speed_restante, duracao)
+
+
+## Protect (item da Vault): invencível por um tempo, menos contra a Plasma (GDD 8).
+func proteger(duracao: float) -> void:
+	_protegido_restante = maxf(_protegido_restante, duracao)
+
+
+func esta_protegido() -> bool:
+	return _protegido_restante > 0.0
 
 
 ## Apertar botões reduz o tempo preso (sair da Cova mais rápido — GDD seção 6).
@@ -261,10 +290,13 @@ func curar(qtd: float) -> void:
 
 
 ## Aplica dano ao Healer. Emite os sinais. Chamado pela Mina e pelo combate.
-## Tomar dano durante a carga da Unit a cancela (a Plasma não dispara — GDD 9).
-func receber_dano(qtd: float) -> void:
+## `tipo_dano` "plasma" ignora o Protect (GDD 8). Tomar dano durante a carga da Unit a
+## cancela (a Plasma não dispara — GDD 9).
+func receber_dano(qtd: float, tipo_dano: String = "normal") -> void:
 	if healer <= 0.0:
 		return
+	if _protegido_restante > 0.0 and tipo_dano != "plasma":
+		return  # Protect bloqueia ataques diretos e armadilhas, mas não a Plasma
 	if _carregando_unit:
 		_cancelar_carga()
 	healer = maxf(0.0, healer - qtd)

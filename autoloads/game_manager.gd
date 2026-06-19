@@ -12,14 +12,18 @@ extends Node
 signal tempo_mudou(restante: float)
 ## Emitido uma vez ao fim. vencedor_id: 1=jogador, 2=bot, 0=empate.
 signal partida_acabou(vencedor_id: int, motivo: String)
+## Emitido uma vez quando faltam 30s (a arena solta o Spark Bit — GDD 7.3).
+signal faltam_30s
 
 const DURACAO_PARTIDA: float = 90.0
+const AVISO_SPARK: float = 30.0
 
 enum Estado { OCIOSO, JOGANDO, ACABOU }
 
 var tempo_restante: float = DURACAO_PARTIDA
 var _estado: Estado = Estado.OCIOSO
 var _combatentes: Array = []
+var _avisou_30s: bool = false
 
 
 ## Inicia (ou reinicia) a partida com a lista de combatentes (nós com Healer e id).
@@ -30,6 +34,7 @@ func iniciar_partida(combatentes: Array) -> void:
 			c.healer_zerou.connect(_ao_combatente_zerar.bind(c))
 	tempo_restante = DURACAO_PARTIDA
 	_estado = Estado.JOGANDO
+	_avisou_30s = false
 	tempo_mudou.emit(tempo_restante)
 
 
@@ -38,6 +43,9 @@ func _process(delta: float) -> void:
 		return
 	tempo_restante = maxf(0.0, tempo_restante - delta)
 	tempo_mudou.emit(tempo_restante)
+	if not _avisou_30s and tempo_restante <= AVISO_SPARK:
+		_avisou_30s = true
+		faltam_30s.emit()
 	if tempo_restante <= 0.0:
 		_decidir_por_tempo()
 

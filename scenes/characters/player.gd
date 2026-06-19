@@ -412,11 +412,21 @@ func _atualizar_overlay_caution() -> void:
 
 # ─────────────────────── Desarme (GDD 6.2) e retomada (GDD 6.3) ───────────────────────
 
-## Tomar dano durante o desarme detona a armadilha na hora (GDD 6.2).
-func receber_dano(qtd: float) -> void:
-	super.receber_dano(qtd)
-	if _desarme_alvo != null:
+## Tomar dano durante o desarme detona a armadilha na hora (GDD 6.2), a menos que o
+## Protect tenha barrado o golpe (aí o desarme continua).
+func receber_dano(qtd: float, tipo_dano: String = "normal") -> void:
+	var barrado := esta_protegido() and tipo_dano != "plasma"
+	super.receber_dano(qtd, tipo_dano)
+	if _desarme_alvo != null and not barrado:
 		_falhar_desarme()
+
+
+## Ganha uma armadilha de um tipo (item da Vault): +1 no inventário, capado no inicial.
+func ganhar_armadilha(tipo: String) -> void:
+	if not STATS.has(tipo):
+		return
+	inventario[tipo] = mini(int(inventario.get(tipo, 0)) + 1, int(STATS[tipo].inventario_inicial))
+	inventario_mudou.emit(tipo, inventario[tipo], STATS[tipo].inventario_inicial)
 
 
 func desarme_ativo() -> bool:

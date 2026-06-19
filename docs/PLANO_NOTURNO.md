@@ -42,7 +42,7 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
   evasão: a Plasma some ao colidir com explosão ou após um tempo; dano massivo em alvo
   derrubado. *Teste:* carga cheia dispara; ataque na carga cancela; plasma persegue e
   some numa explosão.
-- [ ] **B4. Vault (P.O.D.S.) + itens.** Ponto no mapa que cospe item periodicamente:
+- [x] **B4. Vault (P.O.D.S.) + itens.** Ponto no mapa que cospe item periodicamente:
   Item de Armadilha, Speed Up (2× por 20s), Protect (8s), Healer (cura), Unit. Pegar
   aplica o efeito; não dá pra plantar em cima da Vault. **Spark Bit** surge aos 30s
   restantes (dano ao toque). *Teste:* Speed Up dobra a velocidade; Healer cura; Vault
@@ -113,3 +113,9 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
   derrubado), some em explosão (grupo "explosoes") / após 6s. Combatente: `conceder_unit`,
   carga 1.8s (segurar U / L2), dispara ao completar; dano na carga cancela; knockdown na
   carga QUEBRA o lançador. HUD mostra carga/estoque. Teste 53/53. Próximo: B4 (Vault).
+- **B4 ✅** Vault + itens + Spark Bit: `scenes/items/{vault,item,spark_bit}.{gd,tscn}`.
+  Vault marca o tile (não planta) e cospe itens em ciclo. Itens: armadilha(+1), speed(2×
+  20s), protect(8s, não barra Plasma), healer(+40), unit. `receber_dano(qtd, tipo_dano)`
+  ganhou o tipo "plasma" que fura o Protect. Spark Bit (dano ao toque) nasce aos 30s
+  (GameManager.faltam_30s → arena). Arena já põe uma Vault no centro nas partidas.
+  **FASE 4 (COMBATE) COMPLETA.** Teste 61/61. Próximo: Bloco C (Fase 5 — Roster).
