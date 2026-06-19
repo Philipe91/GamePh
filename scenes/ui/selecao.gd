@@ -7,6 +7,16 @@ extends Control
 
 const ROSTER: Array[String] = ["brecht", "magnus", "vesna", "pip", "kestrel", "mara"]
 const ARENA := "res://scenes/arena/arena.tscn"
+## Mapas disponíveis (nome + caminho do .tres).
+const MAPAS: Array = [
+	{"nome": "Padrão", "path": "res://resources/mapas/padrao.tres"},
+	{"nome": "Corredor", "path": "res://resources/mapas/corredor.tres"},
+	{"nome": "Fortaleza", "path": "res://resources/mapas/fortaleza.tres"},
+	{"nome": "Cruz Vertical", "path": "res://resources/mapas/vertical.tres"},
+]
+
+var _mapa_path: String = "res://resources/mapas/padrao.tres"
+var _mapa_label: Label = null
 
 
 func _ready() -> void:
@@ -47,10 +57,33 @@ func _montar_ui() -> void:
 	centro.add_child(caixa)
 
 	var titulo := Label.new()
-	titulo.text = "VAULTBREAKER — escolha seu personagem"
-	titulo.add_theme_font_size_override("font_size", 28)
+	titulo.text = "VAULTBREAKER"
+	titulo.add_theme_font_size_override("font_size", 32)
 	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caixa.add_child(titulo)
+
+	# Linha de seleção de mapa.
+	_mapa_label = Label.new()
+	_mapa_label.text = "Mapa: Padrão"
+	_mapa_label.add_theme_color_override("font_color", Color(0.5, 0.8, 1))
+	_mapa_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caixa.add_child(_mapa_label)
+
+	var linha_mapas := HBoxContainer.new()
+	linha_mapas.alignment = BoxContainer.ALIGNMENT_CENTER
+	linha_mapas.add_theme_constant_override("separation", 8)
+	caixa.add_child(linha_mapas)
+	for m in MAPAS:
+		var mb := Button.new()
+		mb.text = m["nome"]
+		mb.custom_minimum_size = Vector2(150, 38)
+		mb.pressed.connect(_escolher_mapa.bind(String(m["path"]), String(m["nome"])))
+		linha_mapas.add_child(mb)
+
+	var sub := Label.new()
+	sub.text = "escolha o personagem para começar"
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caixa.add_child(sub)
 
 	for nome in ROSTER:
 		var st: Resource = load("res://resources/personagens/%s.tres" % nome)
@@ -61,10 +94,16 @@ func _montar_ui() -> void:
 		caixa.add_child(b)
 
 
+func _escolher_mapa(path: String, nome: String) -> void:
+	_mapa_path = path
+	_mapa_label.text = "Mapa: " + nome
+
+
 func _escolher(nome: String) -> void:
 	GameManager.personagem_jogador = "res://resources/personagens/%s.tres" % nome
 	var i := ROSTER.find(nome)
 	GameManager.personagem_bot = "res://resources/personagens/%s.tres" % ROSTER[(i + 1) % ROSTER.size()]
+	GameManager.mapa = _mapa_path
 	_ir_pra_arena()
 
 
