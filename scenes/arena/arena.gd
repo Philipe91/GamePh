@@ -21,6 +21,10 @@ func _ready() -> void:
 	if "--teste" in args:
 		_rodar_teste()
 		return
+	# Demo visual: planta uma de cada armadilha e captura (mostra cores/tamanhos).
+	if "--demo" in args:
+		_demo_armadilhas_e_capturar()
+		return
 	# Modo captura automatizada (screenshot pro dev). Só roda se passado --capturar.
 	if "--capturar" in args:
 		_capturar_e_sair()
@@ -131,6 +135,53 @@ func _rodar_teste() -> void:
 	falhas += _checar("combo: bomba explode pelo detonador", not GridManager.tem_armadilha(coord_b))
 	falhas += _checar("combo: bot toma dano em area", bot.healer < vida_bot_combo)
 
+	# Fase 3 bloco 2: Cova (imobiliza), Painel (arremessa), Gás (dano + slow).
+	falhas += _checar("cova/painel/gas no inventario", player.inventario.has("cova") and player.inventario.has("painel") and player.inventario.has("gas"))
+
+	# Cova: bot ANDA até o tile e fica imobilizado.
+	var coord_cova := Vector2i(6, 6)
+	player.global_position = GridManager.grid_to_world(coord_cova)
+	player.plantar("cova")
+	await get_tree().create_timer(0.4).timeout
+	await _andar_bot_para(GridManager.grid_to_world(coord_cova))
+	falhas += _checar("cova imobiliza o bot", bot.esta_imobilizado())
+
+	# Painel: bot anda até o tile e é arremessado (salto de posição num frame só).
+	var coord_pn := Vector2i(8, 8)
+	player.global_position = GridManager.grid_to_world(coord_pn)
+	player.plantar("painel")
+	await get_tree().create_timer(0.4).timeout
+	var centro_pn := GridManager.grid_to_world(coord_pn)
+	bot.global_position = Vector3(centro_pn.x, 1.0, centro_pn.z - 3.0)
+	var arremessado := false
+	var prev := bot.global_position
+	for _i in range(120):
+		var para := centro_pn - bot.global_position
+		para.y = 0.0
+		var d := para.normalized()
+		bot.velocity = Vector3(d.x * 5.0, 0.0, d.z * 5.0)
+		bot.move_and_slide()
+		bot.position.y = 1.0
+		await get_tree().physics_frame
+		if bot.global_position.distance_to(prev) > 2.0:
+			arremessado = true  # salto grande = arremesso do painel
+			break
+		prev = bot.global_position
+		if para.length() < 0.2:
+			break
+	falhas += _checar("painel arremessa o bot", arremessado)
+
+	# Gás: emite após o tempo e causa dano + slow em quem está na nuvem (pulso de área).
+	var coord_gas := Vector2i(5, 9)
+	player.global_position = GridManager.grid_to_world(coord_gas)
+	player.plantar("gas")
+	bot.global_position = GridManager.grid_to_world(coord_gas)
+	var vida_bot_gas: float = bot.healer
+	await get_tree().create_timer(2.2).timeout  # arma 0,4s + emite 1,5s (folga)
+	await get_tree().physics_frame
+	falhas += _checar("gas causa dano na nuvem", bot.healer < vida_bot_gas)
+	falhas += _checar("gas aplica slow", bot.fator_velocidade() < 1.0)
+
 	# Bloco 5: regras de vitória.
 	GameManager.iniciar_partida([player, bot])
 	falhas += _checar("partida inicia em 90s", is_equal_approx(GameManager.tempo_restante, 90.0))
@@ -150,6 +201,38 @@ func _rodar_teste() -> void:
 func _checar(nome: String, condicao: bool) -> int:
 	print("[TESTE] %s -> %s" % [nome, "OK" if condicao else "FALHOU"])
 	return 0 if condicao else 1
+
+
+## Faz o bot caminhar (via move_and_slide) de 3u ao sul até `centro`, parando ao chegar.
+## Usado nos testes pra disparar gatilhos de "pisar" de forma realista (teleporte não dispara).
+func _andar_bot_para(centro: Vector3, max_frames: int = 120) -> void:
+	bot.global_position = Vector3(centro.x, 1.0, centro.z - 3.0)
+	for _i in range(max_frames):
+		var para := centro - bot.global_position
+		para.y = 0.0
+		if para.length() < 1.2:
+			break
+		var d := para.normalized()
+		bot.velocity = Vector3(d.x * 5.0, 0.0, d.z * 5.0)
+		bot.move_and_slide()
+		bot.position.y = 1.0
+		await get_tree().physics_frame
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+
+
+## Planta uma de cada armadilha numa fileira e captura (dev: ver cores/tamanhos).
+func _demo_armadilhas_e_capturar() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	bot.global_position = Vector3(9, 1, -9)  # tira o bot da frente
+	var tipos := ["mina", "bomba", "detonador", "gas", "cova", "painel"]
+	await get_tree().physics_frame
+	for i in tipos.size():
+		player.global_position = GridManager.grid_to_world(Vector2i(2 + i, 6))
+		player.plantar(tipos[i])
+	player.global_position = Vector3(-9, 1, 9)  # tira o player da frente
+	_capturar_e_sair()
 
 
 ## Espera a cena renderizar, salva um PNG do viewport e encerra. Uso só de dev.

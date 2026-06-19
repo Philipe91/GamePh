@@ -26,6 +26,7 @@ var direcao_plantio: Vector3 = Vector3.FORWARD
 var desarmada: bool = false
 
 var _estado: int = Estado.ARMANDO
+var _gas_ativo: bool = false   # Gás: veneno emitido e fazendo efeito na área
 @onready var detector: CollisionShape3D = $Detector
 @onready var marca: MeshInstance3D = $Marca
 
@@ -35,7 +36,8 @@ func _ready() -> void:
 	position.y = 0.1
 	_preparar_visual_e_forma()
 	body_entered.connect(_ao_corpo_entrar)
-	_pintar(Color(1.0, 0.55, 0.1, 0.9), 0.9)  # armando: aviso laranja
+	var c0 := stats.cor
+	_pintar(Color(c0.r, c0.g, c0.b, 0.9), 0.9)  # armando: brilho na cor do tipo
 	await get_tree().create_timer(stats.tempo_arma).timeout
 	if _estado != Estado.ARMANDO:
 		return
@@ -49,29 +51,69 @@ func _preparar_visual_e_forma() -> void:
 	forma.radius = maxf(stats.raio_detector, 0.05)  # 0 = não dispara por pisar
 	detector.shape = forma
 	marca.material_override = marca.material_override.duplicate()
-	# Nas armadilhas de área (sem gatilho de pisar), o disco mostra o footprint.
-	var r := stats.raio_efeito if stats.raio_detector <= 0.05 else 0.45
-	var escala := maxf(r, 0.45) / 0.45
-	marca.scale = Vector3(escala, 1.0, escala)
+	# Marcador sempre pequeno e discreto (limpa a tela). O raio só aparece no flash da
+	# explosão (_mostrar_explosao) e na nuvem de Gás ativa (_ciclo_gas).
+	marca.scale = Vector3.ONE
 
 
 func _ao_armar() -> void:
 	# Armada: discreta na cor do tipo (quase invisível pro inimigo — GDD).
 	var c := stats.cor
 	_pintar(Color(c.r, c.g, c.b, 0.28), 0.25)
+	if stats.tipo == "gas":
+		_ciclo_gas()
 
 
 func _ao_corpo_entrar(corpo: Node) -> void:
-	if _estado != Estado.ARMADA or desarmada:
-		return
 	if not corpo.has_method("receber_dano"):
+		return
+	# Gás: afeta QUALQUER um que encoste enquanto ativo (inclui o dono — GDD).
+	if stats.tipo == "gas":
+		if _gas_ativo:
+			_aplicar_efeito_gas(corpo)
+		return
+	if _estado != Estado.ARMADA or desarmada:
 		return
 	if int(corpo.get("id_jogador")) == dono_id:
 		return  # o dono não dispara a própria armadilha ao pisar
 	match stats.tipo:
 		"mina":
 			_detonar()
-		# bomba/detonador não disparam por pisar; cova/painel/gas: bloco 2.
+		"cova":
+			corpo.imobilizar(stats.imobiliza)  # prende o inimigo (GDD)
+			_consumir(true)
+		"painel":
+			corpo.aplicar_empurrao(direcao_plantio, stats.arremesso)  # arremessa (GDD)
+			_consumir(true)
+		# bomba/detonador não disparam por pisar.
+
+
+## Gás: espera o tempo de emissão, vira veneno ativo por uma duração, depois some.
+func _ciclo_gas() -> void:
+	await get_tree().create_timer(stats.auto_emite_apos).timeout
+	if _estado != Estado.ARMADA or desarmada:
+		return
+	_gas_ativo = true
+	var c := stats.cor
+	_pintar(Color(c.r, c.g, c.b, 0.4), 0.6)  # nuvem visível
+	var e := maxf(stats.raio_efeito, 0.6) / 0.45
+	marca.scale = Vector3(e, 1.0, e)  # cresce pro raio da nuvem enquanto ativa
+	# Pulso inicial em todos que já estão na nuvem.
+	for corpo in get_tree().get_nodes_in_group("combatentes"):
+		if is_instance_valid(corpo) and global_position.distance_to(corpo.global_position) <= stats.raio_efeito:
+			_aplicar_efeito_gas(corpo)
+	await get_tree().create_timer(stats.duracao_efeito).timeout
+	_gas_ativo = false
+	_consumir(false)
+
+
+func _aplicar_efeito_gas(corpo: Node) -> void:
+	if corpo.has_method("receber_dano"):
+		corpo.receber_dano(stats.dano)
+	if stats.imobiliza > 0.0 and corpo.has_method("imobilizar"):
+		corpo.imobilizar(stats.imobiliza)
+	if stats.slow_duracao > 0.0 and corpo.has_method("aplicar_slow"):
+		corpo.aplicar_slow(stats.slow_fator, stats.slow_duracao)
 
 
 ## Acionada externamente pelo combo (mina/detonador do MESMO dono no raio — GDD).
@@ -106,6 +148,20 @@ func _detonar() -> void:
 		if stats.knockback > 0.0 and c.has_method("aplicar_empurrao"):
 			c.aplicar_empurrao(c.global_position - global_position, stats.knockback)
 	_mostrar_explosao()
+
+
+## Saída sem explosão (Cova/Painel ao disparar, Gás ao dissipar): libera o tile e some.
+func _consumir(com_flash: bool) -> void:
+	if _estado == Estado.EXPLODIDA:
+		return
+	_estado = Estado.EXPLODIDA
+	GridManager.remover_armadilha(coord_grid)
+	consumida.emit()
+	if com_flash:
+		_mostrar_explosao()
+	else:
+		await get_tree().create_timer(0.15).timeout
+		queue_free()
 
 
 func _acionar_bombas_no_raio() -> void:

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="StatsArmadilha" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stats_armadilha.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+tipo = "gas"
+nome = "Gas"
+cor = Color(0.4, 1, 0.5, 1)
+inventario_inicial = 1
+tempo_arma = 0.4
+tempo_retorno = 6.0
+raio_detector = 4.5
+raio_efeito = 4.5
+dano = 10.0
+knockback = 0.0
+auto_emite_apos = 1.5
+duracao_efeito = 3.0
+imobiliza = 1.0
+slow_fator = 0.5
+slow_duracao = 3.0

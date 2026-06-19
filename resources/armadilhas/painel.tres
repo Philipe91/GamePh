@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="StatsArmadilha" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stats_armadilha.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+tipo = "painel"
+nome = "Painel"
+cor = Color(0.6, 0.3, 1, 1)
+inventario_inicial = 2
+tempo_arma = 0.3
+tempo_retorno = 6.0
+raio_detector = 0.9
+raio_efeito = 0.9
+dano = 0.0
+knockback = 0.0
+arremesso = 9.0

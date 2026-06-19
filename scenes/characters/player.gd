@@ -20,9 +20,12 @@ const STATS := {
 	"mina": preload("res://resources/armadilhas/mina.tres"),
 	"bomba": preload("res://resources/armadilhas/bomba.tres"),
 	"detonador": preload("res://resources/armadilhas/detonador.tres"),
+	"gas": preload("res://resources/armadilhas/gas.tres"),
+	"cova": preload("res://resources/armadilhas/cova.tres"),
+	"painel": preload("res://resources/armadilhas/painel.tres"),
 }
-## Ordem de ciclo da seleção.
-const ORDEM: Array[String] = ["mina", "bomba", "detonador"]
+## Ordem de ciclo da seleção (as 6 armadilhas — GDD seção 6).
+const ORDEM: Array[String] = ["mina", "bomba", "detonador", "gas", "cova", "painel"]
 
 var inventario: Dictionary = {}      # tipo -> quantidade disponível
 var selecao: String = "mina"
@@ -41,16 +44,29 @@ func _ready() -> void:
 	selecao_mudou.emit(selecao)
 
 
+var _escape_antes: bool = false      # borda do "mash" pra sair da Cova
+
+
 func _physics_process(_delta: float) -> void:
 	var dir := _obter_direcao()
-	velocity.x = dir.x * VELOCIDADE
-	velocity.z = dir.y * VELOCIDADE
-	velocity.y = 0.0
-	move_and_slide()
-	position.y = ALTURA_PISO
-	if dir.length() > 0.01:
-		var alvo := atan2(-velocity.x, -velocity.z)
-		rotation.y = lerp_angle(rotation.y, alvo, 0.25)
+	if esta_imobilizado():
+		# Preso (Cova/Gás): não anda; apertar direção repetidamente acelera a saída.
+		velocity = Vector3.ZERO
+		var mash := dir.length() > 0.01
+		if mash and not _escape_antes:
+			tentar_escapar(0.3)
+		_escape_antes = mash
+	else:
+		_escape_antes = false
+		var vel := VELOCIDADE * fator_velocidade()  # slow do Gás reduz a velocidade
+		velocity.x = dir.x * vel
+		velocity.z = dir.y * vel
+		velocity.y = 0.0
+		move_and_slide()
+		position.y = ALTURA_PISO
+		if dir.length() > 0.01:
+			var alvo := atan2(-velocity.x, -velocity.z)
+			rotation.y = lerp_angle(rotation.y, alvo, 0.25)
 	_ler_acoes()
 
 

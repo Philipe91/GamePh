@@ -12,16 +12,20 @@ var _alvo: Node3D = null
 
 
 func _physics_process(_delta: float) -> void:
+	if esta_imobilizado():
+		velocity = Vector3.ZERO  # preso por Cova/Gás, espera passar
+		return
 	if _alvo == null or not is_instance_valid(_alvo):
 		_alvo = _achar_alvo()
 	if _alvo == null:
 		return
 	var para := _alvo.global_position - global_position
 	para.y = 0.0
+	var vel := VELOCIDADE * fator_velocidade()  # slow do Gás
 	if para.length() > DIST_PARAR:
 		var d := para.normalized()
-		velocity.x = d.x * VELOCIDADE
-		velocity.z = d.z * VELOCIDADE
+		velocity.x = d.x * vel
+		velocity.z = d.z * vel
 	else:
 		velocity.x = 0.0
 		velocity.z = 0.0
