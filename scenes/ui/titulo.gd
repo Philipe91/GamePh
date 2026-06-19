@@ -15,6 +15,9 @@ func _ready() -> void:
 		_montar_ui()
 		_capturar()
 		return
+	if "--demo-settings" in args:
+		get_tree().change_scene_to_file.call_deferred("res://scenes/ui/settings.tscn")
+		return
 	if not args.is_empty():
 		_ir_pra_selecao()
 		return
@@ -84,6 +87,13 @@ func _montar_ui() -> void:
 	UIEstilo.estilizar_botao(vs_man, Color(1.0, 0.35, 0.4))
 	vs_man.pressed.connect(_jogar.bind("vs_man"))
 	caixa.add_child(vs_man)
+
+	var settings := Button.new()
+	settings.text = "Configurações"
+	settings.custom_minimum_size = Vector2(320, 44)
+	UIEstilo.estilizar_botao(settings, Color(0.6, 0.6, 0.7))
+	settings.pressed.connect(func(): get_tree().change_scene_to_file.call_deferred("res://scenes/ui/settings.tscn"))
+	caixa.add_child(settings)
 
 
 func _escolher_dif(chave: String, nome: String) -> void:

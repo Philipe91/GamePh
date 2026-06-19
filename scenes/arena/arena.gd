@@ -910,6 +910,15 @@ func _rodar_teste() -> void:
 	Persistencia.carregar()
 	falhas += _checar("persistencia salva e le do disco", int(Persistencia.get_config("teste", "x", 0)) == 42)
 
+	# Settings (Fase 7): volume aplica no AudioManager e persiste.
+	AudioManager.aplicar_volume(0.5)
+	falhas += _checar("audiomanager aplica volume", absf(AudioManager.volume - 0.5) < 0.01)
+	Persistencia.set_config("audio", "volume", 0.5)
+	Persistencia.salvar()
+	Persistencia.carregar()
+	falhas += _checar("settings persiste o volume", absf(float(Persistencia.get_config("audio", "volume", 1.0)) - 0.5) < 0.01)
+	AudioManager.aplicar_volume(0.8)
+
 	# Encaixe do modelo 3D: com cena_modelo setada, esconde a cápsula e monta o "Modelo".
 	var sp_mod := preload("res://scripts/stats_personagem.gd").new()
 	sp_mod.cena_modelo = preload("res://scenes/arena/explosao_fx.tscn")  # qualquer cena serve de teste
