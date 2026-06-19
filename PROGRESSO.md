@@ -3,15 +3,29 @@
 Registro de onde o desenvolvimento parou. Fonte de design: `GDD.md`. Regras de
 trabalho: `CLAUDE.md`. Atualize este arquivo ao fim de cada bloco.
 
-**Última atualização:** 2026-06-18
+**Última atualização:** 2026-06-19
 
 ---
 
-## Estado atual: Fase 3 (sistema de armadilhas) — blocos 1 a 4 + UX COMPLETOS
+## Estado atual: FASES 3, 4 e 5 COMPLETAS — teste headless 76/76
+
+Trabalho autônomo noturno (ver `docs/PLANO_NOTURNO.md`, com o diário detalhado).
+- **Fase 3** (armadilhas): 6 armadilhas, Caution Mode, Desarme, Retomada, menu radial,
+  + IA do bot com faro de armadilhas.
+- **Fase 4** (combate): projétil (munição+recarga), corpo a corpo (knockdown), Unit/Plasma
+  (super), Vault + itens + Spark Bit.
+- **Fase 5** (roster): `StatsPersonagem` + os 6 personagens (.tres) + tela de seleção
+  (cena principal). Player/bot leem vida/velocidade/munição/loadout do personagem.
+
+Detalhe fatia a fatia no diário de `docs/PLANO_NOTURNO.md`. Próximo: Fase 6 (arenas e
+field traps). O histórico da Fase 3 abaixo segue como referência.
+
+---
+
+## Fase 3 (sistema de armadilhas) — blocos 1 a 4 + UX COMPLETOS
 
 As **6 armadilhas** do GDD implementadas (.tres balanceáveis) + **Caution Mode**,
-**Desarme** (Disarming Code), **Retomada** e **menu radial** de seleção. Teste headless:
-**37/37 passam**.
+**Desarme** (Disarming Code), **Retomada** e **menu radial** de seleção.
 
 ### ✅ Bloco 1 — Arquitetura de armadilhas + Bomba/Detonador (`76a9b2d`)
 - `StatsArmadilha` (`scripts/stats_armadilha.gd`) como Resource; cada armadilha é um
