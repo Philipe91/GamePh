@@ -7,18 +7,25 @@ trabalho: `CLAUDE.md`. Atualize este arquivo ao fim de cada bloco.
 
 ---
 
-## Estado atual: FASES 3, 4 e 5 COMPLETAS — teste headless 76/76
+## Estado atual: FASES 1–9 COMPLETAS (online é design-only) — teste headless 99/99
 
-Trabalho autônomo noturno (ver `docs/PLANO_NOTURNO.md`, com o diário detalhado).
+Trabalho autônomo noturno (ver `docs/PLANO_NOTURNO.md` com o diário detalhado fatia a fatia).
 - **Fase 3** (armadilhas): 6 armadilhas, Caution Mode, Desarme, Retomada, menu radial,
   + IA do bot com faro de armadilhas.
 - **Fase 4** (combate): projétil (munição+recarga), corpo a corpo (knockdown), Unit/Plasma
   (super), Vault + itens + Spark Bit.
-- **Fase 5** (roster): `StatsPersonagem` + os 6 personagens (.tres) + tela de seleção
-  (cena principal). Player/bot leem vida/velocidade/munição/loadout do personagem.
+- **Fase 5** (roster): `StatsPersonagem` + os 6 personagens (.tres) + tela de seleção.
+- **Fase 6** (arenas): mapa por dados (`StatsMapa`, 3 mapas) + field traps (caixa/bomba/
+  esteira/lançador/ponte).
+- **Fase 7** (juice/UI/modos): AudioManager (sfx), screenshake + partículas, menus
+  (título/pausa/rematch), modos VS COM/VS MAN, radar.
+- **Fase 8** (moderna): persistência local (`Persistencia`). **Online: só `docs/ONLINE.md`**
+  (design; nada implementado — decisão do humano).
+- **Fase 9** (export): `export_presets.cfg` (Windows) + `docs/EXPORT.md` (precisa dos
+  export templates 4.6.3, que o humano instala).
 
-Detalhe fatia a fatia no diário de `docs/PLANO_NOTURNO.md`. Próximo: Fase 6 (arenas e
-field traps). O histórico da Fase 3 abaixo segue como referência.
+⚠ Tudo com **placeholders** de arte/áudio (cápsulas, beeps procedurais). A arte/som finos
+e o online são os próximos passos do humano. O histórico da Fase 3 abaixo segue como referência.
 
 ---
 
