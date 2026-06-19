@@ -15,6 +15,9 @@ var _pontes: Array = []
 ## Guardados pra resetar a cada round (GDD 12).
 var _mapa: Resource = null
 var _oponente: Node = null
+## Câmera que segue o player em mapas grandes (estilo Trap Gunner).
+var _seguir_camera: bool = false
+var _cam_offset: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
@@ -124,6 +127,12 @@ func _ready() -> void:
 	# Modo normal de jogo: liga a HUD e inicia a partida (rounds + regras de vitória).
 	_mapa = mapa
 	_oponente = oponente
+	# Câmera segue o player em mapas grandes (Trap Gunner). Offset = pose inicial da câmera.
+	if mapa.get("camera_segue"):
+		var cam := get_node_or_null("Camera3D") as Camera3D
+		if cam != null:
+			_cam_offset = cam.position
+			_seguir_camera = true
 	$HUD.configurar(player, oponente)
 	for c in mapa.vaults:
 		_colocar_vault(c)                           # Vaults do mapa (GDD 8)
@@ -194,6 +203,7 @@ func _ao_faltar_30s() -> void:
 ## Oclusão das pontes: cada ponte fica transparente quando há um combatente embaixo dela
 ## (mesma vertical, y menor), e volta a sólida quando ninguém está. Fade suave.
 func _process(delta: float) -> void:
+	_seguir_player(delta)
 	if _pontes.is_empty():
 		return
 	for p in _pontes:
@@ -210,6 +220,17 @@ func _process(delta: float) -> void:
 		var cor: Color = mat.albedo_color
 		cor.a = lerpf(cor.a, 0.3 if alguem else 1.0, minf(1.0, delta * 8.0))
 		mat.albedo_color = cor
+
+
+## Câmera segue o player em XZ (mantendo o ângulo/altura 2.5D), com suavização.
+func _seguir_player(delta: float) -> void:
+	if not _seguir_camera or player == null or not is_instance_valid(player):
+		return
+	var cam := get_node_or_null("Camera3D") as Camera3D
+	if cam == null:
+		return
+	var alvo := Vector3(player.global_position.x, 0.0, player.global_position.z) + _cam_offset
+	cam.global_position = cam.global_position.lerp(alvo, 1.0 - exp(-delta * 6.0))
 
 
 ## Aplica `assets/sprites/chao.png` como textura do chão (tileada), se o arquivo existir.
@@ -1010,6 +1031,20 @@ func _rodar_teste() -> void:
 	falhas += _checar("tem armadilha antes de limpar", GridManager.tem_armadilha(Vector2i(5, 5)))
 	GridManager.limpar_armadilhas()
 	falhas += _checar("limpar_armadilhas zera o grid", not GridManager.tem_armadilha(Vector2i(5, 5)))
+
+	# Câmera segue o player (mapas grandes Trap Gunner).
+	var cam_t := get_node_or_null("Camera3D") as Camera3D
+	if cam_t != null:
+		var pos_orig := cam_t.position
+		_cam_offset = cam_t.position
+		_seguir_camera = true
+		player.global_position = Vector3(20.0, 1.0, -10.0)
+		for _i in range(80):
+			_seguir_player(0.05)
+		falhas += _checar("camera segue o X do player", absf(cam_t.global_position.x - 20.0) < 0.6)
+		falhas += _checar("camera segue o Z do player", absf(cam_t.global_position.z - 5.0) < 0.6)
+		_seguir_camera = false
+		cam_t.position = pos_orig
 
 	# G3: regras de partida em ROUNDS (melhor de 3). Sem listener da arena no --teste,
 	# então reseto os Healers manualmente entre os rounds.

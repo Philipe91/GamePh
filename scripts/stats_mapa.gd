@@ -21,6 +21,10 @@ class_name StatsMapa
 @export var pontes: Array[Vector2i] = []         # passarela (evasão da Plasma)
 @export var lancadores: Array[Vector2i] = []     # Laser/Rocket Launcher
 
+## Câmera segue o player (mapas grandes estilo Trap Gunner). False = câmera fixa (mapas
+## pequenos que cabem inteiros na tela).
+@export var camera_segue: bool = false
+
 ## Mapa vertical (com altura): liga gravidade nos personagens e monta as estruturas 3D.
 @export var vertical: bool = false
 ## Estruturas 3D (Fase 6+): lista de Dictionaries. Tipos: "chao", "parede", "pilar"
