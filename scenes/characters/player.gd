@@ -286,6 +286,7 @@ func plantar(tipo: String = "") -> bool:
 	a.global_position = GridManager.grid_to_world(coord)
 	GridManager.registrar_armadilha(coord, id_jogador, tipo, a)
 	a.consumida.connect(_ao_armadilha_consumida.bind(tipo))
+	AudioManager.tocar("plantar")
 	inventario[tipo] = int(inventario[tipo]) - 1
 	inventario_mudou.emit(tipo, inventario[tipo], STATS[tipo].inventario_inicial)
 	return true
@@ -564,6 +565,7 @@ func inserir_botao(dir: int) -> void:
 ## Limpa o estado ANTES de mexer na armadilha (evita reentrância pelos sinais).
 func _concluir_desarme() -> void:
 	var alvo := _desarme_alvo
+	AudioManager.tocar("desarme")
 	curar(DESARME_CURA)
 	_encerrar_desarme(true)
 	if is_instance_valid(alvo):

@@ -211,6 +211,7 @@ func _acionar_bombas_no_raio() -> void:
 
 func _mostrar_explosao() -> void:
 	add_to_group("explosoes")  # a Plasma some ao passar por uma explosão (GDD 9)
+	AudioManager.tocar("explodir")
 	_pintar(Color(1.0, 0.9, 0.4, 1.0), 3.0)
 	var e := maxf(stats.raio_efeito, 0.6) / 0.45
 	marca.scale = Vector3(e, 1.0, e)

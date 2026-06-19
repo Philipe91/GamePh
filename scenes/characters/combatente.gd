@@ -152,6 +152,7 @@ func socar() -> void:
 	var alvo := _inimigo_no_alcance(SOCO_ALCANCE)
 	if alvo == null:
 		return
+	AudioManager.tocar("soco")
 	alvo.receber_dano(SOCO_DANO)
 	if alvo.has_method("derrubar"):
 		alvo.derrubar(alvo.global_position - global_position, DERRUBADO_EMPURRAO)
@@ -261,6 +262,7 @@ func atirar() -> void:
 	p.global_position.y = 1.0
 	municao -= 1
 	_cadencia_restante = CADENCIA
+	AudioManager.tocar("tiro")
 	municao_mudou.emit(municao, municao_max)
 	if municao <= 0:
 		_recarga_restante = RECARGA_TEMPO

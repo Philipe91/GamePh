@@ -21,6 +21,7 @@ func _ready() -> void:
 func _ao_corpo_entrar(corpo: Node) -> void:
 	if not corpo.has_method("receber_dano"):
 		return  # só combatentes pegam item
+	AudioManager.tocar("item")
 	_aplicar(corpo)
 	queue_free()
 

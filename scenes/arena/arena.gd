@@ -645,6 +645,11 @@ func _rodar_teste() -> void:
 			n.queue_free()
 	await get_tree().physics_frame
 
+	# Bloco E1 (Fase 7): AudioManager toca sons (placeholders procedurais).
+	falhas += _checar("audiomanager registra os sons", AudioManager.tem_som("explodir") and AudioManager.tem_som("tiro"))
+	falhas += _checar("audiomanager toca evento conhecido", AudioManager.tocar("explodir"))
+	falhas += _checar("audiomanager ignora evento desconhecido", not AudioManager.tocar("inexistente"))
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX

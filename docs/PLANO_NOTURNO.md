@@ -75,8 +75,11 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
 
 ## BLOCO E — Fase 7: Juice, UI e modos
 
-- [ ] **E1. AudioManager** (autoload) + sfx placeholders (plantar, explodir, tiro,
-  desarme, vitória). ⚠ áudio final precisa do humano.
+- [x] **E1. AudioManager** (autoload) + sfx placeholders (plantar, explodir, tiro,
+  desarme, vitória). ⚠ áudio final precisa do humano. — `autoloads/audio_manager.gd`:
+  `tocar(evento)` com pool de players; sons são beeps procedurais (usa `assets/audio/
+  <evento>.wav` se existir). Ligado em explodir/tiro/plantar/soco/desarme/item/vitória.
+  Teste 91/91.
 - [ ] **E2. Juice:** partículas nas explosões/acertos, screenshake na câmera, flash.
 - [ ] **E3. Menus:** título, seleção, pausa, fim com rematch.
 - [ ] **E4. Modos:** VS COM (atual) e VS MAN (2 jogadores local, input dividido);
