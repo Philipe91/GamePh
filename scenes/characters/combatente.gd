@@ -190,6 +190,8 @@ func socar() -> void:
 func derrubar(direcao: Vector3, forca: float) -> void:
 	_derrubado_restante = DERRUBADO_TEMPO
 	aplicar_empurrao(direcao, forca)
+	AudioManager.tocar("derrubado")
+	get_tree().call_group("camera", "tremer", 0.25)  # screenshake no knockdown (juice)
 	if _carregando_unit:
 		tem_unit = false
 		plasma_bombs = 0
@@ -380,6 +382,7 @@ func receber_dano(qtd: float, tipo_dano: String = "normal") -> void:
 	if _carregando_unit:
 		_cancelar_carga()
 	healer = maxf(0.0, healer - qtd)
+	AudioManager.tocar("dano")   # feedback de hit (juice)
 	healer_mudou.emit(healer, vida_max)
 	if healer <= 0.0:
 		healer_zerou.emit()

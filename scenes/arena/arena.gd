@@ -863,6 +863,7 @@ func _rodar_teste() -> void:
 
 	# Bloco E1 (Fase 7): AudioManager toca sons (placeholders procedurais).
 	falhas += _checar("audiomanager registra os sons", AudioManager.tem_som("explodir") and AudioManager.tem_som("tiro"))
+	falhas += _checar("audiomanager tem som de dano e derrubado", AudioManager.tem_som("dano") and AudioManager.tem_som("derrubado"))
 	falhas += _checar("audiomanager toca evento conhecido", AudioManager.tocar("explodir"))
 	falhas += _checar("audiomanager ignora evento desconhecido", not AudioManager.tocar("inexistente"))
 
