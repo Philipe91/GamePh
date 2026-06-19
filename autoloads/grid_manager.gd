@@ -101,6 +101,19 @@ func armadilha_em(coord: Vector2i) -> Dictionary:
 	return _armadilhas.get(coord, {})
 
 
+## Coords das armadilhas de OUTRO dono cujo centro está a até `raio` (mundo) de `centro`.
+## Usado pelo Caution Mode (GDD 6.1) pra revelar a teia inimiga dentro do alcance.
+func armadilhas_inimigas_no_raio(dono: int, centro: Vector3, raio: float) -> Array[Vector2i]:
+	var achadas: Array[Vector2i] = []
+	for coord in _armadilhas:
+		if int(_armadilhas[coord]["dono"]) == dono:
+			continue
+		var p := grid_to_world(coord)
+		if Vector2(p.x - centro.x, p.z - centro.z).length() <= raio:
+			achadas.append(coord)
+	return achadas
+
+
 ## Faz snap de uma posição de mundo para o centro do tile mais próximo (em mundo).
 ## Usado no momento de plantar. Retorna também a coord via parâmetro de saída não é
 ## possível em GDScript, então use world_to_grid() + grid_to_world() quando precisar da coord.

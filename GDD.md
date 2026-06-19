@@ -198,7 +198,14 @@ Specs (tiradas do manual original, mantidas como base de balanceamento):
   6 armadilhas; soltar no setor escolhido seleciona. Planta a selecionada com o botão
   de plantar. A HUD mostra a armadilha ativa e a contagem.
 - **Bot:** além de perseguir, **planta armadilhas** simples (minas no caminho), pra dar
-  alvo real ao Caution Mode/Desarme.
+  alvo real ao Caution Mode/Desarme. Implementado: tenta plantar a cada 4s no tile
+  atual, teto de 3 minas suas no mapa.
+- **Caution Mode (bloco 3):** segurar **C** (teclado) ou **L1** (gamepad) liga o modo;
+  é contínuo (anda segurando). Alcance: **raio de 2 tiles** a partir do player. Os tiles
+  no alcance ficam destacados em **azul** translúcido e cada armadilha **inimiga** dentro
+  do raio recebe um **marcador amarelo** flutuante (as próprias não aparecem — o player
+  já as vê). Overlay montado em código (pool de malhas, container `top_level` em espaço
+  de mundo). Desarme com Disarming Code e retomada ficam pro bloco 4.
 
 ---
 

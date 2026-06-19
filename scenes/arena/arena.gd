@@ -25,6 +25,10 @@ func _ready() -> void:
 	if "--demo" in args:
 		_demo_armadilhas_e_capturar()
 		return
+	# Demo do Caution Mode: minas inimigas + player em busca (highlights + marcadores).
+	if "--demo-caution" in args:
+		_demo_caution_e_capturar()
+		return
 	# Modo captura automatizada (screenshot pro dev). Só roda se passado --capturar.
 	if "--capturar" in args:
 		_capturar_e_sair()
@@ -182,6 +186,27 @@ func _rodar_teste() -> void:
 	falhas += _checar("gas causa dano na nuvem", bot.healer < vida_bot_gas)
 	falhas += _checar("gas aplica slow", bot.fator_velocidade() < 1.0)
 
+	# Fase 3 bloco 3: Caution Mode (detecção da teia inimiga).
+	# O bot (inimigo) planta uma mina; o player detecta dentro do alcance e só então.
+	var coord_inim := Vector2i(1, 1)
+	bot.global_position = GridManager.grid_to_world(coord_inim)
+	bot._tentar_plantar_mina()
+	falhas += _checar("bot planta mina (dono 2)", GridManager.armadilha_em(coord_inim).get("dono") == 2)
+	# Player perto e em Caution Mode revela a mina inimiga.
+	player.global_position = GridManager.grid_to_world(Vector2i(2, 1))  # 1 tile de distância
+	player.ativar_caution(true)
+	falhas += _checar("caution detecta mina inimiga no alcance", coord_inim in player.armadilhas_detectadas())
+	# Planta uma mina DO PRÓPRIO player ao lado: não deve ser detectada (só a inimiga).
+	player.plantar("mina")
+	var coord_propria := GridManager.world_to_grid(player.global_position)
+	falhas += _checar("caution ignora a propria armadilha", not (coord_propria in player.armadilhas_detectadas()))
+	# Fora do alcance: nada é detectado.
+	player.global_position = GridManager.grid_to_world(Vector2i(10, 10))
+	falhas += _checar("caution nao detecta fora do alcance", player.armadilhas_detectadas().is_empty())
+	# Soltar o botão zera a detecção.
+	player.ativar_caution(false)
+	falhas += _checar("caution off nao detecta nada", player.armadilhas_detectadas().is_empty())
+
 	# Bloco 5: regras de vitória.
 	GameManager.iniciar_partida([player, bot])
 	falhas += _checar("partida inicia em 90s", is_equal_approx(GameManager.tempo_restante, 90.0))
@@ -232,6 +257,24 @@ func _demo_armadilhas_e_capturar() -> void:
 		player.global_position = GridManager.grid_to_world(Vector2i(2 + i, 6))
 		player.plantar(tipos[i])
 	player.global_position = Vector3(-9, 1, 9)  # tira o player da frente
+	_capturar_e_sair()
+
+
+## Planta minas do BOT ao redor do player e liga o Caution Mode dele, depois captura.
+## Mostra os destaques azuis dos tiles no alcance e os marcadores amarelos das minas.
+func _demo_caution_e_capturar() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	await get_tree().physics_frame  # deixa o _ready terminar antes de mexer na árvore
+	player.global_position = GridManager.grid_to_world(Vector2i(6, 6))
+	# Minas inimigas: algumas dentro do alcance (detectadas), uma fora (não aparece).
+	for c in [Vector2i(6, 5), Vector2i(7, 6), Vector2i(5, 7), Vector2i(6, 9)]:
+		bot.global_position = GridManager.grid_to_world(c)
+		bot._tentar_plantar_mina()
+	bot.global_position = Vector3(11, 1, -11)  # tira o bot de cena
+	player.ativar_caution(true)
+	await get_tree().physics_frame
+	player._atualizar_overlay_caution()  # físicas off: força um refresh do overlay
 	_capturar_e_sair()
 
 
