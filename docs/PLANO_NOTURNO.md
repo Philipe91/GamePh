@@ -23,7 +23,7 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
 
 ## BLOCO A — Fecha a Fase 3
 
-- [ ] **A1. IA do bot.** Bot evita tiles com armadilha do player que ele já "viu"
+- [x] **A1. IA do bot.** Bot evita tiles com armadilha do player que ele já "viu"
   (desvio simples na rota); planta minas com critério (no caminho do player, não em cima
   de si); opcional: ao encostar numa armadilha do player, recua. *Teste:* bot desvia de
   mina conhecida em vez de pisar quando há rota livre.
@@ -96,3 +96,7 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
 > decisões noturnas tomadas, e o que ficou pendente.
 
 - (início) Plano criado. Fase 3 estava em `2392687` (37/37 testes). Começando por A1.
+- **A1 ✅** IA do bot: faro de armadilhas — `bot._desvio_de_armadilhas()` empurra a rota
+  pra longe das armadilhas do player no raio 2.6m (`PESO_DESVIO` 1.6). [decisão noturna:
+  bot tem "faro" simples em vez de usar o Caution Mode completo na IA]. Teste 40/40.
+  **Fase 3 COMPLETA.** Próximo: B1.

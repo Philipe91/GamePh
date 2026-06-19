@@ -49,8 +49,11 @@ As **6 armadilhas** do GDD implementadas (.tres balanceáveis) + **Caution Mode*
   escolhe a fatia; soltar confirma. **Q/E** segue como atalho rápido. `radial_menu.gd`
   (Control) desenha as bolhas na cor do `.tres` com nome + contagem; sem estoque, apaga.
 
-### ⏳ Falta na Fase 3
-- **IA do bot** usar Caution Mode / desarmar armadilhas do player.
+### ✅ IA do bot — faro de armadilhas (`A1`)
+- `bot._desvio_de_armadilhas()`: o bot entorta a rota pra longe das armadilhas do player
+  no raio 2.6m em vez de pisar burramente. (Caution/desarme na IA fica pra depois.)
+
+## 🎉 Fase 3 COMPLETA — segue pra Fase 4 (combate) pelo `docs/PLANO_NOTURNO.md`
 
 ---
 

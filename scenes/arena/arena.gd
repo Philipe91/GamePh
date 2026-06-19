@@ -288,6 +288,20 @@ func _rodar_teste() -> void:
 	falhas += _checar("radial: selecionar_idx troca a selecao", player.selecao == player.ORDEM[2])
 	player.selecionar_idx(0)  # volta pra mina
 
+	# Bloco A (Fase 3): faro/desvio de armadilhas do player pela IA do bot.
+	bot.set_physics_process(false)
+	var coord_mina_a := Vector2i(9, 9)
+	player.inventario["mina"] = 4
+	player.global_position = GridManager.grid_to_world(coord_mina_a)
+	player.plantar("mina")                                  # mina do player (dono 1)
+	var pos_mina_a := GridManager.grid_to_world(coord_mina_a)
+	bot.global_position = pos_mina_a + Vector3(0.0, 0.0, -1.5)  # bot dentro do raio de faro
+	var desvio_a: Vector3 = bot._desvio_de_armadilhas()
+	falhas += _checar("bot sente a armadilha do player", desvio_a.length() > 0.0)
+	falhas += _checar("bot desvia pra LONGE da armadilha", (bot.global_position - pos_mina_a).dot(desvio_a) > 0.0)
+	bot.global_position = GridManager.grid_to_world(Vector2i(0, 0))  # longe de tudo
+	falhas += _checar("sem armadilha perto, bot nao desvia", bot._desvio_de_armadilhas().length() < 0.001)
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX

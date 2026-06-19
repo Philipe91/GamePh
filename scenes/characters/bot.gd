@@ -7,6 +7,11 @@ extends "res://scenes/characters/combatente.gd"
 
 const VELOCIDADE: float = 5.0       # um pouco mais lento que o player (foge dá certo)
 const DIST_PARAR: float = 1.2       # encostou no alvo, para de empurrar
+## [decisão noturna 2026-06-18] O bot tem "faro" de armadilha: desvia das armadilhas
+## do player que estão a até este raio (m), em vez de pisar burramente. Deixa o jogo
+## mais difícil sem precisar do Caution Mode completo na IA (isso fica pra depois).
+const RAIO_DESVIO: float = 2.6
+const PESO_DESVIO: float = 1.6      # quão forte o desvio entorta a rota até o player
 
 # Plantio simples de minas (GDD 6.4): dá alvo real pro Caution Mode/Desarme do player.
 const CENA_ARMADILHA := preload("res://scenes/traps/armadilha.tscn")
@@ -32,7 +37,11 @@ func _physics_process(delta: float) -> void:
 	para.y = 0.0
 	var vel := VELOCIDADE * fator_velocidade()  # slow do Gás
 	if para.length() > DIST_PARAR:
-		var d := para.normalized()
+		# Persegue o player, mas entorta a rota pra fugir das armadilhas dele (A1).
+		var rumo := para.normalized() + _desvio_de_armadilhas() * PESO_DESVIO
+		if rumo.length() < 0.05:
+			rumo = para.normalized()
+		var d := rumo.normalized()
 		velocity.x = d.x * vel
 		velocity.z = d.z * vel
 	else:
@@ -41,10 +50,25 @@ func _physics_process(delta: float) -> void:
 	velocity.y = 0.0
 	move_and_slide()
 	position.y = ALTURA_PISO
-	if para.length() > 0.01:
+	if velocity.length() > 0.01:
 		rotation.y = lerp_angle(rotation.y, atan2(-velocity.x, -velocity.z), 0.2)
 	if _t_plantio <= 0.0:
 		_tentar_plantar_mina()
+
+
+## Soma de empurrões pra LONGE de cada armadilha do player no raio (faro do bot, A1).
+## Vetor nulo quando não há nada perto. Mais forte quanto mais perto da armadilha.
+func _desvio_de_armadilhas() -> Vector3:
+	var desvio := Vector3.ZERO
+	for a in get_tree().get_nodes_in_group("armadilhas"):
+		if not is_instance_valid(a) or int(a.dono_id) == id_jogador:
+			continue  # ignora as próprias; só foge das do inimigo (player)
+		var delta: Vector3 = global_position - a.global_position
+		delta.y = 0.0
+		var dist := delta.length()
+		if dist > 0.01 and dist < RAIO_DESVIO:
+			desvio += delta.normalized() * (1.0 - dist / RAIO_DESVIO)
+	return desvio
 
 
 ## Tenta plantar uma mina no tile atual (sem snap fino: usa o tile onde o bot está).
