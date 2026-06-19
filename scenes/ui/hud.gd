@@ -9,6 +9,11 @@ extends CanvasLayer
 @onready var lbl_timer: Label = $TimerLabel
 @onready var lbl_minas: Label = $MinasLabel
 @onready var lbl_fim: Label = $FimLabel
+@onready var lbl_desarme: Label = $DesarmeLabel
+@onready var lbl_retomada: Label = $RetomadaLabel
+
+## Setas pra desenhar o Disarming Code (índice = código de direção 0..3).
+const SETAS: Array[String] = ["↑", "↓", "←", "→"]
 
 var _jogador: Node = null
 
@@ -48,6 +53,26 @@ func _ao_inventario_mudar(tipo: String, _atual: int, _maximo: int) -> void:
 
 func _ao_selecao_mudar(_tipo: String) -> void:
 	_atualizar_label_armadilha()
+
+
+## Painel de desarme e prompt de retomada são dinâmicos (timer correndo): leio o estado
+## do jogador a cada frame em vez de mil signals por segundo.
+func _process(_delta: float) -> void:
+	if _jogador == null:
+		return
+	if _jogador.desarme_ativo():
+		var e: Dictionary = _jogador.desarme_estado()
+		var seq: Array = e["seq"]
+		var idx: int = e["idx"]
+		var codigo := ""
+		for i in seq.size():
+			var s: String = SETAS[int(seq[i])]
+			codigo += ("[%s] " % s) if i < idx else ("%s " % s)  # acertados entre colchetes
+		lbl_desarme.text = "DESARMAR  %s\n%.1fs" % [codigo.strip_edges(), maxf(0.0, e["tempo"])]
+		lbl_desarme.visible = true
+	else:
+		lbl_desarme.visible = false
+	lbl_retomada.visible = _jogador.retomada_disponivel()
 
 
 func _ao_tempo_mudar(restante: float) -> void:

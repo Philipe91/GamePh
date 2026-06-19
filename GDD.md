@@ -205,7 +205,17 @@ Specs (tiradas do manual original, mantidas como base de balanceamento):
   no alcance ficam destacados em **azul** translúcido e cada armadilha **inimiga** dentro
   do raio recebe um **marcador amarelo** flutuante (as próprias não aparecem — o player
   já as vê). Overlay montado em código (pool de malhas, container `top_level` em espaço
-  de mundo). Desarme com Disarming Code e retomada ficam pro bloco 4.
+  de mundo).
+- **Desarme (bloco 4):** em Caution Mode, **encostar** (até 1,6u) numa armadilha inimiga
+  cancela o gatilho dela e abre o **Disarming Code** — sequência de **4 setas** (cima/
+  baixo/esq/dir, teclado ou D-pad) a inserir em **4s**. O player fica **parado** no
+  desarme. Acertar tudo: a armadilha some, o inimigo a perde e o Healer do desarmador
+  sobe **+8**. Errar uma seta, estourar o tempo ou **tomar dano** no meio: a armadilha
+  reage — **explosivas detonam**, as demais **re-armam**. Cooldown de 1s evita recomeço
+  imediato.
+- **Retomada (bloco 4):** em Caution Mode, encostar na **própria** armadilha mostra o
+  prompt "Retomar? (R/X)"; confirmar recolhe e devolve **+1** ao inventário na hora (sem
+  o atraso do reload normal).
 
 ---
 

@@ -12,11 +12,21 @@ signal inventario_mudou(tipo: String, atual: int, maximo: int)
 signal selecao_mudou(tipo: String)
 ## Caution Mode ligou/desligou (pra HUD/áudio — comunicação por signal).
 signal caution_mudou(ativo: bool)
+## Desarme começou (HUD mostra o código e o timer). seq = direções (0..3).
+signal desarme_iniciado(seq: Array, tempo: float)
+## Desarme terminou (HUD esconde o painel). sucesso true/false.
+signal desarme_encerrado(sucesso: bool)
 
 const VELOCIDADE: float = 7.0
 const ZONA_MORTA: float = 0.2
 ## Alcance do Caution Mode em tiles (raio). 2 tiles cobrem uma vizinhança 5x5 (GDD 6.1).
 const ALCANCE_CAUTION_TILES: float = 2.0
+## Desarme (GDD 6.2): distância pra "encostar", tamanho do código, tempo e cura no sucesso.
+const DIST_INTERACAO: float = 1.6
+const DESARME_TAM: int = 4
+const DESARME_TEMPO: float = 4.0
+const DESARME_CURA: float = 8.0
+const DESARME_COOLDOWN: float = 1.0
 
 const CENA_ARMADILHA := preload("res://scenes/traps/armadilha.tscn")
 ## Stats (.tres) de cada tipo disponível. Cresce nos próximos blocos da Fase 3.
@@ -44,6 +54,16 @@ var _caution_no: Node3D = null               # container das malhas do overlay (
 var _caution_tiles: Array[MeshInstance3D] = []   # pool de destaques de tile (azul)
 var _caution_marcas: Array[MeshInstance3D] = []  # pool de marcadores de armadilha (amarelo)
 
+# Desarme (GDD 6.2) e retomada (GDD 6.3).
+var _desarme_alvo: Node = null       # armadilha inimiga em desarme (null = sem desarme)
+var _desarme_seq: Array[int] = []    # código alvo: direções 0=cima 1=baixo 2=esq 3=dir
+var _desarme_idx: int = 0            # quantos botões corretos já entraram
+var _desarme_tempo: float = 0.0      # tempo restante do código
+var _desarme_cooldown: float = 0.0   # trava recomeço imediato após uma tentativa
+var _retomada_alvo: Node = null      # própria armadilha sob o prompt de retomar
+var _interagir_antes: bool = false   # borda do botão de confirmar (R / X)
+var _codigo_antes: int = -1          # borda da última seta do código (-1 = nenhuma)
+
 
 func _ready() -> void:
 	super._ready()
@@ -58,7 +78,18 @@ func _ready() -> void:
 var _escape_antes: bool = false      # borda do "mash" pra sair da Cova
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	if _desarme_cooldown > 0.0:
+		_desarme_cooldown = maxf(0.0, _desarme_cooldown - delta)
+
+	# Em desarme: o player fica parado, focado no código (e exposto — GDD 6.2).
+	if _desarme_alvo != null:
+		velocity = Vector3.ZERO
+		_processar_desarme(delta)
+		_ler_caution()
+		_atualizar_overlay_caution()
+		return
+
 	var dir := _obter_direcao()
 	if esta_imobilizado():
 		# Preso (Cova/Gás): não anda; apertar direção repetidamente acelera a saída.
@@ -81,6 +112,7 @@ func _physics_process(_delta: float) -> void:
 	_ler_acoes()
 	_ler_caution()
 	_atualizar_overlay_caution()
+	_ler_interacao()
 
 
 func _obter_direcao() -> Vector2:
@@ -298,3 +330,153 @@ func _atualizar_overlay_caution() -> void:
 		m += 1
 	for i in range(m, _caution_marcas.size()):
 		_caution_marcas[i].visible = false
+
+
+# ─────────────────────── Desarme (GDD 6.2) e retomada (GDD 6.3) ───────────────────────
+
+## Tomar dano durante o desarme detona a armadilha na hora (GDD 6.2).
+func receber_dano(qtd: float) -> void:
+	super.receber_dano(qtd)
+	if _desarme_alvo != null:
+		_falhar_desarme()
+
+
+func desarme_ativo() -> bool:
+	return _desarme_alvo != null
+
+
+## Snapshot pro HUD: sequência alvo, acertos, tempo restante e tamanho total.
+func desarme_estado() -> Dictionary:
+	return { "seq": _desarme_seq, "idx": _desarme_idx, "tempo": _desarme_tempo, "total": DESARME_TAM }
+
+
+func retomada_disponivel() -> bool:
+	return _retomada_alvo != null
+
+
+## Encostar (em Caution Mode) em armadilha inimiga inicia o desarme; na própria, oferece
+## retomar. Sem Caution Mode ou em cooldown, nada acontece (GDD 6.1/6.2/6.3).
+func _ler_interacao() -> void:
+	_retomada_alvo = null
+	if not _caution_ativo or _desarme_cooldown > 0.0:
+		_interagir_antes = Input.is_physical_key_pressed(KEY_R)  # consome a borda
+		return
+	var inim := _armadilha_proxima(false)
+	if inim != null:
+		_iniciar_desarme(inim)  # encostou na inimiga: cancela o gatilho e abre o código
+		return
+	var propria := _armadilha_proxima(true)
+	if propria != null:
+		_retomada_alvo = propria
+	var confirmar := Input.is_physical_key_pressed(KEY_R) or Input.is_joy_button_pressed(0, JOY_BUTTON_X)
+	if confirmar and not _interagir_antes and _retomada_alvo != null:
+		_retomar(_retomada_alvo)
+	_interagir_antes = confirmar
+
+
+## Armadilha mais próxima (própria se `propria`, senão inimiga) até DIST_INTERACAO, ou null.
+func _armadilha_proxima(propria: bool) -> Node:
+	var melhor: Node = null
+	var melhor_d := DIST_INTERACAO
+	for a in get_tree().get_nodes_in_group("armadilhas"):
+		if not is_instance_valid(a):
+			continue
+		if (int(a.dono_id) == id_jogador) != propria:
+			continue
+		var d := global_position.distance_to(a.global_position)
+		if d <= melhor_d:
+			melhor_d = d
+			melhor = a
+	return melhor
+
+
+## Começa o desarme: cancela o gatilho e sorteia o Disarming Code (GDD 6.2).
+func _iniciar_desarme(a: Node) -> void:
+	a.cancelar_gatilho()
+	_desarme_alvo = a
+	_desarme_idx = 0
+	_desarme_tempo = DESARME_TEMPO
+	_desarme_seq.clear()
+	for _i in range(DESARME_TAM):
+		_desarme_seq.append(randi() % 4)
+	desarme_iniciado.emit(_desarme_seq.duplicate(), _desarme_tempo)
+
+
+## A cada frame em desarme: conta o tempo (zera = falha) e lê uma seta do código.
+func _processar_desarme(delta: float) -> void:
+	if not is_instance_valid(_desarme_alvo):
+		_encerrar_desarme(false)  # armadilha sumiu por fora: aborta limpo
+		return
+	_desarme_tempo -= delta
+	if _desarme_tempo <= 0.0:
+		_falhar_desarme()
+		return
+	var d := _ler_direcao_codigo()
+	if d >= 0:
+		inserir_botao(d)
+
+
+## Lê UMA seta por borda (setas do teclado / D-pad). -1 = nada novo apertado.
+func _ler_direcao_codigo() -> int:
+	var d := -1
+	if Input.is_physical_key_pressed(KEY_UP) or Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_UP):
+		d = 0
+	elif Input.is_physical_key_pressed(KEY_DOWN) or Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_DOWN):
+		d = 1
+	elif Input.is_physical_key_pressed(KEY_LEFT) or Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_LEFT):
+		d = 2
+	elif Input.is_physical_key_pressed(KEY_RIGHT) or Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_RIGHT):
+		d = 3
+	var saida := d if d != _codigo_antes else -1
+	_codigo_antes = d
+	return saida
+
+
+## Processa um botão do código (público pra teste/IA). Acerto avança; erro falha (GDD 6.2).
+func inserir_botao(dir: int) -> void:
+	if _desarme_alvo == null:
+		return
+	if dir == _desarme_seq[_desarme_idx]:
+		_desarme_idx += 1
+		if _desarme_idx >= _desarme_seq.size():
+			_concluir_desarme()
+	else:
+		_falhar_desarme()
+
+
+## Sucesso: armadilha some sem explodir; o inimigo a perde e o Healer sobe um pouco.
+## Limpa o estado ANTES de mexer na armadilha (evita reentrância pelos sinais).
+func _concluir_desarme() -> void:
+	var alvo := _desarme_alvo
+	curar(DESARME_CURA)
+	_encerrar_desarme(true)
+	if is_instance_valid(alvo):
+		alvo.remover_por_desarme()
+
+
+## Falha: a armadilha reage (explode ou re-arma) e o desarme acaba. Limpa o estado
+## ANTES da reação — a explosão volta dano pra cá via receber_dano e não pode recorrer.
+func _falhar_desarme() -> void:
+	var alvo := _desarme_alvo
+	_encerrar_desarme(false)
+	if is_instance_valid(alvo):
+		alvo.reagir_falha_desarme()
+
+
+func _encerrar_desarme(sucesso: bool) -> void:
+	_desarme_alvo = null
+	_desarme_seq.clear()
+	_desarme_idx = 0
+	_desarme_cooldown = DESARME_COOLDOWN
+	_codigo_antes = -1
+	desarme_encerrado.emit(sucesso)
+
+
+## Retomada (GDD 6.3): recolhe a própria armadilha e devolve +1 ao inventário na hora.
+func _retomar(a: Node) -> void:
+	var tipo := String(a.stats.tipo)
+	a.recolher()
+	inventario[tipo] = mini(int(inventario.get(tipo, 0)) + 1, int(STATS[tipo].inventario_inicial))
+	inventario_mudou.emit(tipo, inventario[tipo], STATS[tipo].inventario_inicial)
+	_retomada_alvo = null
+	_desarme_cooldown = DESARME_COOLDOWN

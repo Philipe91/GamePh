@@ -116,6 +116,36 @@ func _aplicar_efeito_gas(corpo: Node) -> void:
 		corpo.aplicar_slow(stats.slow_fator, stats.slow_duracao)
 
 
+# ───────────────────────── Desarme e retomada (GDD 6.2 / 6.3) ─────────────────────────
+
+## Encostar em Caution Mode cancela o gatilho da armadilha (GDD 6.2): para de disparar.
+func cancelar_gatilho() -> void:
+	desarmada = true
+
+
+## Desarme bem-sucedido pelo inimigo: some sem explodir e libera o tile (recontabiliza).
+func remover_por_desarme() -> void:
+	_consumir(false)
+
+
+## Falha no desarme (código errado / tempo / tomou golpe — GDD 6.2):
+## explosivas DETONAM; as demais re-armam (voltam a ser perigosas).
+func reagir_falha_desarme() -> void:
+	desarmada = false
+	if stats.tipo == "mina" or stats.tipo == "bomba" or stats.tipo == "detonador":
+		_detonar()
+
+
+## Retomada pelo próprio dono (GDD 6.3): recolhe sem explodir e SEM disparar o reload
+## (quem retoma soma +1 no inventário na hora, então não emite `consumida`).
+func recolher() -> void:
+	if _estado == Estado.EXPLODIDA:
+		return
+	_estado = Estado.EXPLODIDA
+	GridManager.remover_armadilha(coord_grid)
+	queue_free()
+
+
 ## Acionada externamente pelo combo (mina/detonador do MESMO dono no raio — GDD).
 func detonar_externamente() -> void:
 	if _estado != Estado.ARMADA or desarmada:

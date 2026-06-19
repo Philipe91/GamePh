@@ -29,6 +29,10 @@ func _ready() -> void:
 	if "--demo-caution" in args:
 		_demo_caution_e_capturar()
 		return
+	# Demo do desarme: player encostando numa mina inimiga, HUD mostrando o código.
+	if "--demo-desarme" in args:
+		_demo_desarme_e_capturar()
+		return
 	# Modo captura automatizada (screenshot pro dev). Só roda se passado --capturar.
 	if "--capturar" in args:
 		_capturar_e_sair()
@@ -207,7 +211,75 @@ func _rodar_teste() -> void:
 	player.ativar_caution(false)
 	falhas += _checar("caution off nao detecta nada", player.armadilhas_detectadas().is_empty())
 
-	# Bloco 5: regras de vitória.
+	# Fase 3 bloco 4: Desarme (6.2) e retomada (6.3).
+	player.ativar_caution(true)
+	# (a) Sucesso: bot planta mina; player encosta em Caution -> desarme; código certo.
+	player._desarme_cooldown = 0.0
+	var coord_des := Vector2i(3, 3)
+	bot.global_position = GridManager.grid_to_world(coord_des)
+	bot._tentar_plantar_mina()
+	player.global_position = GridManager.grid_to_world(coord_des)
+	player.receber_dano(30.0)            # garante folga pra enxergar a cura
+	var vida_pre: float = player.healer
+	player._ler_interacao()              # encosta -> inicia desarme (automático)
+	falhas += _checar("desarme inicia ao encostar em caution", player.desarme_ativo())
+	for d in player._desarme_seq.duplicate():
+		player.inserir_botao(d)          # digita o código correto
+	falhas += _checar("desarme: sucesso remove a armadilha inimiga", not GridManager.tem_armadilha(coord_des))
+	falhas += _checar("desarme: sucesso cura o jogador", player.healer > vida_pre)
+	falhas += _checar("desarme: encerra apos sucesso", not player.desarme_ativo())
+
+	# (b) Código errado: mina (explosiva) detona.
+	player._desarme_cooldown = 0.0
+	var coord_err := Vector2i(4, 4)
+	bot.global_position = GridManager.grid_to_world(coord_err)
+	bot._tentar_plantar_mina()
+	player.global_position = GridManager.grid_to_world(coord_err)
+	player._ler_interacao()
+	var certo: int = player._desarme_seq[0]
+	player.inserir_botao((certo + 1) % 4)   # botão errado
+	falhas += _checar("desarme: codigo errado encerra", not player.desarme_ativo())
+	falhas += _checar("desarme: codigo errado detona a mina", not GridManager.tem_armadilha(coord_err))
+
+	# (c) Tempo esgotado encerra o desarme.
+	player._desarme_cooldown = 0.0
+	var coord_t := Vector2i(5, 4)
+	bot.global_position = GridManager.grid_to_world(coord_t)
+	bot._tentar_plantar_mina()
+	player.global_position = GridManager.grid_to_world(coord_t)
+	player._ler_interacao()
+	player._desarme_tempo = 0.05
+	player._processar_desarme(0.2)          # delta passa do tempo -> falha
+	falhas += _checar("desarme: tempo esgotado encerra", not player.desarme_ativo())
+
+	# (d) Tomar golpe durante o desarme detona na hora.
+	player._desarme_cooldown = 0.0
+	var coord_h := Vector2i(6, 4)
+	bot.global_position = GridManager.grid_to_world(coord_h)
+	bot._tentar_plantar_mina()
+	player.global_position = GridManager.grid_to_world(coord_h)
+	player._ler_interacao()
+	falhas += _checar("desarme (d) inicia", player.desarme_ativo())
+	player.receber_dano(5.0)                # golpe no meio do desarme
+	falhas += _checar("desarme: golpe encerra na hora", not player.desarme_ativo())
+
+	# (e) Retomada da própria armadilha (GDD 6.3).
+	player._desarme_cooldown = 0.0
+	var coord_ret := Vector2i(7, 4)
+	player.global_position = GridManager.grid_to_world(coord_ret)
+	player.plantar("cova")                  # planta uma cova própria
+	var inv_antes: int = int(player.inventario["cova"])
+	player.global_position = GridManager.grid_to_world(coord_ret)
+	player._ler_interacao()                 # encosta na própria -> retomada disponível
+	falhas += _checar("retomada disponivel na propria armadilha", player.retomada_disponivel())
+	player._retomar(player._retomada_alvo)
+	falhas += _checar("retomar libera o tile", not GridManager.tem_armadilha(coord_ret))
+	falhas += _checar("retomar devolve +1 ao inventario", int(player.inventario["cova"]) == inv_antes + 1)
+	player.ativar_caution(false)
+
+	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
+	player.healer = Combatente.HEALER_MAX
+	bot.healer = Combatente.HEALER_MAX
 	GameManager.iniciar_partida([player, bot])
 	falhas += _checar("partida inicia em 90s", is_equal_approx(GameManager.tempo_restante, 90.0))
 	var venceu := { "id": -1 }
@@ -275,6 +347,26 @@ func _demo_caution_e_capturar() -> void:
 	player.ativar_caution(true)
 	await get_tree().physics_frame
 	player._atualizar_overlay_caution()  # físicas off: força um refresh do overlay
+	_capturar_e_sair()
+
+
+## Liga a HUD, planta uma mina inimiga, encosta o player em Caution Mode (inicia o
+## desarme) e captura — mostra o Disarming Code e os destaques azuis na tela.
+func _demo_desarme_e_capturar() -> void:
+	$HUD.configurar(player, bot)
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	await get_tree().physics_frame
+	var coord := Vector2i(6, 6)
+	bot.global_position = GridManager.grid_to_world(coord)
+	bot._tentar_plantar_mina()
+	bot.global_position = Vector3(11, 1, -11)  # tira o bot de cena
+	player.global_position = GridManager.grid_to_world(coord)
+	player.ativar_caution(true)
+	player._ler_interacao()       # encosta -> inicia o desarme (cancela o gatilho)
+	player._atualizar_overlay_caution()
+	await get_tree().process_frame
+	await get_tree().process_frame  # deixa a HUD desenhar o painel de código
 	_capturar_e_sair()
 
 

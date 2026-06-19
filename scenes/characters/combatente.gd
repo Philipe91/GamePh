@@ -67,6 +67,14 @@ func tentar_escapar(quantidade: float) -> void:
 	_imobilizado_restante = maxf(0.0, _imobilizado_restante - quantidade)
 
 
+## Recupera Healer (capado no máximo). Usado pelo desarme bem-sucedido (GDD 6.2).
+func curar(qtd: float) -> void:
+	if qtd <= 0.0:
+		return
+	healer = minf(HEALER_MAX, healer + qtd)
+	healer_mudou.emit(healer, HEALER_MAX)
+
+
 ## Aplica dano ao Healer. Emite os sinais. Chamado pela Mina e pelo combate.
 func receber_dano(qtd: float) -> void:
 	if healer <= 0.0:
