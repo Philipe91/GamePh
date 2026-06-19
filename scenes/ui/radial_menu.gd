@@ -8,12 +8,30 @@ const RAIO_RODA: float = 150.0   # distância das fatias ao centro
 const RAIO_FATIA: float = 26.0   # tamanho da bolha de cada armadilha
 const RAIO_SELE: float = 36.0    # tamanho da bolha selecionada
 
+const PASTA_ICONES := "res://assets/sprites/armadilhas/"
+
 var _jogador: Node = null
+var _icones: Dictionary = {}   # tipo -> Texture2D (ou null se não houver arquivo)
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_process(false)
+
+
+## Carrega o ícone PNG do tipo, se existir em assets/sprites/armadilhas/<tipo>.png.
+## Usa Image.load (lê o arquivo do disco direto, sem depender de import do editor).
+func _icone(tipo: String) -> Texture2D:
+	if _icones.has(tipo):
+		return _icones[tipo]
+	var tex: Texture2D = null
+	var caminho := PASTA_ICONES + tipo + ".png"
+	if FileAccess.file_exists(caminho):
+		var img := Image.new()
+		if img.load(caminho) == OK:
+			tex = ImageTexture.create_from_image(img)
+	_icones[tipo] = tex
+	return tex
 
 
 ## A HUD chama isto passando o player (mesmo padrão de hud.configurar).
@@ -49,7 +67,15 @@ func _draw() -> void:
 		var raio := RAIO_SELE if sel else RAIO_FATIA
 		# Armadilha sem estoque fica apagada.
 		var alfa := (0.95 if sel else 0.55) * (1.0 if qtd > 0 else 0.3)
-		draw_circle(p, raio, Color(cor.r, cor.g, cor.b, alfa))
+		var icone := _icone(tipo)
+		if icone != null:
+			# Tem PNG: desenha o ícone (apaga se sem estoque). Mantém o anel de seleção.
+			var lado := raio * 2.4
+			draw_texture_rect(icone, Rect2(p - Vector2(lado, lado) * 0.5, Vector2(lado, lado)),
+				false, Color(1, 1, 1, 1.0 if qtd > 0 else 0.35))
+		else:
+			# Sem PNG: bolha colorida (placeholder atual).
+			draw_circle(p, raio, Color(cor.r, cor.g, cor.b, alfa))
 		if sel:
 			draw_arc(p, raio + 5.0, 0.0, TAU, 40, Color(1, 1, 1, 0.95), 3.0)
 		draw_string(fonte, p + Vector2(-60.0, raio + 18.0), nome,
