@@ -185,6 +185,14 @@ func _ler_acoes() -> void:
 	if socar_p:
 		socar()
 
+	# Unit/Plasma (segurar U / gatilho esquerdo): carrega e dispara ao completar. Soltar
+	# antes do fim cancela. Só funciona com a Unit no estoque (item da Vault).
+	var unit_p := Input.is_physical_key_pressed(KEY_U) or Input.get_joy_axis(0, JOY_AXIS_TRIGGER_LEFT) > 0.5
+	if unit_p:
+		iniciar_carga_unit()
+	elif esta_carregando_unit():
+		_cancelar_carga()
+
 
 ## Troca a armadilha selecionada (passo +1/-1 na ORDEM).
 func trocar_selecao(passo: int) -> void:

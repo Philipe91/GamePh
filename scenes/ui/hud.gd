@@ -9,6 +9,7 @@ extends CanvasLayer
 @onready var lbl_timer: Label = $TimerLabel
 @onready var lbl_minas: Label = $MinasLabel
 @onready var lbl_municao: Label = $MunicaoLabel
+@onready var lbl_unit: Label = $UnitLabel
 @onready var lbl_fim: Label = $FimLabel
 @onready var lbl_desarme: Label = $DesarmeLabel
 @onready var lbl_retomada: Label = $RetomadaLabel
@@ -84,6 +85,15 @@ func _process(_delta: float) -> void:
 	else:
 		lbl_desarme.visible = false
 	lbl_retomada.visible = _jogador.retomada_disponivel()
+	# Unit/Plasma: mostra carga ou estoque quando o jogador tem a Unit.
+	if _jogador.tem_unit:
+		lbl_unit.visible = true
+		if _jogador.esta_carregando_unit():
+			lbl_unit.text = "UNIT: carregando %d%%" % int(_jogador.carga_unit_frac() * 100.0)
+		else:
+			lbl_unit.text = "UNIT x%d (segure U)" % _jogador.plasma_bombs
+	else:
+		lbl_unit.visible = false
 
 
 func _ao_tempo_mudar(restante: float) -> void:

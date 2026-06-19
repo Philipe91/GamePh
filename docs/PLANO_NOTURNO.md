@@ -37,7 +37,7 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
 - [x] **B2. Corpo a corpo (knockdown).** Soco de curto alcance (botão); qualquer acerto
   **derruba** (knockdown = empurrão + breve estado sem controle). *Teste:* soco perto
   derruba e dá dano; longe não acerta.
-- [ ] **B3. Unit (Plasma) — a super.** Barra de carga (enche com o tempo / dano causado);
+- [x] **B3. Unit (Plasma) — a super.** Barra de carga (enche com o tempo / dano causado);
   Plasma Bomb teleguiada e limitada; se o dono toma dano/é derrubado na carga, cancela;
   evasão: a Plasma some ao colidir com explosão ou após um tempo; dano massivo em alvo
   derrubado. *Teste:* carga cheia dispara; ataque na carga cancela; plasma persegue e
@@ -109,3 +109,7 @@ vez**, do topo pra baixo, e marca `[x]` ao concluir. Diário no fim do arquivo.
   acerta o inimigo mais perto e o DERRUBA (`derrubar()` = empurrão + 0.9s sem controle).
   Derrubado não anda/atira/soca. Player soca com K/Y; bot soca colado. Teste 47/47.
   Próximo: B3 (Unit/Plasma).
+- **B3 ✅** Unit/Plasma: `scenes/projeteis/plasma.{gd,tscn}` teleguiada, dano 40 (×2 em
+  derrubado), some em explosão (grupo "explosoes") / após 6s. Combatente: `conceder_unit`,
+  carga 1.8s (segurar U / L2), dispara ao completar; dano na carga cancela; knockdown na
+  carga QUEBRA o lançador. HUD mostra carga/estoque. Teste 53/53. Próximo: B4 (Vault).

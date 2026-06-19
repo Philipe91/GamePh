@@ -48,6 +48,18 @@ const DERRUBADO_EMPURRAO: float = 3.0
 var _soco_cd: float = 0.0
 var _derrubado_restante: float = 0.0
 
+# Unit (Plasma), o super (GDD 9). Conquistado por item da Vault. Carrega e dispara
+# uma Plasma teleguiada; quebra se o dono for derrubado durante a carga.
+const UNIT_CARGA: float = 1.8       # s segurando pra completar a carga
+const UNIT_DANO: float = 40.0
+const PLASMA := preload("res://scenes/projeteis/plasma.tscn")
+## Emitido quando a posse/quantidade da Unit muda (HUD).
+signal unit_mudou(tem: bool, bombs: int)
+var tem_unit: bool = false
+var plasma_bombs: int = 0
+var _carregando_unit: bool = false
+var _carga_restante: float = 0.0
+
 
 func _ready() -> void:
 	add_to_group("combatentes")
@@ -75,6 +87,10 @@ func _process(delta: float) -> void:
 		_soco_cd = maxf(0.0, _soco_cd - delta)
 	if _derrubado_restante > 0.0:
 		_derrubado_restante = maxf(0.0, _derrubado_restante - delta)
+	if _carregando_unit:
+		_carga_restante = maxf(0.0, _carga_restante - delta)
+		if _carga_restante == 0.0:
+			_disparar_plasma()
 
 
 ## True enquanto recarrega (não pode atirar — GDD 7.1, fica vulnerável).
@@ -100,10 +116,71 @@ func socar() -> void:
 		alvo.derrubar(alvo.global_position - global_position, DERRUBADO_EMPURRAO)
 
 
-## Sofre um knockdown: empurrão + tempo sem controle (GDD 7.2). Sobrescritível p/ a Unit.
+## Sofre um knockdown: empurrão + tempo sem controle (GDD 7.2). Se estava carregando a
+## Unit, o lançador QUEBRA (perde a Unit — GDD 7.2/9).
 func derrubar(direcao: Vector3, forca: float) -> void:
 	_derrubado_restante = DERRUBADO_TEMPO
 	aplicar_empurrao(direcao, forca)
+	if _carregando_unit:
+		tem_unit = false
+		plasma_bombs = 0
+		_cancelar_carga()
+		unit_mudou.emit(tem_unit, plasma_bombs)
+
+
+# ───────────────────────────── Unit / Plasma (GDD 9) ─────────────────────────────
+
+## Concede a Unit (item da Vault). Soma Plasma Bombs.
+func conceder_unit(qtd: int = 1) -> void:
+	tem_unit = true
+	plasma_bombs += qtd
+	unit_mudou.emit(tem_unit, plasma_bombs)
+
+
+func esta_carregando_unit() -> bool:
+	return _carregando_unit
+
+
+## Fração da carga (0..1) pra HUD; 0 quando não está carregando.
+func carga_unit_frac() -> float:
+	if not _carregando_unit:
+		return 0.0
+	return clampf(1.0 - _carga_restante / UNIT_CARGA, 0.0, 1.0)
+
+
+## Começa a carregar a Plasma (segurar o botão). Bloqueado sem Unit, sem bomb, preso ou
+## derrubado. Atacado durante a carga, ela é cancelada e não dispara (GDD 9).
+func iniciar_carga_unit() -> void:
+	if not tem_unit or plasma_bombs <= 0 or _carregando_unit:
+		return
+	if _derrubado_restante > 0.0 or _imobilizado_restante > 0.0:
+		return
+	_carregando_unit = true
+	_carga_restante = UNIT_CARGA
+
+
+func _cancelar_carga() -> void:
+	if _carregando_unit:
+		_carregando_unit = false
+		_carga_restante = 0.0
+
+
+## Carga completa: dispara a Plasma teleguiada no inimigo e gasta uma bomb.
+func _disparar_plasma() -> void:
+	_carregando_unit = false
+	var dir := -global_transform.basis.z
+	dir.y = 0.0
+	if dir.length() < 0.01:
+		dir = Vector3.FORWARD
+	var p := PLASMA.instantiate()
+	p.dono_id = id_jogador
+	p.dano = UNIT_DANO
+	p.alvo = _inimigo_no_alcance(99999.0)
+	get_parent().add_child(p)
+	p.global_position = global_position + dir.normalized() * 1.3
+	p.global_position.y = 1.0
+	plasma_bombs -= 1
+	unit_mudou.emit(tem_unit, plasma_bombs)
 
 
 ## Inimigo (outro time) mais próximo dentro de `raio`, ou null.
@@ -184,9 +261,12 @@ func curar(qtd: float) -> void:
 
 
 ## Aplica dano ao Healer. Emite os sinais. Chamado pela Mina e pelo combate.
+## Tomar dano durante a carga da Unit a cancela (a Plasma não dispara — GDD 9).
 func receber_dano(qtd: float) -> void:
 	if healer <= 0.0:
 		return
+	if _carregando_unit:
+		_cancelar_carga()
 	healer = maxf(0.0, healer - qtd)
 	healer_mudou.emit(healer, HEALER_MAX)
 	if healer <= 0.0:

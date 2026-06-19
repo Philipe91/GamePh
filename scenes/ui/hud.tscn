@@ -79,6 +79,18 @@ theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
 theme_override_font_sizes/font_size = 22
 text = "Munição: 6/6"
 
+[node name="UnitLabel" type="Label" parent="."]
+visible = false
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -108.0
+offset_right = 360.0
+offset_bottom = -80.0
+theme_override_colors/font_color = Color(0.7, 0.4, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "UNIT"
+
 [node name="FimLabel" type="Label" parent="."]
 anchor_left = 0.5
 anchor_top = 0.5

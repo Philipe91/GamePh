@@ -354,6 +354,36 @@ func _rodar_teste() -> void:
 	player.socar()
 	falhas += _checar("soco longe nao acerta", is_equal_approx(bot.healer, vida_bot_longe))
 
+	# Bloco B3 (Fase 4): Unit (Plasma) — a super.
+	player._derrubado_restante = 0.0
+	player._imobilizado_restante = 0.0
+	player.conceder_unit(1)
+	falhas += _checar("conceder unit da plasma bomb", player.tem_unit and player.plasma_bombs == 1)
+	player.iniciar_carga_unit()
+	falhas += _checar("inicia a carga da unit", player.esta_carregando_unit())
+	player.receber_dano(1.0)
+	falhas += _checar("dano cancela a carga (nao dispara)", not player.esta_carregando_unit())
+	# Knockdown durante a carga quebra o lançador.
+	player.iniciar_carga_unit()
+	player.derrubar(Vector3.FORWARD, 0.0)
+	falhas += _checar("derrubado na carga quebra o lancador", not player.tem_unit)
+	player._derrubado_restante = 0.0
+	# Carga completa dispara a Plasma teleguiada e ela acerta o inimigo (dano massivo).
+	player.conceder_unit(1)
+	player.healer = Combatente.HEALER_MAX
+	bot.healer = Combatente.HEALER_MAX
+	bot._derrubado_restante = 0.0
+	player.global_position = Vector3(0.0, 1.0, 0.0)
+	player.rotation.y = 0.0
+	bot.global_position = Vector3(0.0, 1.0, -3.0)
+	var vida_bot_plasma: float = bot.healer
+	player.iniciar_carga_unit()
+	player._carga_restante = 0.02              # força a carga a completar no próximo frame
+	for _i in range(90):
+		await get_tree().physics_frame
+	falhas += _checar("carga completa gasta a plasma bomb", player.plasma_bombs == 0)
+	falhas += _checar("plasma persegue e da dano massivo", bot.healer <= vida_bot_plasma - 30.0)
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX
