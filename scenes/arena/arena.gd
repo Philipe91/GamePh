@@ -45,6 +45,21 @@ func _ready() -> void:
 	if "--demo-mapa" in args:
 		_demo_mapa_e_capturar()
 		return
+	# Greybox vertical: ponte (over/under), rampa, paredes — gravidade ligada. Screenshot.
+	if "--demo-greybox" in args:
+		_demo_greybox_e_capturar()
+		return
+	# Greybox vertical JOGÁVEL: monta a arena com altura e inicia a partida (rodar em casa).
+	if "--greybox" in args:
+		_construir_greybox()
+		player.gravidade_ativa = true
+		bot.gravidade_ativa = true
+		player.global_position = Vector3(-6.0, 1.0, 7.0)
+		bot.global_position = Vector3(6.0, 1.0, -7.0)
+		$HUD.configurar(player, bot)
+		add_child(preload("res://scenes/ui/pausa.tscn").instantiate())
+		GameManager.iniciar_partida([player, bot])
+		return
 	# Modo captura automatizada (screenshot pro dev). Só roda se passado --capturar.
 	if "--capturar" in args:
 		_capturar_e_sair()
@@ -716,6 +731,28 @@ func _rodar_teste() -> void:
 	falhas += _checar("modelo: esconde a capsula placeholder", not p_mod.get_node("Malha").visible)
 	p_mod.queue_free()
 
+	# Greybox vertical: gravidade + colisão (chão e ponte elevada).
+	player.global_position = Vector3(40.0, 1.0, 40.0)   # tira os principais da área de teste
+	bot.global_position = Vector3(-40.0, 1.0, -40.0)
+	var chao_g := _caixa_solida(Vector3(0.0, -0.1, 0.0), Vector3(24.0, 0.2, 24.0), Color(0.1, 0.1, 0.1))
+	var pg := preload("res://scenes/characters/player.tscn").instantiate()
+	pg.gravidade_ativa = true
+	add_child(pg)
+	pg.global_position = Vector3(0.0, 5.0, 0.0)         # cai no chão
+	var ponte_g := _caixa_solida(Vector3(6.0, 2.6, 0.0), Vector3(4.0, 0.3, 4.0), Color(0.5, 0.5, 0.6))
+	var pb := preload("res://scenes/characters/player.tscn").instantiate()
+	pb.gravidade_ativa = true
+	add_child(pb)
+	pb.global_position = Vector3(6.0, 5.0, 0.0)         # cai EM CIMA da ponte
+	for _i in range(70):
+		await get_tree().physics_frame
+	falhas += _checar("gravidade assenta no chao (y~1)", absf(pg.global_position.y - 1.0) < 0.35)
+	falhas += _checar("personagem fica EM CIMA da ponte (y~3.75)", absf(pb.global_position.y - 3.75) < 0.5)
+	pg.queue_free()
+	pb.queue_free()
+	chao_g.queue_free()
+	ponte_g.queue_free()
+
 	# Bloco 5: regras de vitória. Restaura os Healers (o bot levou as detonações do bloco 4).
 	player.healer = Combatente.HEALER_MAX
 	bot.healer = Combatente.HEALER_MAX
@@ -806,6 +843,54 @@ func _demo_desarme_e_capturar() -> void:
 	player._atualizar_overlay_caution()
 	await get_tree().process_frame
 	await get_tree().process_frame  # deixa a HUD desenhar o painel de código
+	_capturar_e_sair()
+
+
+## Cria um bloco sólido (StaticBody3D + colisão) pro greybox. Alfa<1 = semitransparente.
+func _caixa_solida(pos: Vector3, tamanho: Vector3, cor: Color, rot_x: float = 0.0) -> StaticBody3D:
+	var sb := StaticBody3D.new()
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = tamanho
+	mi.mesh = bm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = cor
+	if cor.a < 1.0:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mi.material_override = mat
+	sb.add_child(mi)
+	var cs := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = tamanho
+	cs.shape = box
+	sb.add_child(cs)
+	add_child(sb)
+	sb.position = pos
+	sb.rotation.x = rot_x
+	return sb
+
+
+## Monta a geometria vertical do greybox: chão com colisão, ponte elevada (passa-se por
+## baixo), rampa de acesso e paredes laterais (corredor). A ponte é semitransparente pra
+## dar pra ver quem passa embaixo (solução simples de oclusão por enquanto).
+func _construir_greybox() -> void:
+	_caixa_solida(Vector3(0.0, -0.1, 0.0), Vector3(24.0, 0.2, 24.0), Color(0.12, 0.13, 0.18))  # chão
+	_caixa_solida(Vector3(0.0, 2.6, 0.0), Vector3(12.0, 0.3, 3.0), Color(0.5, 0.55, 0.7, 0.55))  # ponte
+	_caixa_solida(Vector3(0.0, 1.3, -5.5), Vector3(3.0, 0.3, 6.0), Color(0.45, 0.5, 0.65), deg_to_rad(-25.0))  # rampa
+	_caixa_solida(Vector3(-9.0, 0.6, 0.0), Vector3(0.4, 1.2, 18.0), Color(0.2, 0.22, 0.3))  # parede
+	_caixa_solida(Vector3(9.0, 0.6, 0.0), Vector3(0.4, 1.2, 18.0), Color(0.2, 0.22, 0.3))   # parede
+
+
+## Demo do greybox vertical: posiciona um no chão SOB a ponte e outro EM CIMA dela, captura.
+func _demo_greybox_e_capturar() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	_construir_greybox()
+	await get_tree().physics_frame
+	player.global_position = Vector3(0.0, 1.0, 1.0)    # no chão, embaixo da ponte
+	bot.global_position = Vector3(0.0, 3.6, 0.0)       # em cima da ponte (2.6 + 1.0)
+	await get_tree().process_frame
+	await get_tree().process_frame
 	_capturar_e_sair()
 
 

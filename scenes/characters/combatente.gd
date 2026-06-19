@@ -15,6 +15,11 @@ signal municao_mudou(atual: int, maximo: int)
 
 const HEALER_MAX: float = 100.0
 const ALTURA_PISO: float = 1.0  # centro da cápsula p/ os pés ficarem no chão (y=0)
+const GRAVIDADE: float = 22.0   # usada só nos mapas verticais (gravidade_ativa)
+
+## Mapas planos travam a altura (rápido, simples). Mapas com rampa/ponte ligam a
+## gravidade: o personagem segue o chão de colisão (sobe rampa, anda sobre a ponte).
+@export var gravidade_ativa: bool = false
 
 # Arma de projétil (GDD 7.1). Valores base; viram stats por personagem na Fase 5.
 const MUNICAO_MAX: int = 6

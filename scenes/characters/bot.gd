@@ -57,9 +57,14 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = 0.0
 		velocity.z = 0.0
-	velocity.y = 0.0
-	move_and_slide()
-	position.y = ALTURA_PISO
+	if gravidade_ativa:
+		if not is_on_floor():
+			velocity.y -= GRAVIDADE * delta
+		move_and_slide()
+	else:
+		velocity.y = 0.0
+		move_and_slide()
+		position.y = ALTURA_PISO
 	if velocity.length() > 0.01:
 		rotation.y = lerp_angle(rotation.y, atan2(-velocity.x, -velocity.z), 0.2)
 	if _t_plantio <= 0.0:
