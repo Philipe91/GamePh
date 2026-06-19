@@ -19,6 +19,39 @@ const SETAS: Array[String] = ["↑", "↓", "←", "→"]
 
 var _jogador: Node = null
 var _fim: bool = false   # partida acabou: habilita o rematch (Enter)
+var _arma_icone: TextureRect = null   # ícone da armadilha selecionada (canto inferior esq.)
+var _icones_arma: Dictionary = {}     # tipo -> Texture2D (cache)
+
+
+## Carrega o PNG do ícone da armadilha (mesmo da roda), via Image.load.
+func _icone_arma(tipo: String) -> Texture2D:
+	if _icones_arma.has(tipo):
+		return _icones_arma[tipo]
+	var tex: Texture2D = null
+	var caminho := "res://assets/sprites/armadilhas/%s.png" % tipo
+	if FileAccess.file_exists(caminho):
+		var img := Image.new()
+		if img.load(caminho) == OK:
+			tex = ImageTexture.create_from_image(img)
+	_icones_arma[tipo] = tex
+	return tex
+
+
+## Aplica um visual neon (StyleBoxFlat com glow) numa ProgressBar de Healer.
+func _estilizar_barra(barra: ProgressBar, cor: Color) -> void:
+	var fundo := StyleBoxFlat.new()
+	fundo.bg_color = Color(0.08, 0.09, 0.13)
+	fundo.set_corner_radius_all(6)
+	fundo.set_border_width_all(1)
+	fundo.border_color = Color(cor.r, cor.g, cor.b, 0.4)
+	var preenche := StyleBoxFlat.new()
+	preenche.bg_color = cor
+	preenche.set_corner_radius_all(6)
+	preenche.shadow_color = Color(cor.r, cor.g, cor.b, 0.6)  # glow
+	preenche.shadow_size = 8
+	barra.add_theme_stylebox_override("background", fundo)
+	barra.add_theme_stylebox_override("fill", preenche)
+	barra.modulate = Color.WHITE
 
 
 func _ready() -> void:
@@ -41,6 +74,21 @@ func configurar(p1: Node, p2: Node) -> void:
 	barra_p2.value = p2.healer
 	_ao_municao_mudar(p1.municao, p1.municao_max)
 	$RadialMenu.configurar(p1)  # a roda lê o estado do jogador
+	# Barras de Healer com neon (cor de time).
+	_estilizar_barra(barra_p1, Color(0.3, 0.7, 1.0))
+	_estilizar_barra(barra_p2, Color(1.0, 0.35, 0.4))
+	# Ícone da armadilha selecionada no canto inferior esquerdo.
+	_arma_icone = TextureRect.new()
+	_arma_icone.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_arma_icone.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_arma_icone.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_arma_icone.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_arma_icone.offset_left = 14.0
+	_arma_icone.offset_top = -52.0
+	_arma_icone.offset_right = 52.0
+	_arma_icone.offset_bottom = -12.0
+	add_child(_arma_icone)
+	lbl_minas.offset_left = 58.0   # abre espaço pro ícone na mesma linha
 	_atualizar_label_armadilha()
 
 
@@ -52,6 +100,9 @@ func _atualizar_label_armadilha() -> void:
 	var qtd: int = int(_jogador.inventario.get(sel, 0))
 	var nome: String = _jogador.STATS[sel].nome
 	lbl_minas.text = "%s: %d" % [nome, qtd]
+	if _arma_icone != null:
+		_arma_icone.texture = _icone_arma(sel)
+		_arma_icone.modulate = Color.WHITE if qtd > 0 else Color(1, 1, 1, 0.4)
 
 
 func _ao_inventario_mudar(tipo: String, _atual: int, _maximo: int) -> void:
