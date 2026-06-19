@@ -24,6 +24,8 @@ const TRAPS := {
 }
 const INTERVALO_PLANTIO: float = 3.5   # tenta plantar a cada 3.5s
 const MAX_ARMADILHAS: int = 4          # teto de armadilhas suas no mapa ao mesmo tempo
+const DESARME_DIST: float = 1.7        # encostou na armadilha do player -> pode desarmar
+const DESARME_TEMPO: float = 1.5       # segundos parado desarmando (exposto)
 
 var _alvo: Node3D = null
 var _t_plantio: float = 2.0            # cooldown atual até a próxima tentativa
@@ -34,6 +36,9 @@ var _intervalo_plantio: float = INTERVALO_PLANTIO
 var _max_armadilhas: int = MAX_ARMADILHAS
 var _limiar_tiro: float = 0.7          # quão alinhado precisa estar pra atirar (dot)
 var _kite: bool = true                 # recua com pouca vida?
+var _desarma: bool = true              # desarma armadilhas do player ao encostar?
+var _desarmando: Node = null           # armadilha do player sendo desarmada
+var _desarme_t: float = 0.0            # tempo restante do desarme
 
 
 func _ready() -> void:
@@ -52,6 +57,7 @@ func _aplicar_dificuldade() -> void:
 			_max_armadilhas = 2
 			_limiar_tiro = 0.92        # só atira bem de frente -> erra mais
 			_kite = false              # não foge: mais burro
+			_desarma = false           # nem desarma
 			velocidade_base *= 0.9
 		"dificil":
 			_intervalo_plantio = INTERVALO_PLANTIO * 0.6
@@ -74,6 +80,18 @@ func _physics_process(delta: float) -> void:
 	if esta_imobilizado():
 		velocity = Vector3.ZERO  # preso por Cova/Gás, espera passar
 		return
+	# Desarmando uma armadilha do player (G4): parado e exposto até concluir.
+	if _desarmando != null:
+		velocity = Vector3.ZERO
+		_mover(delta)
+		if not is_instance_valid(_desarmando):
+			_desarmando = null
+		else:
+			_desarme_t -= delta
+			if _desarme_t <= 0.0:
+				_desarmando.remover_por_desarme()   # remove a armadilha do player
+				_desarmando = null
+		return
 	if _alvo == null or not is_instance_valid(_alvo):
 		_alvo = _achar_alvo()
 	if _alvo == null:
@@ -81,6 +99,16 @@ func _physics_process(delta: float) -> void:
 	var para := _alvo.global_position - global_position
 	para.y = 0.0
 	var dist := para.length()
+	# Encostou numa armadilha do player? Começa a desarmar (se a dificuldade deixa).
+	if _desarma:
+		var arm := _armadilha_player_proxima(DESARME_DIST)
+		if arm != null:
+			arm.cancelar_gatilho()        # não dispara enquanto desarma
+			_desarmando = arm
+			_desarme_t = DESARME_TEMPO
+			velocity = Vector3.ZERO
+			_mover(delta)
+			return
 	var vel := velocidade_base * fator_velocidade()  # base do personagem × slow/speed
 	# Com pouca vida e o player por perto, RECUA (kite) em vez de avançar (se a dificuldade deixa).
 	var fugindo := _kite and healer < VIDA_FUGIR and dist < 11.0
@@ -96,14 +124,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = 0.0
 		velocity.z = 0.0
-	if gravidade_ativa:
-		if not is_on_floor():
-			velocity.y -= GRAVIDADE * delta
-		move_and_slide()
-	else:
-		velocity.y = 0.0
-		move_and_slide()
-		position.y = ALTURA_PISO
+	_mover(delta)
 	# Fugindo: encara o player (atira recuando). Senão: olha pra onde anda.
 	if fugindo and dist > 0.01:
 		rotation.y = lerp_angle(rotation.y, atan2(-para.x, -para.z), 0.25)
@@ -121,6 +142,41 @@ func _physics_process(delta: float) -> void:
 	# Bem colado: parte pro soco (derruba). O cooldown do soco limita o ritmo.
 	if dist < SOCO_ALCANCE:
 		socar()
+
+
+## Aplica gravidade (mapas verticais) ou trava a altura (mapas planos) + move_and_slide.
+func _mover(delta: float) -> void:
+	if gravidade_ativa:
+		if not is_on_floor():
+			velocity.y -= GRAVIDADE * delta
+		move_and_slide()
+	else:
+		velocity.y = 0.0
+		move_and_slide()
+		position.y = ALTURA_PISO
+
+
+## Armadilha do PLAYER mais próxima dentro de `raio`, ou null (pro desarme).
+func _armadilha_player_proxima(raio: float) -> Node:
+	var melhor: Node = null
+	var melhor_d := raio
+	for a in get_tree().get_nodes_in_group("armadilhas"):
+		if not is_instance_valid(a) or int(a.dono_id) == id_jogador:
+			continue
+		var d := global_position.distance_to(a.global_position)
+		if d <= melhor_d:
+			melhor_d = d
+			melhor = a
+	return melhor
+
+
+## Tomar dano cancela o desarme em andamento e RE-ARMA a armadilha (counterplay do player).
+func receber_dano(qtd: float, tipo_dano: String = "normal") -> void:
+	super.receber_dano(qtd, tipo_dano)
+	if _desarmando != null:
+		if is_instance_valid(_desarmando):
+			_desarmando.desarmada = false
+		_desarmando = null
 
 
 ## True se a frente do bot (-Z) aponta razoavelmente para o alvo (pra não atirar de costas).

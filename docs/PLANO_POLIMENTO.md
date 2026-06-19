@@ -14,8 +14,12 @@ agente desce a fila, **commita E dá push** em cada fatia, manda screenshot nos 
 - [x] **G2. Níveis de dificuldade do bot** (fácil/normal/difícil) no título. Ajusta cadência
   de armadilha, mira (limiar do tiro), teto de armadilhas, kite e velocidade. 112/112.
 - [ ] **G3. Sistema de rounds** (melhor de 3) — estrutura de partida.  *(checar design no GDD)*
-- [ ] **G4. Bot usa Caution Mode/desarme** nas armadilhas do player (GDD 6.4).
-- [ ] **G5. Passe de balanceamento** dos `.tres` (tempos/dano/velocidade) pro feel.
+- [x] **G4. Bot desarma armadilhas do player** (GDD 6.4): ao encostar (≤1.7m) numa
+  armadilha do player, o bot para 1.5s e a remove; tomar dano interrompe e re-arma (o
+  player pode salvar a armadilha acertando o bot). Só normal/difícil. 113/113.
+- [ ] **G6. Bot busca itens da Vault** (vai atrás de item, prioriza Healer com pouca vida).
+- [ ] **G5. Passe de balanceamento** dos `.tres` — ⚠ precisa do seu PLAYTEST (não dá pra
+  "sentir" daqui); fica pra quando você jogar e me disser o que está forte/fraco.
 
 ## Guardrails
 1. **Commit + push** a cada fatia (workflow atual é manter o GitHub sincronizado).

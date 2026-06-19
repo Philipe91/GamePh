@@ -487,6 +487,34 @@ func _rodar_teste() -> void:
 	bot_facil.queue_free()
 	GameManager.dificuldade = "normal"
 
+	# G4: o bot desarma uma armadilha do player ao encostar (fica parado e exposto).
+	# Limpa o ambiente (testes anteriores deixam gás/projeteis/armadilhas ativos).
+	for p in get_tree().get_nodes_in_group("projeteis"):
+		p.queue_free()
+	for a in get_tree().get_nodes_in_group("armadilhas"):
+		a.queue_free()
+	GridManager.configurar_mapa(preload("res://scripts/stats_mapa.gd").new())  # grid 12x12 limpo
+	await get_tree().physics_frame
+	var coord_dz := Vector2i(4, 7)
+	player.set_physics_process(false)
+	player.inventario["mina"] = 4
+	player.global_position = GridManager.grid_to_world(coord_dz)
+	player.plantar("mina")                       # mina do player
+	player.global_position = Vector3(25.0, 1.0, 0.0)   # tira o player de cena
+	bot._imobilizado_restante = 0.0
+	bot._slow_restante = 0.0
+	bot._derrubado_restante = 0.0
+	bot._desarmando = null
+	bot.healer = Combatente.HEALER_MAX
+	bot.gravidade_ativa = false
+	bot.global_position = GridManager.grid_to_world(coord_dz) + Vector3(0.0, 0.0, 1.0)  # ~1u da mina
+	bot._alvo = player
+	bot.set_physics_process(true)
+	for _i in range(140):                        # desarme leva 1.5s (~90 frames) + folga
+		await get_tree().physics_frame
+	falhas += _checar("bot desarma a armadilha do player", not GridManager.tem_armadilha(coord_dz))
+	bot.set_physics_process(false)
+
 	# Bloco B1 (Fase 4): arma de projétil.
 	player.set_physics_process(false)
 	bot.set_physics_process(false)
