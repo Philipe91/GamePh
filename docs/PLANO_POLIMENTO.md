@@ -98,3 +98,12 @@ placeholders. Ao esgotar, criar PLAYTEST.md e parar.
   conferir combos de bomba (mina/switch+bomba 5×5), itens das PODS (speed/protect/trap/healer/
   unit), obstáculos (laser blaster/cannon/exploding box/spark bit), foot speed por personagem.
   **Esperando feedback do humano sobre o feel antes de tunar mais o movimento.**
+- **Corredor/Fortaleza ampliados ✅** (`283ac6d`): 16×10→28×14 e 14×14→22×22, +PODS, camera_segue.
+- **Cannon teleguiado ✅** (`b00d5eb`): lancador "foguete" agora só dispara por proximidade (12m)
+  e lança míssil lento TELEGUIADO (esquivável); laser mira pro centro. Campo `StatsMapa.cannons`.
+  Teste headless do homing. 133/133.
+- **PODS com sorteio por peso ✅** (`b97192b`): Unit raro (~9%), healer/trap comuns; 2 primeiros
+  drops nunca são Unit. 133/133.
+- **Conferidos (já alinhados ao FAQ, sem mudança):** itens das PODS (healer/speed/protect/trap/
+  unit) e foot speeds por personagem (Kestrel 9 rápido … Magnus 6 / Mara-Pip 5.5 lentos).
+- **AGORA depende de PLAYTEST do humano:** calibrar feel do movimento e balanceamento (G5).
