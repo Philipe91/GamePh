@@ -5,15 +5,15 @@
 [resource]
 script = ExtResource("1")
 nome = "Corredor"
-largura = 16
-altura = 10
+largura = 28
+altura = 14
 tamanho_tile = 2.0
-spawn_jogador = Vector2i(2, 5)
-spawn_bot = Vector2i(13, 5)
-vaults = Array[Vector2i]([Vector2i(8, 2), Vector2i(8, 7)])
-obstaculos = Array[Vector2i]([Vector2i(6, 5), Vector2i(9, 5)])
-bombas_caixa = Array[Vector2i]([Vector2i(8, 5)])
-esteiras = Array[Vector2i]([Vector2i(4, 5), Vector2i(11, 5)])
-pontes = Array[Vector2i]([Vector2i(8, 0), Vector2i(8, 9)])
-lancadores = Array[Vector2i]([Vector2i(0, 5), Vector2i(15, 5)])
-
+spawn_jogador = Vector2i(2, 7)
+spawn_bot = Vector2i(25, 7)
+vaults = Array[Vector2i]([Vector2i(14, 4), Vector2i(14, 9), Vector2i(7, 7), Vector2i(21, 7)])
+obstaculos = Array[Vector2i]([Vector2i(10, 7), Vector2i(18, 7), Vector2i(14, 2), Vector2i(14, 11)])
+bombas_caixa = Array[Vector2i]([Vector2i(14, 7)])
+esteiras = Array[Vector2i]([Vector2i(7, 4), Vector2i(21, 9)])
+pontes = Array[Vector2i]([Vector2i(14, 0), Vector2i(14, 13)])
+lancadores = Array[Vector2i]([Vector2i(0, 7), Vector2i(27, 7)])
+camera_segue = true

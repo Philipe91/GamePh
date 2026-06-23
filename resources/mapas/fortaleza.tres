@@ -5,14 +5,15 @@
 [resource]
 script = ExtResource("1")
 nome = "Fortaleza"
-largura = 14
-altura = 14
+largura = 22
+altura = 22
 tamanho_tile = 2.0
-spawn_jogador = Vector2i(2, 7)
-spawn_bot = Vector2i(11, 7)
-vaults = Array[Vector2i]([Vector2i(7, 7), Vector2i(7, 2), Vector2i(7, 11)])
-obstaculos = Array[Vector2i]([Vector2i(5, 5), Vector2i(9, 5), Vector2i(5, 9), Vector2i(9, 9)])
-bombas_caixa = Array[Vector2i]([Vector2i(7, 5), Vector2i(7, 9)])
-esteiras = Array[Vector2i]([Vector2i(7, 0), Vector2i(7, 13)])
-pontes = Array[Vector2i]([Vector2i(0, 7), Vector2i(13, 7)])
-lancadores = Array[Vector2i]([Vector2i(2, 2), Vector2i(11, 11)])
+spawn_jogador = Vector2i(3, 11)
+spawn_bot = Vector2i(18, 11)
+vaults = Array[Vector2i]([Vector2i(11, 11), Vector2i(6, 6), Vector2i(16, 6), Vector2i(6, 16), Vector2i(16, 16)])
+obstaculos = Array[Vector2i]([Vector2i(9, 9), Vector2i(13, 9), Vector2i(9, 13), Vector2i(13, 13)])
+bombas_caixa = Array[Vector2i]([Vector2i(11, 6), Vector2i(11, 16)])
+esteiras = Array[Vector2i]([Vector2i(6, 11), Vector2i(16, 11)])
+pontes = Array[Vector2i]([Vector2i(11, 9), Vector2i(11, 13)])
+lancadores = Array[Vector2i]([Vector2i(3, 3), Vector2i(18, 18)])
+camera_segue = true

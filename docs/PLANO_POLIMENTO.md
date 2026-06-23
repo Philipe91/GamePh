@@ -83,3 +83,18 @@ placeholders. Ao esgotar, criar PLAYTEST.md e parar.
   pontes longas over/under, 4 rampas, pilares, paredes de cobertura, field traps, 3 Vaults.
   Selecionável no menu. 132 testes.
 - TODO: chão pro mapa grande (textura cobre só 24×24 hoje); props Kenney pra decorar.
+
+## PIVÔ FEEL/ESCALA (humano 2026-06-23, jogou e reprovou) — seguir lógica do FAQ Trap Gunner
+> Humano testou: "jogabilidade estranha, mapa pequeno, boneco se movimenta congelado, repensa".
+> Mandou o FAQ do Trap Gunner (Jon Mott, 1998) como bíblia de design. Foco escolhido: **feel**.
+- **Movimento refeito ✅** (`0cd9683`): era velocidade instantânea (0↔máx num frame) + giro lerp
+  fixo 0.25 não-delta = "congelado". Agora rampa com `move_toward` (accel 90 / freio 110,
+  @export tunável) + giro exponencial delta-based (velocidade_giro 18). Player 7→9. **Precisa
+  do PLAYTEST do humano** (feel não valida headless). 132 testes.
+- **Arena padrão maior ✅** (`03f2433`): 12×12→**20×20**, 1→**5 Vaults/PODS**, +cobertura/esteira/
+  lançador, `camera_segue=true`. `--demo-padrao`. 132 testes.
+- ⚠ **Commits LOCAIS** (push pra main bloqueado pelo harness; humano dá push ou autoriza).
+- **Próximos (alinhar ao FAQ, validáveis):** maps pequenos (corredor/fortaleza) também ampliar;
+  conferir combos de bomba (mina/switch+bomba 5×5), itens das PODS (speed/protect/trap/healer/
+  unit), obstáculos (laser blaster/cannon/exploding box/spark bit), foot speed por personagem.
+  **Esperando feedback do humano sobre o feel antes de tunar mais o movimento.**
