@@ -84,6 +84,9 @@ func _ready() -> void:
 	if "--demo-vertical" in args:
 		_demo_vertical_e_capturar()
 		return
+	if "--demo-padrao" in args:
+		_demo_padrao_e_capturar()
+		return
 	# Demo da tela de fim de partida (vitória premium).
 	if "--demo-fim" in args:
 		bot.set_physics_process(false)
@@ -240,16 +243,18 @@ func _seguir_player(delta: float) -> void:
 ## Plug-and-play: é só largar o PNG na pasta (igual os ícones das armadilhas).
 func _aplicar_textura_chao() -> void:
 	var caminho := "res://assets/sprites/chao.png"
-	if not FileAccess.file_exists(caminho):
+	if not ResourceLoader.exists(caminho):
 		return
-	var img := Image.new()
-	if img.load(caminho) != OK:
+	# Carrega a textura JÁ IMPORTADA (export-safe). Image.load() em runtime dá warning
+	# e quebra no export — load() pega o .ctex que o editor gera a partir do PNG.
+	var tex := load(caminho) as Texture2D
+	if tex == null:
 		return
 	var chao := get_node_or_null("Chao") as MeshInstance3D
 	if chao == null:
 		return
 	var mat := StandardMaterial3D.new()
-	mat.albedo_texture = ImageTexture.create_from_image(img)
+	mat.albedo_texture = tex
 	# Imagem de arena INTEIRA (com logo/marcas) → cobre o chão 1:1, sem repetir.
 	# (Se um dia for um tile sem-emenda, é só voltar pra uv1_scale 6×6.)
 	mat.uv1_scale = Vector3(1.0, 1.0, 1.0)
@@ -1309,6 +1314,32 @@ func _demo_vertical_e_capturar() -> void:
 	bot.global_position = Vector3(0.0, 3.6, 0.0)       # no cruzamento das pontes (alto)
 	for _i in range(30):
 		await get_tree().process_frame                 # deixa a oclusão agir
+	_capturar_e_sair()
+
+
+## Demo do mapa padrão (arena grande estilo Trap Gunner): monta PODS/Vaults, caixas e
+## esteiras, posiciona os dois perto do cluster central e captura com a câmera seguindo.
+func _demo_padrao_e_capturar() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	var mapa: Resource = load("res://resources/mapas/padrao.tres")
+	GridManager.configurar_mapa(mapa)
+	_desenhar_grid()
+	for c in mapa.vaults:
+		_colocar_vault(c)
+	_colocar_field_traps(mapa)
+	var cam := get_node_or_null("Camera3D") as Camera3D
+	if cam != null:
+		_cam_offset = cam.position
+		_seguir_camera = true
+	await get_tree().physics_frame
+	# Perto do PODS central, pra a screenshot mostrar a arena povoada (e não um canto vazio).
+	player.global_position = GridManager.grid_to_world(Vector2i(9, 12))
+	player.global_position.y = 1.0
+	bot.global_position = GridManager.grid_to_world(Vector2i(12, 9))
+	bot.global_position.y = 1.0
+	for _i in range(40):
+		await get_tree().process_frame
 	_capturar_e_sair()
 
 

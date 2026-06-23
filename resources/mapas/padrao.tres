@@ -5,15 +5,15 @@
 [resource]
 script = ExtResource("1")
 nome = "Padrão"
-largura = 12
-altura = 12
+largura = 20
+altura = 20
 tamanho_tile = 2.0
-spawn_jogador = Vector2i(3, 8)
-spawn_bot = Vector2i(9, 3)
-vaults = Array[Vector2i]([Vector2i(6, 6)])
-obstaculos = Array[Vector2i]([Vector2i(4, 4), Vector2i(8, 8)])
-bombas_caixa = Array[Vector2i]([Vector2i(8, 4)])
-esteiras = Array[Vector2i]([Vector2i(6, 2)])
-pontes = Array[Vector2i]([Vector2i(2, 6), Vector2i(10, 6)])
-lancadores = Array[Vector2i]([Vector2i(6, 10)])
-
+spawn_jogador = Vector2i(3, 16)
+spawn_bot = Vector2i(16, 3)
+vaults = Array[Vector2i]([Vector2i(10, 10), Vector2i(5, 5), Vector2i(15, 15), Vector2i(5, 15), Vector2i(15, 5)])
+obstaculos = Array[Vector2i]([Vector2i(8, 8), Vector2i(12, 8), Vector2i(8, 12), Vector2i(12, 12)])
+bombas_caixa = Array[Vector2i]([Vector2i(10, 5), Vector2i(10, 15)])
+esteiras = Array[Vector2i]([Vector2i(5, 10), Vector2i(15, 10)])
+pontes = Array[Vector2i]([Vector2i(10, 8), Vector2i(10, 12)])
+lancadores = Array[Vector2i]([Vector2i(2, 10), Vector2i(17, 10)])
+camera_segue = true
