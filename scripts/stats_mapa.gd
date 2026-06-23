@@ -19,7 +19,8 @@ class_name StatsMapa
 @export var bombas_caixa: Array[Vector2i] = []   # Bomb Box (explode)
 @export var esteiras: Array[Vector2i] = []       # Conveyer Belt
 @export var pontes: Array[Vector2i] = []         # passarela (evasão da Plasma)
-@export var lancadores: Array[Vector2i] = []     # Laser/Rocket Launcher
+@export var lancadores: Array[Vector2i] = []     # Laser Blaster (tiro reto no timer)
+@export var cannons: Array[Vector2i] = []        # Cannon: míssil teleguiado por proximidade
 
 ## Câmera segue o player (mapas grandes estilo Trap Gunner). False = câmera fixa (mapas
 ## pequenos que cabem inteiros na tela).

@@ -16,4 +16,5 @@ bombas_caixa = Array[Vector2i]([Vector2i(10, 5), Vector2i(10, 15)])
 esteiras = Array[Vector2i]([Vector2i(5, 10), Vector2i(15, 10)])
 pontes = Array[Vector2i]([Vector2i(10, 8), Vector2i(10, 12)])
 lancadores = Array[Vector2i]([Vector2i(2, 10), Vector2i(17, 10)])
+cannons = Array[Vector2i]([Vector2i(10, 2), Vector2i(10, 17)])
 camera_segue = true

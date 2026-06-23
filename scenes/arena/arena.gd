@@ -177,7 +177,14 @@ func _colocar_field_traps(mapa: Resource) -> void:
 	for c in mapa.pontes:
 		_instanciar_em("res://scenes/field_traps/ponte.tscn", c, {})
 	for c in mapa.lancadores:
-		_instanciar_em("res://scenes/field_traps/lancador.tscn", c, {})
+		# Laser mira pro centro da arena (na origem), pra varrer pra dentro, não pra fora.
+		var wp := GridManager.grid_to_world(c)
+		var dir := Vector3(-wp.x, 0.0, -wp.z)
+		if dir.length() < 0.5:
+			dir = Vector3(0.0, 0.0, 1.0)
+		_instanciar_em("res://scenes/field_traps/lancador.tscn", c, {"tipo": "laser", "direcao": dir})
+	for c in mapa.cannons:
+		_instanciar_em("res://scenes/field_traps/lancador.tscn", c, {"tipo": "foguete"})
 
 
 ## Carrega uma cena, define propriedades e posiciona no centro do tile (y do chão).
@@ -850,7 +857,7 @@ func _rodar_teste() -> void:
 	var lan := preload("res://scenes/field_traps/lancador.tscn").instantiate()
 	add_child(lan)
 	lan.global_position = Vector3(7.0, 1.0, 7.0)
-	lan._disparar()
+	lan._disparar_laser()
 	falhas += _checar("lancador dispara projetil", get_tree().get_nodes_in_group("projeteis").size() > n_proj)
 	lan.queue_free()
 	# Esteira: empurra quem está em cima.
@@ -1081,6 +1088,24 @@ func _rodar_teste() -> void:
 	bot.receber_dano(999.0)                       # round 2 -> jogador faz 2 -> vence a partida
 	falhas += _checar("placar fica 2-0", GameManager.v1 == 2)
 	falhas += _checar("jogador vence a PARTIDA com 2 rounds", venceu["id"] == 1)
+
+	# Cannon (FAQ): o míssil teleguiado curva atrás do alvo. Lançado pra +Z com o alvo a +X,
+	# após alguns passos a velocidade deve ter ganhado componente +X (virou pro alvo).
+	var alvo_no := Node3D.new()
+	add_child(alvo_no)
+	alvo_no.global_position = Vector3(10.0, 1.0, 0.0)
+	var miss: Node = preload("res://scenes/projeteis/projetil.tscn").instantiate()
+	add_child(miss)
+	miss.global_position = Vector3(0.0, 1.0, 0.0)
+	miss.velocidade = Vector3(0.0, 0.0, 6.0)   # 90° do alvo
+	miss.vida = 999.0                          # não expira durante o teste
+	miss.teleguiado = true
+	miss.alvo = alvo_no
+	for _i in range(20):
+		miss._physics_process(0.05)
+	falhas += _checar("cannon: missil teleguiado curva pro alvo (+X)", miss.velocidade.x > 1.0)
+	miss.queue_free()
+	alvo_no.queue_free()
 
 	if falhas == 0:
 		print("[TESTE] RESULTADO: TODOS OS TESTES PASSARAM")

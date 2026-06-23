@@ -9,7 +9,13 @@ var dono_id: int = 1
 var dano: float = 12.0
 var velocidade: Vector3 = Vector3.ZERO   # direção * rapidez (m/s), no plano XZ
 
-const VIDA: float = 2.0   # segundos até sumir sozinho (alcance efetivo)
+## Teleguiado (Cannon do Trap Gunner): se `teleguiado` e há `alvo`, o míssil curva atrás
+## dele com giro limitado (dá pra desviar correndo). Default é reto (alvo nulo).
+var teleguiado: bool = false
+var alvo: Node = null
+const GIRO_TELEGUIADO: float = 2.6   # rad/s do giro do míssil (baixo = esquivável)
+
+@export var vida: float = 2.0   # segundos até sumir sozinho (alcance efetivo)
 var _t: float = 0.0
 
 
@@ -19,10 +25,17 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if teleguiado and is_instance_valid(alvo):
+		var para: Vector3 = alvo.global_position - global_position
+		para.y = 0.0
+		var rapidez := velocidade.length()
+		if para.length() > 0.01 and rapidez > 0.01:
+			var nova := velocidade.normalized().slerp(para.normalized(), clampf(GIRO_TELEGUIADO * delta, 0.0, 1.0))
+			velocidade = nova * rapidez
 	global_position += velocidade * delta
 	global_position.y = 1.0
 	_t += delta
-	if _t >= VIDA:
+	if _t >= vida:
 		queue_free()
 
 
