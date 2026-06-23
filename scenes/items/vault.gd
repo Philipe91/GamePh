@@ -1,11 +1,18 @@
 extends Node3D
 ## Vault (P.O.D.S. — GDD 8). Ponto do mapa que cospe um item de tempos em tempos.
 ## Marca o próprio tile como não-plantável e só solta um novo item quando o anterior
-## foi pego. Cicla pelos tipos de item.
+## foi pego. Sorteia o tipo com peso (Unit é raro — a arma suprema do FAQ).
 
 const ITEM := preload("res://scenes/items/item.tscn")
 const INTERVALO: float = 8.0
-const TIPOS: Array[String] = ["healer", "speed", "protect", "armadilha", "unit"]
+## Peso de cada item no sorteio (FAQ: healer/trap comuns, speed/protect médios, Unit raro).
+const PESOS: Dictionary = {
+	"healer": 3.0,
+	"armadilha": 3.0,
+	"speed": 2.0,
+	"protect": 2.0,
+	"unit": 1.0,
+}
 
 var coord: Vector2i = Vector2i.ZERO
 var _t: float = 3.0           # primeiro item sai mais rápido
@@ -32,8 +39,27 @@ func _process(delta: float) -> void:
 func _soltar_item() -> void:
 	_t = INTERVALO
 	var it := ITEM.instantiate()
-	it.tipo = TIPOS[_idx % TIPOS.size()]
+	it.tipo = _sortear_tipo()
 	_idx += 1
 	get_parent().add_child(it)
 	it.global_position = global_position + Vector3(0.0, 0.6, 0.0)
 	_item_atual = it
+
+
+## Sorteio por peso. Os 2 primeiros drops da partida NÃO podem ser Unit (não dar a arma
+## suprema de graça logo de cara — FAQ trata o Unit como prêmio raro).
+func _sortear_tipo() -> String:
+	var permite_unit := _idx >= 2
+	var total := 0.0
+	for tipo in PESOS:
+		if tipo == "unit" and not permite_unit:
+			continue
+		total += PESOS[tipo]
+	var r := randf() * total
+	for tipo in PESOS:
+		if tipo == "unit" and not permite_unit:
+			continue
+		r -= PESOS[tipo]
+		if r <= 0.0:
+			return tipo
+	return "healer"
