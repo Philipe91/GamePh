@@ -17,8 +17,16 @@ signal desarme_iniciado(seq: Array, tempo: float)
 ## Desarme terminou (HUD esconde o painel). sucesso true/false.
 signal desarme_encerrado(sucesso: bool)
 
-const VELOCIDADE: float = 7.0
+const VELOCIDADE: float = 9.0
 const ZONA_MORTA: float = 0.2
+
+## Feel do movimento (tunável no Inspector). O movimento antigo trocava a velocidade
+## de forma instantânea (0→máx e máx→0 num frame) e girava devagar com lerp fixo — dava
+## a sensação "congelada/robótica". Agora a velocidade RAMPA com aceleração/freio altos
+## (responsivo, mas com um fio de peso) e o giro é rápido e independente de FPS.
+@export var aceleracao: float = 90.0       # m/s² ao acelerar (alto = arranca rápido)
+@export var desaceleracao: float = 110.0   # m/s² ao soltar/frear (mais forte = sem derrapar)
+@export var velocidade_giro: float = 18.0  # rapidez do giro pra encarar a direção (delta-based)
 ## Alcance do Caution Mode em tiles (raio). 2 tiles cobrem uma vizinhança 5x5 (GDD 6.1).
 const ALCANCE_CAUTION_TILES: float = 2.0
 ## Desarme (GDD 6.2): distância pra "encostar", tamanho do código, tempo e cura no sucesso.
@@ -163,8 +171,14 @@ func _physics_process(delta: float) -> void:
 	else:
 		_escape_antes = false
 		var vel := velocidade_base * fator_velocidade()  # base do personagem × slow/speed
-		velocity.x = dir.x * vel
-		velocity.z = dir.y * vel
+		# Rampa de velocidade no plano XZ: persegue a velocidade-alvo com aceleração ao
+		# andar e um freio mais forte ao soltar (responsivo, sem ficar escorregadio).
+		var alvo_h := Vector3(dir.x, 0.0, dir.y) * vel
+		var atual_h := Vector3(velocity.x, 0.0, velocity.z)
+		var taxa := aceleracao if dir.length() > 0.01 else desaceleracao
+		atual_h = atual_h.move_toward(alvo_h, taxa * delta)
+		velocity.x = atual_h.x
+		velocity.z = atual_h.z
 		if gravidade_ativa:
 			# Mapa vertical: segue o chão de colisão (rampa/ponte) com gravidade.
 			if not is_on_floor():
@@ -175,9 +189,11 @@ func _physics_process(delta: float) -> void:
 			velocity.y = 0.0
 			move_and_slide()
 			position.y = ALTURA_PISO
-		if dir.length() > 0.01:
-			var alvo := atan2(-velocity.x, -velocity.z)
-			rotation.y = lerp_angle(rotation.y, alvo, 0.25)
+		# Encara a direção do MOVIMENTO real, girando rápido e independente de FPS
+		# (exponencial: snappy mas sem "saltar"). Antes era lerp fixo 0.25 = nariz atrasado.
+		if atual_h.length() > 0.2:
+			var alvo := atan2(-atual_h.x, -atual_h.z)
+			rotation.y = lerp_angle(rotation.y, alvo, 1.0 - exp(-velocidade_giro * delta))
 	_ler_acoes()
 	_ler_caution()
 	_atualizar_overlay_caution()
