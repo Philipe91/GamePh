@@ -15,6 +15,13 @@ func _ready() -> void:
 	var fumaca := get_node_or_null("Fumaca") as CPUParticles3D
 	if fumaca != null:
 		fumaca.emitting = true
+	# FOGO residual: chamas contínuas no ponto por ~0.9s depois do estouro.
+	var chamas := get_node_or_null("Chamas") as CPUParticles3D
+	if chamas != null:
+		chamas.emitting = true
+		get_tree().create_timer(0.9).timeout.connect(func() -> void:
+			if is_instance_valid(chamas):
+				chamas.emitting = false)
 	# Flash: a luz nasce forte e morre rápido (tween independente do fluxo abaixo).
 	if luz != null:
 		var tw := create_tween()

@@ -1,5 +1,27 @@
 # DevLog
 
+## 2026-07-07 (madrugada) — Plano Noturno 2 (docs/PLANO_NOTURNO_2.md)
+
+- **Armas reais por personagem** (tabela `ARMAS` em combatente.gd, specs do GDD 4/FAQ):
+  pistola, shotgun com leque de 5 pellets curto, handgun metralha, míssil teleguiado
+  que DERRUBA, lâminas rápidas, soco-foguete teleguiado. Projéteis com cor por arma +
+  luz própria (tracer com o glow). Confirmado no Fandom: míssil da Tico teleguiado;
+  Rocket Fist do Abdoll com knockdown — nossos Pip/Mara.
+- **Sangue e impacto**: respingo vermelho + punch de escala no modelo em todo dano.
+- **IA**: usa o LOADOUT do personagem (cada oponente joga diferente); combo assinatura
+  bomba→detonador com gatilho quando o player pisa no raio; planta armadilha ao FUGIR
+  (fuga vira emboscada); desvia de Spark Bit.
+- **Texturas ambientCG (CC0)**: placas de metal no chão xadrez (1 placa/tile, tingida
+  pelo tema) e paredes (triplanar); caixotes de madeira (Bomb Box tingida de vermelho).
+- **Ponte** virou passarela real (deck+pilares+corrimão); **esteira** com faixas
+  deslizantes na direção do empurrão.
+- **Fogo residual** ~0.9s após explosões (emissor "Chamas" no explosao_fx).
+- **SFX sintetizados** de verdade (seno+ruído com varredura e envelope): explosão grave,
+  tiro seco, chimes. Suporte a .wav externo mantido.
+- **Retratos oficiais KayKit** na HUD (ao lado das barras) e na tela de seleção.
+- **Animações de morte e comemoração** (vencedor do round faz Cheer na pausa).
+
+
 ## 2026-07-06 (noite) — Reconstrução visual "igual Trap Gunner" + personagens animados
 
 Playtest do humano reprovou o visual ("fei demais.png"): câmera reta de cima, chão que

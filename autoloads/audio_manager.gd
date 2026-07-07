@@ -9,17 +9,19 @@ extends Node
 const TAXA: int = 22050
 const N_PLAYERS: int = 8
 
-## Evento -> frequência/duração do beep placeholder.
+## Evento -> parâmetros da síntese procedural:
+## [duração s, freq inicial Hz, freq final Hz, quantidade de ruído 0..1, curva do decay].
+## Ruído alto + queda de frequência = impacto; ruído zero + frequência subindo = "chime".
 const EVENTOS := {
-	"plantar": [330.0, 0.08],
-	"tiro": [880.0, 0.06],
-	"explodir": [120.0, 0.30],
-	"soco": [200.0, 0.10],
-	"dano": [440.0, 0.07],
-	"derrubado": [150.0, 0.18],
-	"desarme": [660.0, 0.20],
-	"item": [990.0, 0.15],
-	"vitoria": [520.0, 0.40],
+	"plantar": [0.07, 500.0, 660.0, 0.1, 1.0],
+	"tiro": [0.09, 900.0, 220.0, 0.5, 1.5],
+	"explodir": [0.5, 100.0, 38.0, 0.7, 2.0],
+	"soco": [0.12, 120.0, 60.0, 0.2, 1.5],
+	"dano": [0.1, 500.0, 300.0, 0.6, 1.2],
+	"derrubado": [0.25, 300.0, 80.0, 0.15, 1.0],
+	"desarme": [0.25, 400.0, 900.0, 0.0, 0.8],
+	"item": [0.18, 700.0, 1200.0, 0.0, 0.8],
+	"vitoria": [0.5, 400.0, 800.0, 0.0, 0.5],
 }
 
 var _sons: Dictionary = {}
@@ -66,26 +68,31 @@ func tem_som(evento: String) -> bool:
 	return _sons.has(evento)
 
 
-## Usa o .wav do projeto se existir; senão gera um beep placeholder.
+## Usa o .wav do projeto se existir; senão SINTETIZA o efeito (bem melhor que beep:
+## mistura seno+ruído com varredura de frequência e envelope — explosão soa grave e
+## "cheia", tiro soa seco, chimes sobem). Ainda é placeholder até termos áudio final.
 func _carregar_ou_gerar(evento: String) -> AudioStream:
 	var caminho := "res://assets/audio/%s.wav" % evento
 	if ResourceLoader.exists(caminho):
 		return load(caminho)
-	var freq: float = EVENTOS[evento][0]
-	var dur: float = EVENTOS[evento][1]
-	return _gerar_beep(freq, dur)
+	var p: Array = EVENTOS[evento]
+	return _sintetizar(float(p[0]), float(p[1]), float(p[2]), float(p[3]), float(p[4]))
 
 
-## Beep senoidal com decaimento, como AudioStreamWAV 16-bit mono.
-func _gerar_beep(freq: float, dur: float) -> AudioStreamWAV:
+## Gera um AudioStreamWAV 16-bit mono: seno com varredura f_ini->f_fim misturado a
+## ruído branco (proporção `ruido`), com envelope (1-t)^decai.
+func _sintetizar(dur: float, f_ini: float, f_fim: float, ruido: float, decai: float) -> AudioStreamWAV:
 	var n := int(TAXA * dur)
 	var dados := PackedByteArray()
 	dados.resize(n * 2)
+	var fase := 0.0
 	for i in n:
-		var t := float(i) / float(TAXA)
-		var env := 1.0 - float(i) / float(n)        # decaimento linear
-		var amostra := sin(TAU * freq * t) * env * 0.5
-		dados.encode_s16(i * 2, int(clampf(amostra, -1.0, 1.0) * 32767.0))
+		var frac := float(i) / float(n)
+		var env := pow(1.0 - frac, decai)
+		var f := lerpf(f_ini, f_fim, frac)
+		fase += TAU * f / float(TAXA)
+		var s := sin(fase) * (1.0 - ruido) + (randf() * 2.0 - 1.0) * ruido
+		dados.encode_s16(i * 2, int(clampf(s * env * 0.6, -1.0, 1.0) * 32767.0))
 	var w := AudioStreamWAV.new()
 	w.format = AudioStreamWAV.FORMAT_16_BITS
 	w.mix_rate = TAXA

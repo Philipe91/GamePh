@@ -41,6 +41,23 @@ scale_amount_min = 1.0
 scale_amount_max = 2.2
 color = Color(0.35, 0.35, 0.38, 0.7)
 
+[node name="Chamas" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 10
+lifetime = 0.45
+explosiveness = 0.1
+mesh = SubResource("Mesh_fx")
+emission_shape = 1
+emission_sphere_radius = 0.7
+direction = Vector3(0, 1, 0)
+spread = 25.0
+gravity = Vector3(0, 2.5, 0)
+initial_velocity_min = 0.6
+initial_velocity_max = 1.6
+scale_amount_min = 0.7
+scale_amount_max = 1.6
+color = Color(1, 0.45, 0.1, 0.9)
+
 [node name="Luz" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 light_color = Color(1, 0.75, 0.35, 1)

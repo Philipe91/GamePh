@@ -90,9 +90,14 @@ func _montar_ui() -> void:
 	for nome in ROSTER:
 		var st: Resource = load("res://resources/personagens/%s.tres" % nome)
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(440, 46)
+		b.custom_minimum_size = Vector2(480, 56)
 		b.text = "%s   —   vida %d · vel %.1f · %s" % [st.nome, int(st.vida_max), st.velocidade, st.arma]
 		UIEstilo.estilizar_botao(b, st.cor_time)   # cada um na sua cor
+		# Retrato oficial do personagem no botão (leitura imediata de quem é quem).
+		var retrato := "res://assets/sprites/retratos/%s.png" % nome
+		if ResourceLoader.exists(retrato):
+			b.icon = load(retrato)
+			b.expand_icon = true
 		b.pressed.connect(_escolher.bind(nome))
 		caixa.add_child(b)
 

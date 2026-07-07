@@ -21,13 +21,39 @@ const GRAVIDADE: float = 22.0   # usada só nos mapas verticais (gravidade_ativa
 ## gravidade: o personagem segue o chão de colisão (sobe rampa, anda sobre a ponte).
 @export var gravidade_ativa: bool = false
 
-# Arma de projétil (GDD 7.1). Valores base; viram stats por personagem na Fase 5.
+# Arma de projétil (GDD 7.1). Valores base usados quando não há StatsPersonagem.
 const MUNICAO_MAX: int = 6
 const RECARGA_TEMPO: float = 1.5    # s recarregando (vulnerável: não atira)
 const CADENCIA: float = 0.28        # s entre tiros
 const TIRO_DANO: float = 12.0
 const TIRO_RAPIDEZ: float = 22.0    # m/s do projétil
 const PROJETIL := preload("res://scenes/projeteis/projetil.tscn")
+
+## Specs das 6 armas do roster (GDD seção 4, derivado do FAQ do Trap Gunner).
+## A chave é o campo `arma` do StatsPersonagem (.tres). Cada arma tem identidade:
+##  - pistola (Brecht): equilibrada;      - shotgun (Magnus): leque curto e forte;
+##  - handgun (Vesna): metralha fraca;    - missil (Pip): teleguiado, DERRUBA, lento;
+##  - laminas (Kestrel): rápidas/fracas;  - soco_foguete (Mara): teleguiado curto, DERRUBA.
+const ARMAS := {
+	"pistola": {"dano": 12.0, "cadencia": 0.30, "rapidez": 22.0, "pellets": 1,
+		"abertura": 0.0, "teleguiada": false, "derruba": false, "vida": 2.0,
+		"cor": Color(1.0, 0.85, 0.3)},
+	"shotgun": {"dano": 7.0, "cadencia": 0.95, "rapidez": 20.0, "pellets": 5,
+		"abertura": 26.0, "teleguiada": false, "derruba": false, "vida": 0.55,
+		"cor": Color(1.0, 0.55, 0.2)},
+	"handgun": {"dano": 9.0, "cadencia": 0.16, "rapidez": 24.0, "pellets": 1,
+		"abertura": 0.0, "teleguiada": false, "derruba": false, "vida": 1.8,
+		"cor": Color(0.4, 0.9, 1.0)},
+	"missil": {"dano": 11.0, "cadencia": 1.1, "rapidez": 9.5, "pellets": 1,
+		"abertura": 0.0, "teleguiada": true, "derruba": true, "vida": 4.5,
+		"cor": Color(1.0, 0.4, 0.25)},
+	"laminas": {"dano": 6.0, "cadencia": 0.14, "rapidez": 26.0, "pellets": 1,
+		"abertura": 0.0, "teleguiada": false, "derruba": false, "vida": 1.6,
+		"cor": Color(0.5, 1.0, 0.8)},
+	"soco_foguete": {"dano": 10.0, "cadencia": 1.0, "rapidez": 8.0, "pellets": 1,
+		"abertura": 0.0, "teleguiada": true, "derruba": true, "vida": 3.5,
+		"cor": Color(1.0, 0.35, 0.9)},
+}
 
 ## Preload (não o class_name global) pra resolver o tipo em headless — mesmo truque do
 ## StatsArmadilha (ver memória godot-mcp-lib-quirks).
@@ -157,7 +183,10 @@ var _anim: AnimationPlayer = null
 var _anim_idle: String = ""
 var _anim_mover: String = ""
 var _anim_derrubado: String = ""
+var _anim_morte: String = ""
+var _anim_vitoria: String = ""
 var _anim_atual: String = ""
+var _comemorar_ate_ms: int = 0   # comemora (fim de round) até este tick
 
 
 ## Acha o AnimationPlayer do modelo e resolve os nomes das animações (KayKit ou
@@ -172,6 +201,8 @@ func _configurar_animacao(m: Node3D) -> void:
 	_anim_idle = _primeira_anim(["Idle", "Idle_A"])
 	_anim_mover = _primeira_anim(["Running_A", "Running_B", "Run", "Walking_A", "Walk"])
 	_anim_derrubado = _primeira_anim(["Hit_A", "Hit_B", "Death_A"])
+	_anim_morte = _primeira_anim(["Death_A", "Death_B", "Death"])
+	_anim_vitoria = _primeira_anim(["Cheer", "Victory", "Wave", "Jump"])
 	# Idle e corrida precisam de LOOP (glb nem sempre traz a flag).
 	for nome in [_anim_idle, _anim_mover]:
 		if nome != "":
@@ -191,13 +222,23 @@ func _primeira_anim(nomes: Array) -> String:
 	return ""
 
 
+## Comemora (fim de round vencido — a arena chama) por `dur` segundos.
+func comemorar(dur: float = 2.0) -> void:
+	_comemorar_ate_ms = Time.get_ticks_msec() + int(dur * 1000.0)
+
+
 ## Troca a animação conforme o estado (chamado no _process). O corpo SE MOVE junto
-## com o movimento — pedido do playtest.
+## com o movimento — pedido do playtest. Prioridade: morte > vitória > knockdown >
+## correr > idle.
 func _atualizar_animacao() -> void:
 	if _anim == null or not is_instance_valid(_anim):
 		return
 	var alvo := _anim_idle
-	if esta_derrubado():
+	if healer <= 0.0:
+		alvo = _anim_morte
+	elif Time.get_ticks_msec() < _comemorar_ate_ms:
+		alvo = _anim_vitoria
+	elif esta_derrubado():
 		alvo = _anim_derrubado
 	elif Vector2(velocity.x, velocity.z).length() > 0.8:
 		alvo = _anim_mover
@@ -434,8 +475,9 @@ func _inimigo_no_alcance(raio: float) -> Node:
 	return melhor
 
 
-## Dispara um tiro na frente (-Z do personagem), se houver munição e cadência liberada.
-## Ao zerar a munição, começa a recarga automaticamente.
+## Dispara a ARMA do personagem na frente (-Z), se houver munição e cadência liberada.
+## Cada arma tem specs próprias (ARMAS): leque de pellets (shotgun), teleguiada com
+## knockdown (míssil/soco-foguete), cor/luz do projétil. Zerou a munição: recarrega.
 func atirar() -> void:
 	if _recarga_restante > 0.0 or _cadencia_restante > 0.0 or municao <= 0:
 		return
@@ -446,15 +488,31 @@ func atirar() -> void:
 	if dir.length() < 0.01:
 		return
 	dir = dir.normalized()
-	var p := PROJETIL.instantiate()
-	p.dono_id = id_jogador
-	p.dano = TIRO_DANO
-	p.velocidade = dir * TIRO_RAPIDEZ
-	get_parent().add_child(p)
-	p.global_position = global_position + dir * 1.1 + Vector3(0.0, 0.0, 0.0)
-	p.global_position.y = 1.0
+	var spec: Dictionary = {}
+	if stats != null:
+		spec = ARMAS.get(stats.arma, {})
+	var pellets: int = int(spec.get("pellets", 1))
+	var abertura := deg_to_rad(float(spec.get("abertura", 0.0)))
+	for i in pellets:
+		var ang := 0.0
+		if pellets > 1:
+			ang = lerpf(-abertura * 0.5, abertura * 0.5, float(i) / float(pellets - 1))
+		var d := dir.rotated(Vector3.UP, ang)
+		var p := PROJETIL.instantiate()
+		p.dono_id = id_jogador
+		p.dano = float(spec.get("dano", TIRO_DANO))
+		p.velocidade = d * float(spec.get("rapidez", TIRO_RAPIDEZ))
+		p.vida = float(spec.get("vida", 2.0))
+		p.cor = spec.get("cor", Color(1.0, 0.9, 0.35))
+		p.derruba = bool(spec.get("derruba", false))
+		if bool(spec.get("teleguiada", false)):
+			p.teleguiado = true
+			p.alvo = _inimigo_no_alcance(99999.0)
+		get_parent().add_child(p)
+		p.global_position = global_position + d * 1.1
+		p.global_position.y = 1.0
 	municao -= 1
-	_cadencia_restante = CADENCIA
+	_cadencia_restante = float(spec.get("cadencia", CADENCIA))
 	AudioManager.tocar("tiro")
 	municao_mudou.emit(municao, municao_max)
 	if municao <= 0:
@@ -548,9 +606,54 @@ func receber_dano(qtd: float, tipo_dano: String = "normal") -> void:
 		_cancelar_carga()
 	healer = maxf(0.0, healer - qtd)
 	AudioManager.tocar("dano")   # feedback de hit (juice)
+	_fx_sangue()                 # respingo vermelho no ponto do golpe
+	_fx_hit()                    # "soco" de escala no modelo (impacto legível)
 	healer_mudou.emit(healer, vida_max)
 	if healer <= 0.0:
 		healer_zerou.emit()
+
+
+## Respingo de sangue (burst curto que cai com gravidade). Montado em código —
+## efeito one-shot barato, sem cena própria.
+func _fx_sangue() -> void:
+	if not is_inside_tree():
+		return
+	var p := CPUParticles3D.new()
+	p.amount = 12
+	p.lifetime = 0.45
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.direction = Vector3(0, 1, 0)
+	p.spread = 60.0
+	p.gravity = Vector3(0, -14, 0)
+	p.initial_velocity_min = 3.0
+	p.initial_velocity_max = 6.0
+	var sm := SphereMesh.new()
+	sm.radius = 0.06
+	sm.height = 0.12
+	p.mesh = sm
+	p.color = Color(0.8, 0.08, 0.08)
+	p.add_to_group("fx")
+	get_parent().add_child(p)
+	p.global_position = global_position + Vector3(0.0, 0.6, 0.0)
+	p.emitting = true
+	get_tree().create_timer(0.9).timeout.connect(p.queue_free)
+
+
+## Punch de escala no modelo ao tomar dano (o corpo "sente" o golpe). Usa a escala
+## base gravada no mount pra não inflar com hits em sequência.
+func _fx_hit() -> void:
+	var m := get_node_or_null("Modelo") as Node3D
+	if m == null:
+		m = get_node_or_null("Malha") as Node3D
+	if m == null:
+		return
+	if not m.has_meta("escala_base"):
+		m.set_meta("escala_base", m.scale)
+	var base: Vector3 = m.get_meta("escala_base")
+	m.scale = base * 1.16
+	var tw := create_tween()
+	tw.tween_property(m, "scale", base, 0.15).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 ## Aplica knockback como IMPULSO (empurrão com peso, não teleporte). `forca` ≈ distância

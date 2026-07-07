@@ -93,6 +93,10 @@ func configurar(p1: Node, p2: Node) -> void:
 	# Barras de Healer com neon (cor de time).
 	_estilizar_barra(barra_p1, Color(0.3, 0.7, 1.0))
 	_estilizar_barra(barra_p2, Color(1.0, 0.35, 0.4))
+	# Retratos dos personagens ao lado das barras (arte oficial do pack — Trap Gunner
+	# mostrava os lutadores no topo). Falha silenciosa se o personagem não tiver retrato.
+	_montar_retrato(p1, Control.PRESET_TOP_LEFT, Vector2(10.0, 58.0))
+	_montar_retrato(p2, Control.PRESET_TOP_RIGHT, Vector2(-74.0, 58.0))
 	# Ícone da armadilha selecionada no canto inferior esquerdo.
 	_arma_icone = TextureRect.new()
 	_arma_icone.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -129,6 +133,28 @@ func configurar(p1: Node, p2: Node) -> void:
 	GameManager.placar_mudou.connect(func(a: int, b: int): _lbl_placar.text = "%d  -  %d" % [a, b])
 	GameManager.round_comecou.connect(_ao_round_comecou)
 	_atualizar_label_armadilha()
+
+
+## Retrato do personagem (assets/sprites/retratos/<nome>.png, nome do stats em
+## minúsculas). Sem stats ou sem arquivo, não mostra nada.
+func _montar_retrato(c: Node, preset: int, deslocamento: Vector2) -> void:
+	var stats: Resource = c.get("stats")
+	if stats == null:
+		return
+	var caminho := "res://assets/sprites/retratos/%s.png" % String(stats.nome).to_lower()
+	if not ResourceLoader.exists(caminho):
+		return
+	var tr := TextureRect.new()
+	tr.texture = load(caminho)
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.set_anchors_preset(preset)
+	tr.offset_left = deslocamento.x
+	tr.offset_top = deslocamento.y
+	tr.offset_right = deslocamento.x + 64.0
+	tr.offset_bottom = deslocamento.y + 64.0
+	add_child(tr)
 
 
 ## Healer com FEEDBACK (juice): a barra desce/sobe animada (não salta) e pisca —

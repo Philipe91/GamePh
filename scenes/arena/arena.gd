@@ -23,6 +23,9 @@ var _cam_offset: Vector3 = Vector3.ZERO
 ## Limites (±x, ±z) do foco da câmera, pra não mostrar o vazio além das paredes.
 var _cam_limite: Vector2 = Vector2(1.0e9, 1.0e9)
 
+## Texturas CC0 (ambientCG) usadas no visual do mapa.
+const TEX_CHAO := "res://assets/sprites/texturas/MetalPlates006_1K-JPG_Color.jpg"
+
 ## Câmera estilo Trap Gunner: perspectiva inclinada (~55°) mostrando boa parte do mapa.
 const CAM_FOV: float = 48.0
 const CAM_DIST: float = 21.0
@@ -94,7 +97,16 @@ func _ready() -> void:
 	add_child(preload("res://scenes/ui/pausa.tscn").instantiate())  # menu de pausa (ESC)
 	GameManager.faltam_30s.connect(_ao_faltar_30s)  # Spark Bit aos 30s (GDD 7.3)
 	GameManager.round_comecou.connect(_ao_round_comecou)  # reset a cada round (GDD 12)
+	GameManager.round_acabou.connect(_ao_round_acabou)    # vencedor comemora (animação)
 	GameManager.iniciar_partida([player, oponente])
+
+
+## Fim de round: o vencedor comemora durante a pausa "ROUND N" (animação Cheer).
+func _ao_round_acabou(vencedor_id: int, _motivo: String, _v1: int, _v2: int) -> void:
+	for c in [player, _oponente]:
+		if c != null and is_instance_valid(c) and int(c.get("id_jogador")) == vencedor_id \
+				and c.has_method("comemorar"):
+			c.comemorar(GameManager.PAUSA_ENTRE_ROUNDS + 1.0)
 
 
 ## Reset de round (GDD 12): limpa armadilhas/projeteis/itens/fx, restaura vida e
@@ -241,6 +253,11 @@ func _montar_chao_tiles(mapa: Resource) -> void:
 			var p := GridManager.grid_to_world(Vector2i(x, y))
 			var t := Transform3D(Basis.IDENTITY, Vector3(p.x, -0.07, p.z))  # topo em y=0
 			por_cor[(x + y) % 2].append(t)
+	# Textura de placas de metal (ambientCG, CC0) tingida pelas 2 cores do tema.
+	# O BoxMesh mapeia a textura 1:1 por face -> UMA placa por tile, sem emenda.
+	var tex: Texture2D = null
+	if ResourceLoader.exists(TEX_CHAO):
+		tex = load(TEX_CHAO) as Texture2D
 	for ci in 2:
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -251,7 +268,12 @@ func _montar_chao_tiles(mapa: Resource) -> void:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		var mat := StandardMaterial3D.new()
-		mat.albedo_color = cores[ci]
+		if tex != null:
+			mat.albedo_texture = tex
+			var c: Color = cores[ci]
+			mat.albedo_color = Color(minf(c.r * 2.0, 1.0), minf(c.g * 2.0, 1.0), minf(c.b * 2.0, 1.0))
+		else:
+			mat.albedo_color = cores[ci]
 		mat.roughness = 0.85
 		mat.metallic = 0.15
 		mmi.material_override = mat
@@ -267,10 +289,22 @@ func _montar_paredes() -> void:
 	var alt := 1.1
 	var esp := 0.6
 	var cor := Color(0.16, 0.17, 0.22)
-	_caixa_solida(Vector3(0.0, alt * 0.5, -h * 0.5 - esp * 0.5), Vector3(w + esp * 2.0, alt, esp), cor)
-	_caixa_solida(Vector3(0.0, alt * 0.5, h * 0.5 + esp * 0.5), Vector3(w + esp * 2.0, alt, esp), cor)
-	_caixa_solida(Vector3(-w * 0.5 - esp * 0.5, alt * 0.5, 0.0), Vector3(esp, alt, h + esp * 2.0), cor)
-	_caixa_solida(Vector3(w * 0.5 + esp * 0.5, alt * 0.5, 0.0), Vector3(esp, alt, h + esp * 2.0), cor)
+	var lados := [
+		_caixa_solida(Vector3(0.0, alt * 0.5, -h * 0.5 - esp * 0.5), Vector3(w + esp * 2.0, alt, esp), cor),
+		_caixa_solida(Vector3(0.0, alt * 0.5, h * 0.5 + esp * 0.5), Vector3(w + esp * 2.0, alt, esp), cor),
+		_caixa_solida(Vector3(-w * 0.5 - esp * 0.5, alt * 0.5, 0.0), Vector3(esp, alt, h + esp * 2.0), cor),
+		_caixa_solida(Vector3(w * 0.5 + esp * 0.5, alt * 0.5, 0.0), Vector3(esp, alt, h + esp * 2.0), cor),
+	]
+	# Textura de metal nas paredes (triplanar: não estica no comprimento).
+	if ResourceLoader.exists(TEX_CHAO):
+		var tex := load(TEX_CHAO) as Texture2D
+		for sb in lados:
+			var mi := (sb as Node).get_child(0) as MeshInstance3D
+			var mat := mi.material_override as StandardMaterial3D
+			mat.albedo_texture = tex
+			mat.albedo_color = Color(0.5, 0.53, 0.62)
+			mat.uv1_triplanar = true
+			mat.uv1_scale = Vector3(0.5, 0.5, 0.5)
 
 
 ## Câmera Trap Gunner: perspectiva, inclinada ~55°, seguindo o player com clamp.

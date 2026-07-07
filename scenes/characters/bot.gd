@@ -15,13 +15,18 @@ const PESO_DESVIO: float = 1.6      # quão forte o desvio entorta a rota até o
 const ALCANCE_TIRO: float = 14.0    # distância máx pra o bot abrir fogo no player
 const VIDA_FUGIR: float = 30.0      # abaixo disso o bot RECUA (kite) em vez de avançar
 
-# Plantio de armadilhas variadas (IA): Cova pra prender quem persegue, Mina no caminho.
+# Plantio de armadilhas (IA). O bot usa o LOADOUT do personagem (.tres) quando tem um —
+# cada oponente joga diferente, igual ao Trap Gunner. Sem stats, cai no kit clássico.
 const CENA_ARMADILHA := preload("res://scenes/traps/armadilha.tscn")
 const TRAPS := {
 	"mina": preload("res://resources/armadilhas/mina.tres"),
-	"cova": preload("res://resources/armadilhas/cova.tres"),
+	"bomba": preload("res://resources/armadilhas/bomba.tres"),
+	"detonador": preload("res://resources/armadilhas/detonador.tres"),
 	"gas": preload("res://resources/armadilhas/gas.tres"),
+	"cova": preload("res://resources/armadilhas/cova.tres"),
+	"painel": preload("res://resources/armadilhas/painel.tres"),
 }
+const KIT_CLASSICO: Array = ["mina", "cova", "gas"]
 const INTERVALO_PLANTIO: float = 3.5   # tenta plantar a cada 3.5s
 const MAX_ARMADILHAS: int = 4          # teto de armadilhas suas no mapa ao mesmo tempo
 const DESARME_DIST: float = 1.7        # encostou na armadilha do player -> pode desarmar
@@ -32,6 +37,8 @@ const ITEM_CURA_ALCANCE: float = 16.0  # com pouca vida, corre pro Healer mesmo 
 var _alvo: Node3D = null
 var _t_plantio: float = 2.0            # cooldown atual até a próxima tentativa
 var _armadilhas_ativas: int = 0
+var _combo_fase: int = 0               # combo bomba->detonador: 0 = plantar bomba, 1 = detonador
+var _t_detonar: float = 0.0            # cooldown do gatilho do combo
 
 # Parâmetros ajustados pela dificuldade (preenchidos no _ready).
 var _intervalo_plantio: float = INTERVALO_PLANTIO
@@ -133,6 +140,16 @@ func _physics_process(delta: float) -> void:
 		velocity.x = 0.0
 		velocity.z = 0.0
 	_mover(delta)
+	# Fugindo com o player na cola: solta uma armadilha no caminho do perseguidor
+	# (comportamento clássico do Trap Gunner — a fuga vira emboscada).
+	if fugindo and _t_plantio <= 0.0 and dist_jog < 9.0:
+		_t_plantio = _intervalo_plantio * 0.6
+		_plantar("cova" if "cova" in _tipos_disponiveis() else "mina")
+	# Combo assinatura: player pisou no raio de uma bomba própria -> ACIONA os detonadores.
+	_t_detonar -= delta
+	if _t_detonar <= 0.0 and _player_no_raio_de_bomba():
+		_t_detonar = 1.5
+		_acionar_detonadores_proprios()
 	# Fugindo: encara o player (atira recuando). Senão: olha pra onde anda.
 	if fugindo and dist > 0.01:
 		rotation.y = lerp_angle(rotation.y, atan2(-para.x, -para.z), 0.25)
@@ -180,6 +197,8 @@ func reiniciar() -> void:
 	_desarmando = null
 	_armadilhas_ativas = 0
 	_t_plantio = 2.0
+	_combo_fase = 0
+	_t_detonar = 0.0
 	_alvo = null
 
 
@@ -230,30 +249,100 @@ func _encara_alvo(para: Vector3) -> bool:
 	return frente.normalized().dot(para.normalized()) > _limiar_tiro
 
 
-## Soma de empurrões pra LONGE de cada armadilha do player no raio (faro do bot, A1).
-## Vetor nulo quando não há nada perto. Mais forte quanto mais perto da armadilha.
+## Soma de empurrões pra LONGE de cada perigo no raio: armadilhas do player (faro, A1)
+## e Spark Bits (dão dano nos dois — a IA não pode parecer burra pisando neles).
 func _desvio_de_armadilhas() -> Vector3:
 	var desvio := Vector3.ZERO
 	for a in get_tree().get_nodes_in_group("armadilhas"):
 		if not is_instance_valid(a) or int(a.dono_id) == id_jogador:
 			continue  # ignora as próprias; só foge das do inimigo (player)
-		var delta: Vector3 = global_position - a.global_position
-		delta.y = 0.0
-		var dist := delta.length()
-		if dist > 0.01 and dist < RAIO_DESVIO:
-			desvio += delta.normalized() * (1.0 - dist / RAIO_DESVIO)
+		desvio += _empurrao_de(a.global_position, RAIO_DESVIO)
+	for s in get_tree().get_nodes_in_group("spark_bits"):
+		if is_instance_valid(s) and not s.esta_morto():
+			desvio += _empurrao_de(s.global_position, 3.2)
 	return desvio
 
 
-## Escolhe e planta uma armadilha conforme a situação (controle de território — FAQ):
-## perto de uma Vault, MINA o ponto de interesse (o item atrai o player pra armadilha);
-## player perto, Cova (prende quem persegue); longe, Mina no caminho. Reseta o cooldown.
+## Vetor unitário-decaído pra longe de `origem` (mais forte quanto mais perto).
+func _empurrao_de(origem: Vector3, raio: float) -> Vector3:
+	var delta: Vector3 = global_position - origem
+	delta.y = 0.0
+	var dist := delta.length()
+	if dist > 0.01 and dist < raio:
+		return delta.normalized() * (1.0 - dist / raio)
+	return Vector3.ZERO
+
+
+## Tipos que este bot pode plantar: o loadout do personagem (cada oponente joga
+## diferente — fidelidade ao original), ou o kit clássico sem stats.
+func _tipos_disponiveis() -> Array:
+	if stats != null and not stats.loadout.is_empty():
+		var tipos: Array = []
+		for t in stats.loadout.keys():
+			if TRAPS.has(t):
+				tipos.append(t)
+		if not tipos.is_empty():
+			return tipos
+	return KIT_CLASSICO
+
+
+## Escolhe e planta conforme a situação (controle de território — FAQ):
+## 1) tem bomba+detonador no loadout -> monta o COMBO assinatura (bomba, depois
+##    detonador no tile seguinte; o gatilho dispara quando o player pisa perto);
+## 2) perto de uma Vault -> nega o ponto com armadilha de pisada;
+## 3) player perto -> Cova/Painel (prende/arremessa quem persegue);
+## 4) longe -> mina o caminho. Sempre restrito ao que o personagem TEM.
 func _plantar_situacional(dist: float) -> void:
 	_t_plantio = _intervalo_plantio
+	var tipos := _tipos_disponiveis()
+	var tem_combo: bool = ("bomba" in tipos) and ("detonador" in tipos) and _desarma
+	if tem_combo and (dist > 5.0 or _combo_fase == 1):
+		if _combo_fase == 0:
+			if _plantar("bomba"):
+				_combo_fase = 1
+			return
+		else:
+			if _plantar("detonador"):
+				_combo_fase = 0
+			return
 	if _vault_proxima(3.5) != null:
-		_plantar("mina")
+		_plantar_primeiro(["mina", "bomba", "gas", "cova", "painel"], tipos)
 		return
-	_plantar("cova" if dist < 6.0 else "mina")
+	if dist < 6.0:
+		_plantar_primeiro(["cova", "painel", "mina", "gas"], tipos)
+	else:
+		_plantar_primeiro(["mina", "gas", "cova", "bomba"], tipos)
+
+
+## Planta o primeiro tipo da preferência que exista no loadout do personagem.
+func _plantar_primeiro(preferencia: Array, tipos: Array) -> void:
+	for t in preferencia:
+		if t in tipos:
+			_plantar(t)
+			return
+
+
+## True se o PLAYER está dentro do raio de efeito de uma bomba deste bot (hora do combo).
+func _player_no_raio_de_bomba() -> bool:
+	if _alvo == null or not is_instance_valid(_alvo):
+		return false
+	for a in get_tree().get_nodes_in_group("armadilhas"):
+		if not is_instance_valid(a) or int(a.dono_id) != id_jogador:
+			continue
+		if a.stats.tipo != "bomba":
+			continue
+		if _alvo.global_position.distance_to(a.global_position) <= a.stats.raio_efeito * 0.9:
+			return true
+	return false
+
+
+## Aciona os próprios Detonadores (fecha o combo — igual ao botão de detonar do player).
+func _acionar_detonadores_proprios() -> void:
+	for a in get_tree().get_nodes_in_group("armadilhas"):
+		if not is_instance_valid(a) or int(a.dono_id) != id_jogador:
+			continue
+		if a.stats.tipo == "detonador" and a.has_method("acionar"):
+			a.acionar()
 
 
 ## Vault mais próxima dentro de `raio`, ou null (pra minar o território dela).
@@ -271,12 +360,13 @@ func _tentar_plantar_mina() -> void:
 
 
 ## Planta uma armadilha do `tipo` no tile atual. Respeita o teto e tiles ocupados.
-func _plantar(tipo: String) -> void:
+## Retorna true se plantou (o combo usa isso pra avançar de fase).
+func _plantar(tipo: String) -> bool:
 	if _armadilhas_ativas >= _max_armadilhas or not TRAPS.has(tipo):
-		return
+		return false
 	var coord := GridManager.world_to_grid(global_position)
 	if not GridManager.pode_plantar(coord):
-		return
+		return false
 	var a := CENA_ARMADILHA.instantiate()
 	a.stats = TRAPS[tipo]
 	a.dono_id = id_jogador
@@ -286,6 +376,7 @@ func _plantar(tipo: String) -> void:
 	GridManager.registrar_armadilha(coord, id_jogador, tipo, a)
 	a.consumida.connect(func(): _armadilhas_ativas = maxi(0, _armadilhas_ativas - 1))
 	_armadilhas_ativas += 1
+	return true
 
 
 ## Acha o primeiro combatente de outro time (o player). Sem acoplamento por nome.

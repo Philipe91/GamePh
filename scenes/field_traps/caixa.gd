@@ -18,11 +18,17 @@ var _vida: float = VIDA
 
 func _ready() -> void:
 	add_to_group("destrutiveis")
-	# Cara de objeto (não de quadrado de UI): madeira pra Obstacle, vermelho pra Bomb Box.
+	# Cara de objeto: caixote de MADEIRA texturizado (ambientCG CC0); a Bomb Box é a
+	# mesma madeira tingida de vermelho (perigo legível, fiel às caixas do original).
 	var mi := get_node_or_null("Malha") as MeshInstance3D
 	if mi != null:
 		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.72, 0.22, 0.16) if tipo == "bomba" else Color(0.58, 0.42, 0.24)
+		var tex_path := "res://assets/sprites/texturas/Planks037B_1K-JPG_Color.jpg"
+		if ResourceLoader.exists(tex_path):
+			mat.albedo_texture = load(tex_path)
+			mat.albedo_color = Color(1.0, 0.45, 0.35) if tipo == "bomba" else Color(0.95, 0.85, 0.7)
+		else:
+			mat.albedo_color = Color(0.72, 0.22, 0.16) if tipo == "bomba" else Color(0.58, 0.42, 0.24)
 		mat.roughness = 0.9
 		mi.material_override = mat
 
