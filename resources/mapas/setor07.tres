@@ -16,6 +16,8 @@ bombas_caixa = Array[Vector2i]([Vector2i(15, 9), Vector2i(15, 21)])
 esteiras = Array[Vector2i]([Vector2i(11, 15), Vector2i(19, 15)])
 lancadores = Array[Vector2i]([Vector2i(15, 4), Vector2i(15, 26)])
 camera_segue = true
+cor_tile_a = Color(0.44, 0.36, 0.26, 1)
+cor_tile_b = Color(0.32, 0.26, 0.19, 1)
 vertical = true
 estruturas = [{
 "tipo": "chao",

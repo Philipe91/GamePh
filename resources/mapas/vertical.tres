@@ -11,6 +11,8 @@ tamanho_tile = 2.0
 spawn_jogador = Vector2i(1, 12)
 spawn_bot = Vector2i(12, 1)
 vaults = Array[Vector2i]([Vector2i(3, 10), Vector2i(10, 3)])
+cor_tile_a = Color(0.28, 0.38, 0.42, 1)
+cor_tile_b = Color(0.20, 0.28, 0.32, 1)
 vertical = true
 estruturas = [{
 "tipo": "chao",

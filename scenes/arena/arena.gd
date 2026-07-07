@@ -25,8 +25,23 @@ var _cams_split: Array = []
 ## Limites (±x, ±z) do foco da câmera, pra não mostrar o vazio além das paredes.
 var _cam_limite: Vector2 = Vector2(1.0e9, 1.0e9)
 
-## Texturas CC0 (ambientCG) usadas no visual do mapa.
+## Texturas CC0 (ambientCG) usadas no visual do mapa — conjunto PBR completo.
 const TEX_CHAO := "res://assets/sprites/texturas/MetalPlates006_1K-JPG_Color.jpg"
+const TEX_CHAO_NORMAL := "res://assets/sprites/texturas/MetalPlates006_1K-JPG_NormalGL.jpg"
+const TEX_CHAO_ROUGH := "res://assets/sprites/texturas/MetalPlates006_1K-JPG_Roughness.jpg"
+
+
+## Aplica o conjunto PBR de placas de metal (albedo+normal+roughness) num material.
+## O relevo real das placas é o que separa "greybox" de "piso industrial".
+static func _aplicar_pbr_metal(mat: StandardMaterial3D) -> void:
+	if ResourceLoader.exists(TEX_CHAO):
+		mat.albedo_texture = load(TEX_CHAO) as Texture2D
+	if ResourceLoader.exists(TEX_CHAO_NORMAL):
+		mat.normal_enabled = true
+		mat.normal_texture = load(TEX_CHAO_NORMAL) as Texture2D
+		mat.normal_scale = 0.8
+	if ResourceLoader.exists(TEX_CHAO_ROUGH):
+		mat.roughness_texture = load(TEX_CHAO_ROUGH) as Texture2D
 
 ## Os 3 ângulos de câmera do Trap Gunner original (tecla V alterna; persiste em
 ## settings): Normal (inclinada), Quarter (mais alta) e Top (quase reta de cima).
@@ -311,8 +326,14 @@ func _montar_avental() -> void:
 	pm.size = Vector2(GridManager.LARGURA * ts * 3.0, GridManager.ALTURA * ts * 3.0)
 	mi.mesh = pm
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.05, 0.055, 0.08)
+	mat.albedo_color = Color(0.09, 0.10, 0.14)
 	mat.roughness = 1.0
+	# Mesmo metal do chão, bem escurecido e repetido: "fora da arena" vira piso
+	# industrial em sombra (o fog dilui ao longe), não um vazio chapado.
+	if ResourceLoader.exists(TEX_CHAO):
+		_aplicar_pbr_metal(mat)
+		mat.albedo_color = Color(0.16, 0.17, 0.22)
+		mat.uv1_scale = Vector3(24.0, 24.0, 1.0)
 	mi.material_override = mat
 	add_child(mi)
 	mi.position.y = -0.3
@@ -343,9 +364,7 @@ func _montar_chao_tiles(mapa: Resource) -> void:
 			por_cor[(x + y) % 2].append(t)
 	# Textura de placas de metal (ambientCG, CC0) tingida pelas 2 cores do tema.
 	# O BoxMesh mapeia a textura 1:1 por face -> UMA placa por tile, sem emenda.
-	var tex: Texture2D = null
-	if ResourceLoader.exists(TEX_CHAO):
-		tex = load(TEX_CHAO) as Texture2D
+	var tem_tex := ResourceLoader.exists(TEX_CHAO)
 	for ci in 2:
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -356,13 +375,13 @@ func _montar_chao_tiles(mapa: Resource) -> void:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		var mat := StandardMaterial3D.new()
-		if tex != null:
-			mat.albedo_texture = tex
+		if tem_tex:
+			_aplicar_pbr_metal(mat)   # albedo + normal + roughness (relevo real)
 			var c: Color = cores[ci]
 			mat.albedo_color = Color(minf(c.r * 2.0, 1.0), minf(c.g * 2.0, 1.0), minf(c.b * 2.0, 1.0))
 		else:
 			mat.albedo_color = cores[ci]
-		mat.roughness = 0.85
+			mat.roughness = 0.85
 		mat.metallic = 0.15
 		mmi.material_override = mat
 		raiz.add_child(mmi)
@@ -384,13 +403,12 @@ func _montar_paredes() -> void:
 		_caixa_solida(Vector3(-w * 0.5 - esp * 0.5, alt * 0.5, 0.0), Vector3(esp, alt, h + esp * 2.0), cor),
 		_caixa_solida(Vector3(w * 0.5 + esp * 0.5, alt * 0.5, 0.0), Vector3(esp, alt, h + esp * 2.0), cor),
 	]
-	# Textura de metal (triplanar: não estica no comprimento).
+	# Textura de metal PBR (triplanar: não estica no comprimento).
 	if ResourceLoader.exists(TEX_CHAO):
-		var tex := load(TEX_CHAO) as Texture2D
 		for sb in lados:
 			var mi := (sb as Node).get_child(0) as MeshInstance3D
 			var mat := mi.material_override as StandardMaterial3D
-			mat.albedo_texture = tex
+			_aplicar_pbr_metal(mat)
 			mat.albedo_color = Color(0.55, 0.58, 0.68)
 			mat.uv1_triplanar = true
 			mat.uv1_scale = Vector3(0.5, 0.5, 0.5)
