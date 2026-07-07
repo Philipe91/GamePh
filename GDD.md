@@ -342,6 +342,32 @@ Alguns mapas têm armadilhas fixas que são obstáculos:
 - Progressão roguelite e unlocks entre partidas.
 - Export pra mobile (Godot exporta).
 
+### 13.1 Direção de arte (passe Steam de 2026-07-07)
+
+Decisões travadas no passe de qualidade visual (base: câmera inclinada + chão xadrez
++ KayKit aprovados no playtest de 2026-07-07):
+
+- **Atmosfera:** céu procedural escuro com horizonte, fog exponencial sutil, SSAO,
+  luz-chave quente em ângulo + preenchimento azul frio, tonemap ACES, MSAA 4x.
+  Tudo em `arena.tscn` (Environment) e `project.godot` ([rendering]).
+- **Materiais:** conjunto PBR completo (albedo+normal+roughness, ambientCG CC0) no
+  chão/paredes/avental via `arena.gd::_aplicar_pbr_metal`.
+- **Armadilhas:** corpo metálico escuro ("hardware VECTOR") + acento LED emissivo na
+  cor do tipo, silhueta única por armadilha, LED pulsante quando armada (só o dono
+  vê — camadas), nuvem de gás com partículas, faíscas de desarme.
+- **Combate:** muzzle flash (luz+faíscas), trail de tracer, estilhaço de impacto
+  (inclusive em parede), animações KayKit de tiro/plantio/soco ligadas.
+- **Mapas:** cores de tema nos 6 mapas (`cor_tile_a/b`), decoração cosmética de
+  entorno fora do grid (containers/torres de luz/dutos, seed = hash do nome).
+- **Áudio:** SFX reais Kenney CC0 (`assets/audio/<evento>.ogg` + variações `_2`...);
+  AudioManager sorteia variação + pitch ±8%. Música ainda é o loop sintetizado.
+- **UI:** transição de cena com fade (autoload `Transicao`), fundo de menu com
+  gradiente/partículas/vinheta, sons de UI, pausa real, munição em pips.
+- **Personagens:** retratos 256×256 ORIGINAIS renderizados dos próprios modelos
+  (gerador `--retratos` no dev_arena) — nunca usar material promocional de packs;
+  altura por arquétipo (`altura_modelo` no .tres); rim light fresnel na cor do time
+  (`assets/shaders/rim_time.gdshader`, overlay — não repinta o KayKit).
+
 ---
 
 ## 14. Arquitetura técnica
