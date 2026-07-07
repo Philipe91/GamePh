@@ -133,6 +133,24 @@ func configurar(p1: Node, p2: Node) -> void:
 	GameManager.placar_mudou.connect(func(a: int, b: int): _lbl_placar.text = "%d  -  %d" % [a, b])
 	GameManager.round_comecou.connect(_ao_round_comecou)
 	_atualizar_label_armadilha()
+	_mostrar_dica_controles()
+
+
+## Lembrete de controles no rodapé durante os primeiros segundos (fade e some).
+func _mostrar_dica_controles() -> void:
+	var dica := Label.new()
+	dica.text = "WASD mover · ESPAÇO plantar · TAB roda · C procurar/desarmar · J atirar · K soco · F detonar · V câmera"
+	dica.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dica.add_theme_font_size_override("font_size", 16)
+	dica.add_theme_color_override("font_color", Color(1, 1, 1, 0.75))
+	dica.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	dica.offset_top = -30.0
+	dica.offset_bottom = -8.0
+	add_child(dica)
+	var tw := dica.create_tween()
+	tw.tween_interval(9.0)
+	tw.tween_property(dica, "modulate:a", 0.0, 1.5)
+	tw.tween_callback(dica.queue_free)
 
 
 ## Retrato do personagem (assets/sprites/retratos/<nome>.png, nome do stats em

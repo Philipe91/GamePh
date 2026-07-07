@@ -25,6 +25,14 @@
 - [x] Ponte-passarela, esteira animada, SFX sintetizados, retratos, morte/comemoração
 - [ ] Migrar tabela ARMAS pra Resource (.tres) — anotado, baixa prioridade
 
+## Feito no Plano Noturno 3 (2026-07-07, parte 2)
+- [x] 3 câmeras do original (V alterna Normal/Quarter/Top, persiste em settings)
+- [x] Radar: detecções do Caution piscam em amarelo; itens em verde-claro
+- [x] Mapa "Porto" (24×14, esteiras centrais) + temas de cor corredor/fortaleza
+- [x] Música procedural em loop (menu→arena); troca por assets/audio/musica.ogg
+- [x] Onda de choque na explosão; avental sob a arena; feixe de luz nas Vaults
+- Commits da noite: 930b650, 246255f
+
 ## Próximas (ordem sugerida — ver Roadmap.md)
 1. PLAYTEST humano do novo visual+feel → calibrar CAM_*/ALTURA_MODELO_ALVO/impulso
 2. Pontes em mapa plano parecem tiles aqua flutuantes → dar volume/elevação visual
