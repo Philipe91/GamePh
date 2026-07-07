@@ -1,5 +1,22 @@
 # DevLog
 
+## 2026-07-07 (madrugada, parte 2) — Plano Noturno 3
+
+- **3 câmeras do original**: Normal/Quarter/Top na tecla **V** (persiste em settings) —
+  fidelidade direta ao Trap Gunner (tabela CAM_PRESETS em arena.gd).
+- **Radar fiel ao GDD 11**: armadilhas inimigas detectadas no Caution piscam em
+  amarelo; itens no chão aparecem em verde-claro.
+- **Mapa novo "Porto"** (24×14, homenagem ao Port do original): corredor central de
+  esteiras duplas, Bomb Boxes nos gargalos, cannon ao sul, tema azul-petróleo.
+  Corredor (âmbar industrial) e Fortaleza (roxo) ganharam temas de cor próprios.
+- **Música procedural** (loop kick+baixo Lá menor+hat, ~4.8s, LOOP_FORWARD) tocando
+  do menu à arena; troca automática por `assets/audio/musica.ogg` quando existir.
+- **Onda de choque** nas explosões (anel expandindo com fade — vende o raio do dano).
+- **Avental** escuro sob a arena (fim do "vazio preto" além das paredes) e **feixe de
+  luz vertical nas Vaults** (o ponto de interesse aparece de longe, como no original).
+- Demos: `--demo-porto` novo; `--demo-padrao` refatorado pra função genérica de mapa.
+
+
 ## 2026-07-07 (madrugada) — Plano Noturno 2 (docs/PLANO_NOTURNO_2.md)
 
 - **Armas reais por personagem** (tabela `ARMAS` em combatente.gd, specs do GDD 4/FAQ):

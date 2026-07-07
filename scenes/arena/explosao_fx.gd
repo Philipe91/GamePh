@@ -27,6 +27,16 @@ func _ready() -> void:
 		var tw := create_tween()
 		tw.tween_property(luz, "light_energy", 0.0, 0.4) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	# Onda de choque: anel que expande e some (vende o TAMANHO da explosão).
+	var onda := get_node_or_null("Onda") as MeshInstance3D
+	if onda != null:
+		onda.scale = Vector3(0.4, 1.0, 0.4)
+		var mat := onda.material_override as StandardMaterial3D
+		var tw2 := create_tween()
+		tw2.tween_property(onda, "scale", Vector3(5.5, 1.0, 5.5), 0.32) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		if mat != null:
+			tw2.parallel().tween_property(mat, "albedo_color:a", 0.0, 0.32)
 	var dur := lifetime
 	if fumaca != null:
 		dur = maxf(dur, fumaca.lifetime)

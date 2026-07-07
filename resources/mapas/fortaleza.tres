@@ -18,3 +18,5 @@ pontes = Array[Vector2i]([Vector2i(11, 9), Vector2i(11, 13)])
 lancadores = Array[Vector2i]([Vector2i(3, 3), Vector2i(18, 18)])
 cannons = Array[Vector2i]([Vector2i(11, 3), Vector2i(11, 18)])
 camera_segue = true
+cor_tile_a = Color(0.32, 0.26, 0.42, 1)
+cor_tile_b = Color(0.23, 0.18, 0.32, 1)

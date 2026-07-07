@@ -26,10 +26,16 @@ var _cam_limite: Vector2 = Vector2(1.0e9, 1.0e9)
 ## Texturas CC0 (ambientCG) usadas no visual do mapa.
 const TEX_CHAO := "res://assets/sprites/texturas/MetalPlates006_1K-JPG_Color.jpg"
 
-## Câmera estilo Trap Gunner: perspectiva inclinada (~55°) mostrando boa parte do mapa.
-const CAM_FOV: float = 48.0
-const CAM_DIST: float = 21.0
-const CAM_TILT_GRAUS: float = 54.0
+## Os 3 ângulos de câmera do Trap Gunner original (tecla V alterna; persiste em
+## settings): Normal (inclinada), Quarter (mais alta) e Top (quase reta de cima).
+## Formato: [fov, distância, inclinação em graus].
+const CAM_PRESETS := {
+	"normal": [48.0, 21.0, 54.0],
+	"quarter": [45.0, 24.0, 66.0],
+	"top": [40.0, 26.0, 84.0],
+}
+const CAM_ORDEM: Array = ["normal", "quarter", "top"]
+var _cam_preset: String = "normal"
 
 
 func _ready() -> void:
@@ -98,6 +104,7 @@ func _ready() -> void:
 	GameManager.faltam_30s.connect(_ao_faltar_30s)  # Spark Bit aos 30s (GDD 7.3)
 	GameManager.round_comecou.connect(_ao_round_comecou)  # reset a cada round (GDD 12)
 	GameManager.round_acabou.connect(_ao_round_acabou)    # vencedor comemora (animação)
+	AudioManager.tocar_musica()                           # trilha de fundo (loop)
 	GameManager.iniciar_partida([player, oponente])
 
 
@@ -228,6 +235,27 @@ func _montar_visual_mapa(mapa: Resource) -> void:
 		return
 	_montar_chao_tiles(mapa)
 	_montar_paredes()
+	_montar_avental()
+
+
+## Piso escuro GIGANTE por baixo de tudo: o que aparece além das paredes deixa de ser
+## vazio preto e vira "fora da arena" intencional.
+func _montar_avental() -> void:
+	var antigo := get_node_or_null("Avental")
+	if antigo != null:
+		antigo.queue_free()
+	var mi := MeshInstance3D.new()
+	mi.name = "Avental"
+	var pm := PlaneMesh.new()
+	var ts := GridManager.TAMANHO_TILE
+	pm.size = Vector2(GridManager.LARGURA * ts * 3.0, GridManager.ALTURA * ts * 3.0)
+	mi.mesh = pm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.05, 0.055, 0.08)
+	mat.roughness = 1.0
+	mi.material_override = mat
+	add_child(mi)
+	mi.position.y = -0.3
 
 
 ## Chão em PLACAS por tile (duas cores alternadas — leitura de grid imediata, cara de
@@ -307,16 +335,35 @@ func _montar_paredes() -> void:
 			mat.uv1_scale = Vector3(0.5, 0.5, 0.5)
 
 
-## Câmera Trap Gunner: perspectiva, inclinada ~55°, seguindo o player com clamp.
+## Alterna Normal -> Quarter -> Top com a tecla V (os 3 modos do original) e salva.
+func _unhandled_input(evento: InputEvent) -> void:
+	if evento is InputEventKey and evento.pressed and not evento.echo \
+			and evento.physical_keycode == KEY_V:
+		var i := CAM_ORDEM.find(_cam_preset)
+		_cam_preset = CAM_ORDEM[(i + 1) % CAM_ORDEM.size()]
+		Persistencia.set_config("video", "camera", _cam_preset)
+		Persistencia.salvar()
+		_configurar_camera()
+
+
+## Câmera Trap Gunner: perspectiva inclinada, seguindo o player com clamp. O preset
+## (Normal/Quarter/Top) vem dos settings.
 func _configurar_camera() -> void:
 	var cam := get_node_or_null("Camera3D") as Camera3D
 	if cam == null:
 		return
+	_cam_preset = String(Persistencia.get_config("video", "camera", _cam_preset))
+	if not CAM_PRESETS.has(_cam_preset):
+		_cam_preset = "normal"
+	var p: Array = CAM_PRESETS[_cam_preset]
+	var fov := float(p[0])
+	var dist := float(p[1])
+	var tilt_graus := float(p[2])
 	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
-	cam.fov = CAM_FOV
-	var tilt := deg_to_rad(CAM_TILT_GRAUS)
-	_cam_offset = Vector3(0.0, sin(tilt), cos(tilt)) * CAM_DIST
-	cam.rotation_degrees = Vector3(-CAM_TILT_GRAUS, 0.0, 0.0)
+	cam.fov = fov
+	var tilt := deg_to_rad(tilt_graus)
+	_cam_offset = Vector3(0.0, sin(tilt), cos(tilt)) * dist
+	cam.rotation_degrees = Vector3(-tilt_graus, 0.0, 0.0)
 	# Clamp do foco: quanto o mapa é maior que o enquadramento, deixa a câmera passear.
 	var ts := GridManager.TAMANHO_TILE
 	var w := float(GridManager.LARGURA) * ts

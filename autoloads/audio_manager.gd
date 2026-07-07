@@ -27,6 +27,7 @@ const EVENTOS := {
 var _sons: Dictionary = {}
 var _players: Array[AudioStreamPlayer] = []
 var _proximo: int = 0
+var _musica: AudioStreamPlayer = null   # trilha de fundo (loop)
 
 
 var volume: float = 0.8   # 0..1 (master). Persistido em settings.
@@ -41,6 +42,71 @@ func _ready() -> void:
 		_sons[evento] = _carregar_ou_gerar(evento)
 	# Volume salvo nos settings (Persistencia já carregou — ordem de autoload).
 	aplicar_volume(float(Persistencia.get_config("audio", "volume", 0.8)))
+	_musica = AudioStreamPlayer.new()
+	_musica.volume_db = -14.0   # trilha bem atrás dos SFX
+	add_child(_musica)
+
+
+## Liga a trilha de fundo (loop). Usa `assets/audio/musica.ogg|wav` se existir; senão
+## SINTETIZA um loop retrô (kick + baixo em Lá menor + hat) — placeholder digno.
+func tocar_musica() -> void:
+	if _musica.playing:
+		return
+	var stream: AudioStream = null
+	for caminho in ["res://assets/audio/musica.ogg", "res://assets/audio/musica.wav"]:
+		if ResourceLoader.exists(caminho):
+			stream = load(caminho)
+			break
+	if stream == null:
+		stream = _gerar_loop_musica()
+	_musica.stream = stream
+	_musica.play()
+
+
+func parar_musica() -> void:
+	_musica.stop()
+
+
+## Loop de 6.4s @ 22050Hz: kick 4x4, baixo (Lá menor: A2 C3 E3 G3) em colcheias com
+## leve saturação, hat de ruído no contratempo. LOOP_FORWARD pra tocar sem emenda.
+func _gerar_loop_musica() -> AudioStreamWAV:
+	var bpm := 100.0
+	var batida := 60.0 / bpm                  # 0.6s por batida
+	var n_batidas := 8                        # 2 compassos
+	var dur := batida * float(n_batidas)      # ~4.8s... usa exato pro loop fechar
+	var n := int(TAXA * dur)
+	var dados := PackedByteArray()
+	dados.resize(n * 2)
+	var notas := [110.0, 130.81, 164.81, 196.0, 164.81, 130.81, 110.0, 98.0]  # A2 C3 E3 G3...
+	var fase_baixo := 0.0
+	for i in n:
+		var t := float(i) / float(TAXA)
+		var pos_batida := fmod(t, batida) / batida        # 0..1 dentro da batida
+		var idx_batida := int(t / batida) % n_batidas
+		# Kick no início de cada batida: seno grave com pitch caindo rápido.
+		var kick := 0.0
+		if pos_batida < 0.18:
+			var kt := pos_batida / 0.18
+			kick = sin(TAU * lerpf(120.0, 45.0, kt) * pos_batida * batida) * (1.0 - kt) * 0.9
+		# Baixo: uma nota por batida, colcheia com envelope.
+		var f_baixo: float = notas[idx_batida]
+		fase_baixo += TAU * f_baixo / float(TAXA)
+		var env_baixo := 0.5 * (1.0 - pos_batida)
+		var baixo := clampf(sin(fase_baixo) * 1.6, -1.0, 1.0) * env_baixo  # saturação leve
+		# Hat: ruído curtinho no contratempo.
+		var hat := 0.0
+		if pos_batida > 0.5 and pos_batida < 0.56:
+			hat = (randf() * 2.0 - 1.0) * 0.12
+		var s := clampf(kick * 0.8 + baixo * 0.45 + hat, -1.0, 1.0)
+		dados.encode_s16(i * 2, int(s * 32767.0 * 0.7))
+	var w := AudioStreamWAV.new()
+	w.format = AudioStreamWAV.FORMAT_16_BITS
+	w.mix_rate = TAXA
+	w.stereo = false
+	w.data = dados
+	w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	w.loop_end = n
+	return w
 
 
 ## Ajusta o volume master (0..1). 0 = mudo. Não salva (quem salva é a tela de settings).

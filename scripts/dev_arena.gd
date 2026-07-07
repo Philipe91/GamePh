@@ -58,7 +58,10 @@ func executar(a: Node3D, args: PackedStringArray) -> bool:
 		_demo_vertical_e_capturar()
 		return true
 	if "--demo-padrao" in args:
-		_demo_padrao_e_capturar()
+		_demo_mapa_povoado_e_capturar("res://resources/mapas/padrao.tres")
+		return true
+	if "--demo-porto" in args:
+		_demo_mapa_povoado_e_capturar("res://resources/mapas/porto.tres")
 		return true
 	if "--demo-fim" in args:
 		_demo_fim_e_capturar()
@@ -1002,12 +1005,12 @@ func _demo_vertical_e_capturar() -> void:
 	_capturar_e_sair()
 
 
-## Demo do mapa padrão (arena grande estilo Trap Gunner): monta PODS/Vaults, caixas e
-## esteiras, posiciona os dois perto do cluster central e captura com a câmera seguindo.
-func _demo_padrao_e_capturar() -> void:
+## Demo de mapa POVOADO (Vaults, field traps, personagens do roster) com captura —
+## serve pra qualquer mapa plano (--demo-padrao, --demo-porto).
+func _demo_mapa_povoado_e_capturar(caminho_mapa: String) -> void:
 	bot.set_physics_process(false)
 	player.set_physics_process(false)
-	var mapa: Resource = load("res://resources/mapas/padrao.tres")
+	var mapa: Resource = load(caminho_mapa)
 	GridManager.configurar_mapa(mapa)
 	arena._montar_visual_mapa(mapa)   # chão xadrez + paredes + câmera Trap Gunner
 	for c in mapa.vaults:

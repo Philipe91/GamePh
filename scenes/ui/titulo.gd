@@ -37,6 +37,7 @@ func _capturar() -> void:
 
 func _montar_ui() -> void:
 	UIEstilo.fundo_neon(self)
+	AudioManager.tocar_musica()   # trilha desde o menu (continua na arena)
 
 	var centro := CenterContainer.new()
 	centro.set_anchors_preset(Control.PRESET_FULL_RECT)
