@@ -22,19 +22,44 @@ func _ready() -> void:
 	var coord := GridManager.world_to_grid(global_position)
 	GridManager.marcar_solido(coord, true)
 	tree_exiting.connect(func(): GridManager.marcar_solido(coord, false))
-	# Cara de objeto: caixote de MADEIRA texturizado (ambientCG CC0); a Bomb Box é a
-	# mesma madeira tingida de vermelho (perigo legível, fiel às caixas do original).
+	# CONTAINER de suprimentos VECTOR (Briefing §1.4: madeira num complexo cyberpunk
+	# = protótipo): metal pintado dessaturado com PBR; a Bomb Box é vermelho-perigo
+	# escuro com LED de célula volátil pulsando.
 	var mi := get_node_or_null("Malha") as MeshInstance3D
 	if mi != null:
 		var mat := StandardMaterial3D.new()
-		var tex_path := "res://assets/sprites/texturas/Planks037B_1K-JPG_Color.jpg"
+		var tex_path := "res://assets/sprites/texturas/MetalPlates006_1K-JPG_Color.jpg"
 		if ResourceLoader.exists(tex_path):
 			mat.albedo_texture = load(tex_path)
-			mat.albedo_color = Color(1.0, 0.45, 0.35) if tipo == "bomba" else Color(0.95, 0.85, 0.7)
-		else:
-			mat.albedo_color = Color(0.72, 0.22, 0.16) if tipo == "bomba" else Color(0.58, 0.42, 0.24)
-		mat.roughness = 0.9
+			mat.uv1_triplanar = true
+			mat.uv1_scale = Vector3(0.6, 0.6, 0.6)
+		var nrm := "res://assets/sprites/texturas/MetalPlates006_1K-JPG_NormalGL.jpg"
+		if ResourceLoader.exists(nrm):
+			mat.normal_enabled = true
+			mat.normal_texture = load(nrm)
+			mat.normal_scale = 0.7
+		mat.albedo_color = Color(0.5, 0.16, 0.12) if tipo == "bomba" else Color(0.3, 0.33, 0.38)
+		mat.metallic = 0.55
+		mat.roughness = 0.55
 		mi.material_override = mat
+	if tipo == "bomba":
+		# LED de perigo pulsando: a Bomb Box avisa que é explosiva (leitura à distância).
+		var led := MeshInstance3D.new()
+		var lm := BoxMesh.new()
+		lm.size = Vector3(0.5, 0.1, 0.1)
+		led.mesh = lm
+		var matl := StandardMaterial3D.new()
+		matl.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		matl.albedo_color = Color(1.0, 0.25, 0.15)
+		matl.emission_enabled = true
+		matl.emission = Color(1.0, 0.25, 0.15)
+		matl.emission_energy_multiplier = 1.0
+		led.material_override = matl
+		add_child(led)
+		led.position = Vector3(0.0, 0.4, 0.71)
+		var tw := led.create_tween().set_loops()
+		tw.tween_property(matl, "emission_energy_multiplier", 2.4, 0.5).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(matl, "emission_energy_multiplier", 0.5, 0.5).set_trans(Tween.TRANS_SINE)
 
 
 ## Sofre dano (projétil/explosão). `tipo_dano` ignorado; quebra ao zerar a vida.

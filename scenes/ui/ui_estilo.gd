@@ -37,7 +37,10 @@ static func estilizar_botao(b: Button, cor: Color = Color(0.3, 0.7, 1.0)) -> voi
 
 
 ## Dá um glow (sombra borrada sem deslocamento) num Label de título.
+## Títulos usam ORBITRON (display); o corpo do jogo usa Rajdhani (global, legível).
 static func titulo_glow(lbl: Label, cor: Color = Color(0.3, 0.7, 1.0)) -> void:
+	if ResourceLoader.exists("res://assets/fonts/Orbitron.ttf"):
+		lbl.add_theme_font_override("font", load("res://assets/fonts/Orbitron.ttf"))
 	lbl.add_theme_color_override("font_color", Color.WHITE)
 	lbl.add_theme_color_override("font_shadow_color", Color(cor.r, cor.g, cor.b, 0.9))
 	lbl.add_theme_constant_override("shadow_offset_x", 0)

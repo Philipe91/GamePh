@@ -65,6 +65,12 @@ func _estilizar_barra(barra: ProgressBar, cor: Color) -> void:
 
 func _ready() -> void:
 	lbl_fim.visible = false
+	# Código de desarme em fonte MONO (dígitos/setas alinhados — leitura de terminal).
+	if ResourceLoader.exists("res://assets/fonts/JetBrainsMono.ttf"):
+		lbl_desarme.add_theme_font_override("font", load("res://assets/fonts/JetBrainsMono.ttf"))
+	# Timer em Orbitron (display de placar).
+	if ResourceLoader.exists("res://assets/fonts/Orbitron.ttf"):
+		lbl_timer.add_theme_font_override("font", load("res://assets/fonts/Orbitron.ttf"))
 	GameManager.tempo_mudou.connect(_ao_tempo_mudar)
 	GameManager.partida_acabou.connect(_ao_partida_acabar)
 	# Timer grande num painel escuro (leitura central, estilo arcade do original).
