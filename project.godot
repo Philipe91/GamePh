@@ -25,6 +25,7 @@ GridManager="*res://autoloads/grid_manager.gd"
 GameManager="*res://autoloads/game_manager.gd"
 Persistencia="*res://autoloads/persistencia.gd"
 AudioManager="*res://autoloads/audio_manager.gd"
+Transicao="*res://autoloads/transicao.gd"
 
 [editor_plugins]
 

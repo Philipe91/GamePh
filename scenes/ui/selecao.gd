@@ -19,6 +19,16 @@ const MAPAS: Array = [
 
 const UIEstilo := preload("res://scenes/ui/ui_estilo.gd")
 
+## Papel de cada um em UMA linha (identidade > números — os stats vivem nos .tres).
+const ARQUETIPOS: Dictionary = {
+	"brecht": "demolidor equilibrado · pistola",
+	"magnus": "tanque blindado · shotgun",
+	"vesna": "metralha ágil · handgun",
+	"pip": "bombardeiro · mísseis teleguiados",
+	"kestrel": "assassina veloz · lâminas",
+	"mara": "brutamontes · soco-foguete",
+}
+
 var _mapa_path: String = "res://resources/mapas/padrao.tres"
 var _mapa_label: Label = null
 
@@ -92,13 +102,9 @@ func _montar_ui() -> void:
 		var st: Resource = load("res://resources/personagens/%s.tres" % nome)
 		var b := Button.new()
 		b.custom_minimum_size = Vector2(480, 56)
-		b.text = "%s   —   vida %d · vel %.1f · %s" % [st.nome, int(st.vida_max), st.velocidade, st.arma]
+		# Nome + papel (leitura de personagem, não planilha de stats).
+		b.text = "%s   —   %s" % [st.nome, ARQUETIPOS.get(nome, st.arma)]
 		UIEstilo.estilizar_botao(b, st.cor_time)   # cada um na sua cor
-		# Retrato oficial do personagem no botão (leitura imediata de quem é quem).
-		var retrato := "res://assets/sprites/retratos/%s.png" % nome
-		if ResourceLoader.exists(retrato):
-			b.icon = load(retrato)
-			b.expand_icon = true
 		b.pressed.connect(_escolher.bind(nome))
 		caixa.add_child(b)
 
@@ -118,4 +124,4 @@ func _escolher(nome: String) -> void:
 
 func _ir_pra_arena() -> void:
 	# Deferido: chamar do _ready troca a cena com a árvore ocupada (warning de remove_child).
-	get_tree().change_scene_to_file.call_deferred(ARENA)
+	Transicao.ir_para(ARENA)

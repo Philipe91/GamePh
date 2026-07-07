@@ -49,15 +49,29 @@ func _montar_ui() -> void:
 
 	var titulo := Label.new()
 	titulo.text = "VAULTBREAKER"
-	titulo.add_theme_font_size_override("font_size", 56)
+	titulo.add_theme_font_size_override("font_size", 64)
 	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UIEstilo.titulo_glow(titulo)
 	caixa.add_child(titulo)
+	# Respiração do glow do título (menu vivo, não estático).
+	var tw_pulso := titulo.create_tween().set_loops()
+	tw_pulso.tween_property(titulo, "modulate", Color(1.12, 1.12, 1.2), 1.4) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw_pulso.tween_property(titulo, "modulate", Color(0.92, 0.92, 1.0), 1.4) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 	var sub := Label.new()
-	sub.text = "arena fighter de armadilhas"
+	sub.text = "arena fighter de armadilhas — VECTOR megacorp"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.add_theme_color_override("font_color", Color(0.6, 0.7, 0.85))
 	caixa.add_child(sub)
+
+	# Fade-in da tela inteira (entrada suave, não "pisca e apareceu"). Pulado nas
+	# capturas/demos (a screenshot sairia no meio do fade, lavada).
+	if OS.get_cmdline_user_args().is_empty():
+		modulate.a = 0.0
+		var tw_in := create_tween()
+		tw_in.tween_property(self, "modulate:a", 1.0, 0.5)
 
 	# Dificuldade do bot.
 	_dif_label = Label.new()
@@ -96,14 +110,14 @@ func _montar_ui() -> void:
 	story.text = "STORY  (campanha)"
 	story.custom_minimum_size = Vector2(320, 44)
 	UIEstilo.estilizar_botao(story, Color(0.8, 0.6, 0.3))
-	story.pressed.connect(func(): get_tree().change_scene_to_file.call_deferred("res://scenes/ui/story.tscn"))
+	story.pressed.connect(func(): Transicao.ir_para("res://scenes/ui/story.tscn"))
 	caixa.add_child(story)
 
 	var settings := Button.new()
 	settings.text = "Configurações"
 	settings.custom_minimum_size = Vector2(320, 44)
 	UIEstilo.estilizar_botao(settings, Color(0.6, 0.6, 0.7))
-	settings.pressed.connect(func(): get_tree().change_scene_to_file.call_deferred("res://scenes/ui/settings.tscn"))
+	settings.pressed.connect(func(): Transicao.ir_para("res://scenes/ui/settings.tscn"))
 	caixa.add_child(settings)
 
 
@@ -120,4 +134,4 @@ func _jogar(modo: String) -> void:
 
 
 func _ir_pra_selecao() -> void:
-	get_tree().change_scene_to_file.call_deferred(SELECAO)
+	Transicao.ir_para(SELECAO)

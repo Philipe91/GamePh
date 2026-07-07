@@ -163,10 +163,10 @@ func _montar_objetivo() -> void:
 ## Lembrete de controles no rodapé durante os primeiros segundos (fade e some).
 func _mostrar_dica_controles() -> void:
 	var dica := Label.new()
-	dica.text = "WASD mover · ESPAÇO plantar · TAB roda · C procurar/desarmar · J atirar · K soco · F detonar · V câmera"
+	dica.text = "WASD mover · ESPAÇO plantar · TAB roda · C desarmar · J atirar · K soco · F detonar"
 	dica.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dica.add_theme_font_size_override("font_size", 16)
-	dica.add_theme_color_override("font_color", Color(1, 1, 1, 0.75))
+	dica.add_theme_font_size_override("font_size", 13)
+	dica.add_theme_color_override("font_color", Color(1, 1, 1, 0.45))
 	dica.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	dica.offset_top = -30.0
 	dica.offset_bottom = -8.0
@@ -241,11 +241,47 @@ func _ao_selecao_mudar(_tipo: String) -> void:
 	_atualizar_label_armadilha()
 
 
+var _pips_municao: Array = []   # ColorRects dos "cartuchos" (HUD visual, não texto)
+
+
+## Munição como PIPS (barrinhas que apagam ao gastar) — HUD comercial, não printf.
 func _ao_municao_mudar(atual: int, maximo: int) -> void:
+	if _pips_municao.size() != maximo:
+		_montar_pips_municao(maximo)
 	if _jogador != null and _jogador.esta_recarregando():
-		lbl_municao.text = "Munição: recarregando…"
-	else:
-		lbl_municao.text = "Munição: %d/%d" % [atual, maximo]
+		lbl_municao.text = "RECARREGANDO…"
+		lbl_municao.add_theme_color_override("font_color", Color(1.0, 0.5, 0.3))
+		for p in _pips_municao:
+			(p as ColorRect).color = Color(1.0, 0.5, 0.3, 0.25)
+		return
+	lbl_municao.text = "MUNIÇÃO"
+	lbl_municao.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 0.9))
+	for i in _pips_municao.size():
+		var cheio := i < atual
+		(_pips_municao[i] as ColorRect).color = \
+			Color(1.0, 0.85, 0.3, 1.0) if cheio else Color(1.0, 1.0, 1.0, 0.12)
+
+
+func _montar_pips_municao(maximo: int) -> void:
+	var antigo := get_node_or_null("PipsMunicao")
+	if antigo != null:
+		antigo.queue_free()
+	_pips_municao.clear()
+	lbl_municao.add_theme_font_size_override("font_size", 14)
+	var linha := HBoxContainer.new()
+	linha.name = "PipsMunicao"
+	linha.add_theme_constant_override("separation", 4)
+	linha.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	linha.offset_left = lbl_municao.offset_left + 130.0
+	linha.offset_top = lbl_municao.offset_top + 4.0
+	linha.offset_right = linha.offset_left + 160.0
+	linha.offset_bottom = linha.offset_top + 16.0
+	add_child(linha)
+	for i in maximo:
+		var pip := ColorRect.new()
+		pip.custom_minimum_size = Vector2(9.0, 16.0)
+		linha.add_child(pip)
+		_pips_municao.append(pip)
 
 
 ## Painel de desarme e prompt de retomada são dinâmicos (timer correndo): leio o estado
@@ -258,7 +294,7 @@ func _process(_delta: float) -> void:
 			_lbl_round.visible = false
 	# Rematch: ao fim da partida, Enter volta pra seleção de personagem.
 	if _fim and Input.is_action_just_pressed("ui_accept"):
-		get_tree().change_scene_to_file.call_deferred("res://scenes/ui/selecao.tscn")
+		Transicao.ir_para("res://scenes/ui/selecao.tscn")
 		return
 	if _jogador == null:
 		return

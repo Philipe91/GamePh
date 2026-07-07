@@ -66,7 +66,7 @@ func _ao_volume(v: float) -> void:
 
 
 func _voltar() -> void:
-	get_tree().change_scene_to_file.call_deferred(TITULO)
+	Transicao.ir_para(TITULO)
 
 
 func _capturar() -> void:
