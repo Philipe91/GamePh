@@ -1093,14 +1093,14 @@ func _demo_greybox_e_capturar() -> void:
 	_capturar_e_sair()
 
 
-## Demo do modelo 3D (Kenney Character.gltf): aplica no player e no bot e captura.
+## Demo do modelo 3D fallback (KayKit Knight): aplica no player e no bot e captura.
 func _demo_modelo_e_capturar() -> void:
 	bot.set_physics_process(false)
 	player.set_physics_process(false)
 	var sp := preload("res://scripts/stats_personagem.gd").new()
-	sp.cena_modelo = load("res://assets/models/kenney/Character/Character.gltf")
-	sp.escala_modelo = 6.5
-	sp.rotacao_modelo_y = 0.0
+	sp.cena_modelo = load("res://assets/models/kaykit/Knight.glb")
+	sp.escala_modelo = 0.0
+	sp.rotacao_modelo_y = 180.0
 	sp.offset_modelo_y = -1.0
 	player.aplicar_personagem(sp)
 	bot.aplicar_personagem(sp)

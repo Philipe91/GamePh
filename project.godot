@@ -15,6 +15,10 @@ config/description="Arena fighter 2.5D top-down de armadilhas. Remake com mundo 
 run/main_scene="res://scenes/ui/titulo.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 
+[gui]
+
+theme/custom_font="res://assets/fonts/Orbitron.ttf"
+
 [autoload]
 
 GridManager="*res://autoloads/grid_manager.gd"

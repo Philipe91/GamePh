@@ -1,5 +1,22 @@
 # DevLog
 
+## 2026-07-07 (parte 4) — Missão de Direção de Arte (sem tocar gameplay)
+
+Auditoria de assets (inventário completo em Architecture.md) e passe de identidade:
+- **Tipografia**: Orbitron (OFL, Google Fonts) como fonte padrão do projeto
+  (`gui/theme/custom_font`) — HUD, menus e telas inteiras com cara própria de uma vez.
+- **Iluminação/grading**: tonemap ACES + contraste 1.06 + saturação 1.12, ambiente
+  0.6→0.85 (sem áreas mortas), sombras suaves (shadow_blur 1.6 + angular_distance 2°).
+- **Consistência de personagens**: Kenney Character REMOVIDO do projeto (destoava da
+  família KayKit); fallback sem stats agora é o KayKit Knight tingido pela cor do time.
+  Demo --demo-modelo atualizada.
+- **Partículas de vida**: poeira nos pés ao correr; burst de brilho NA COR do item ao
+  coletar. (Explosão já tinha fogo/fumaça/onda/flash; sangue no dano.)
+- **Higiene**: `_captura_arena.png` fora do versionamento (artefato de dev).
+- Direção assumida e documentada: stylized/limpo (KayKit + Quaternius + cores chapadas
+  com temas por mapa); texturas ambientCG mantidas como acento sutil, não realismo.
+
+
 ## 2026-07-07 (parte 3) — Passe de acabamento "Steam" (feedback do playtest)
 
 Humano: "ainda com cara de não terminado; paredes; IA burra; corrija bugs".

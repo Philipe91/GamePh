@@ -55,8 +55,35 @@ func _ao_corpo_entrar(corpo: Node) -> void:
 	if not corpo.has_method("receber_dano"):
 		return  # só combatentes pegam item
 	AudioManager.tocar("item")
+	_fx_coleta()
 	_aplicar(corpo)
 	queue_free()
+
+
+## Burst de brilho na COR do item ao coletar (feedback de recompensa).
+func _fx_coleta() -> void:
+	if not is_inside_tree():
+		return
+	var p := CPUParticles3D.new()
+	p.amount = 14
+	p.lifetime = 0.5
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.direction = Vector3(0, 1, 0)
+	p.spread = 80.0
+	p.gravity = Vector3(0, -3.0, 0)
+	p.initial_velocity_min = 2.0
+	p.initial_velocity_max = 4.0
+	var sm := SphereMesh.new()
+	sm.radius = 0.07
+	sm.height = 0.14
+	p.mesh = sm
+	p.color = CORES.get(tipo, Color.WHITE)
+	p.add_to_group("fx")
+	get_parent().add_child(p)
+	p.global_position = global_position
+	p.emitting = true
+	get_tree().create_timer(0.9).timeout.connect(p.queue_free)
 
 
 func _aplicar(c: Node) -> void:

@@ -18,12 +18,17 @@ background_mode = 1
 background_color = Color(0.03, 0.04, 0.07, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.25, 0.28, 0.38, 1)
-ambient_light_energy = 0.6
+ambient_light_energy = 0.85
+tonemap_mode = 3
+tonemap_exposure = 1.05
 glow_enabled = true
 glow_intensity = 0.6
 glow_strength = 0.9
 glow_bloom = 0.1
 glow_hdr_threshold = 1.0
+adjustment_enabled = true
+adjustment_contrast = 1.06
+adjustment_saturation = 1.12
 
 [node name="arena" type="Node3D"]
 script = ExtResource("1_1qjuf")
@@ -37,8 +42,10 @@ script = ExtResource("5_cam")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.642788, 0.766044, 0, -0.766044, 0.642788, 0, 0, 0)
-light_energy = 1.1
+light_energy = 1.15
 shadow_enabled = true
+shadow_blur = 1.6
+light_angular_distance = 2.0
 
 [node name="Chao" type="MeshInstance3D" parent="."]
 mesh = SubResource("PlaneMesh_chao")

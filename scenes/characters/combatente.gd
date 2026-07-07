@@ -126,8 +126,9 @@ func _ready() -> void:
 	municao_mudou.emit(municao, municao_max)
 
 
-## Modelo placeholder padrão (Kenney) usado em JOGO até cada personagem ter o seu próprio.
-const MODELO_PADRAO_PATH := "res://assets/models/kenney/Character/Character.gltf"
+## Modelo fallback (sem StatsPersonagem): KayKit Knight tingido pela cor do time —
+## MESMA família visual do roster (o Kenney destoava; direção de arte unificada).
+const MODELO_PADRAO_PATH := "res://assets/models/kaykit/Knight.glb"
 ## Altura-alvo do personagem em mundo (~1 tile de largura de ombros). O modelo padrão é
 ## auto-ajustado pra esta altura pelo AABB — 6.5 fixo deixava o boneco com 2+ tiles.
 const ALTURA_MODELO_ALVO := 2.5
@@ -403,7 +404,44 @@ func _process(delta: float) -> void:
 		_carga_restante = maxf(0.0, _carga_restante - delta)
 		if _carga_restante == 0.0:
 			_disparar_plasma()
+	# Poeira de passos ao correr (vida no movimento — só visual).
+	_t_poeira -= delta
+	if _t_poeira <= 0.0 and not esta_derrubado() \
+			and Vector2(velocity.x, velocity.z).length() > 3.0:
+		_t_poeira = 0.22
+		_fx_poeira()
 	_atualizar_animacao()
+
+
+var _t_poeira: float = 0.0
+
+
+## Baforada de poeira nos pés (dust dos passos). One-shot barato, autodestrói.
+func _fx_poeira() -> void:
+	if not is_inside_tree():
+		return
+	var p := CPUParticles3D.new()
+	p.amount = 5
+	p.lifetime = 0.4
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.direction = Vector3(0, 1, 0)
+	p.spread = 45.0
+	p.gravity = Vector3(0, 0.6, 0)
+	p.initial_velocity_min = 0.4
+	p.initial_velocity_max = 0.9
+	p.scale_amount_min = 0.8
+	p.scale_amount_max = 1.7
+	var sm := SphereMesh.new()
+	sm.radius = 0.07
+	sm.height = 0.14
+	p.mesh = sm
+	p.color = Color(0.7, 0.72, 0.78, 0.4)
+	p.add_to_group("fx")
+	get_parent().add_child(p)
+	p.global_position = global_position + Vector3(0.0, -0.8, 0.0)
+	p.emitting = true
+	get_tree().create_timer(0.8).timeout.connect(p.queue_free)
 
 
 ## True enquanto recarrega (não pode atirar — GDD 7.1, fica vulnerável).
