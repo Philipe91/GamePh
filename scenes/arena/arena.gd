@@ -401,6 +401,49 @@ func _montar_chao_identidade(mapa: Resource) -> void:
 		mancha.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		raiz.add_child(mancha)
 		mancha.position = Vector3(rng.randf_range(-w + 2.0, w - 2.0), 0.012, rng.randf_range(-h + 2.0, h - 2.0))
+	# ── CABOS DE ENERGIA correndo pelo chão, da parede até cada torreta/esteira
+	# (referência do humano: as máquinas são ALIMENTADAS por algo — regra do
+	# encanador). Segmentos em L, finos, escuros com brilho de borracha.
+	var mat_cabo := StandardMaterial3D.new()
+	mat_cabo.albedo_color = Color(0.05, 0.05, 0.06)
+	mat_cabo.roughness = 0.3
+	mat_cabo.metallic = 0.2
+	var alvos_cabo: Array = []
+	for c in mapa.lancadores:
+		alvos_cabo.append(c)
+	for c in mapa.cannons:
+		alvos_cabo.append(c)
+	for c in mapa.esteiras:
+		alvos_cabo.append(c)
+	for coord_alvo in alvos_cabo:
+		var p_alvo := GridManager.grid_to_world(coord_alvo)
+		# Cabo sai da parede mais próxima no eixo X e corre em L até o alvo.
+		var lado := 1.0 if p_alvo.x >= 0.0 else -1.0
+		var x_parede := lado * w
+		# Segmento 1: da parede até o x do alvo (ao longo de X, no z do alvo).
+		var comp1 := absf(x_parede - p_alvo.x)
+		if comp1 > 0.4:
+			var s1 := MeshInstance3D.new()
+			var c1 := CylinderMesh.new()
+			c1.top_radius = 0.05
+			c1.bottom_radius = 0.05
+			c1.height = comp1
+			c1.radial_segments = 6
+			s1.mesh = c1
+			s1.material_override = mat_cabo
+			s1.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			raiz.add_child(s1)
+			s1.rotation.z = PI * 0.5
+			s1.position = Vector3((x_parede + p_alvo.x) * 0.5, 0.05, p_alvo.z + 0.35)
+		# Plugue na base da máquina (caixinha).
+		var plug := MeshInstance3D.new()
+		var pb := BoxMesh.new()
+		pb.size = Vector3(0.22, 0.12, 0.22)
+		plug.mesh = pb
+		plug.material_override = mat_cabo
+		plug.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(plug)
+		plug.position = Vector3(p_alvo.x, 0.06, p_alvo.z + 0.35)
 	# ── Grelhas de ventilação em tiles fixos por seed (2 soltam vapor).
 	for i in 5:
 		var gx := rng.randi_range(1, GridManager.LARGURA - 2)
@@ -549,7 +592,8 @@ func _montar_paredes() -> void:
 			mat.uv1_scale = Vector3(0.5, 0.5, 0.5)
 	# Friso neon no topo de cada lado, na cor clara do tema (o glow faz ele "acender").
 	var cor_neon: Color = _mapa.cor_tile_a if _mapa != null else Color(0.3, 0.6, 1.0)
-	cor_neon = Color(minf(cor_neon.r * 2.4, 1.0), minf(cor_neon.g * 2.4, 1.0), minf(cor_neon.b * 2.4, 1.0))
+	# Realça e SATURA o acento (o tile é dessaturado de propósito; o neon não pode ser).
+	cor_neon = Color.from_hsv(cor_neon.h, clampf(cor_neon.s * 2.5, 0.6, 1.0), 1.0)
 	var mat_neon := StandardMaterial3D.new()
 	mat_neon.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat_neon.albedo_color = cor_neon
