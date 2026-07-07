@@ -65,6 +65,15 @@ func _ready() -> void:
 	lbl_fim.visible = false
 	GameManager.tempo_mudou.connect(_ao_tempo_mudar)
 	GameManager.partida_acabou.connect(_ao_partida_acabar)
+	# Timer grande num painel escuro (leitura central, estilo arcade do original).
+	lbl_timer.add_theme_font_size_override("font_size", 38)
+	var painel := StyleBoxFlat.new()
+	painel.bg_color = Color(0.02, 0.03, 0.06, 0.75)
+	painel.set_corner_radius_all(10)
+	painel.set_content_margin_all(6.0)
+	painel.set_border_width_all(1)
+	painel.border_color = Color(0.4, 0.6, 0.9, 0.5)
+	lbl_timer.add_theme_stylebox_override("normal", painel)
 
 
 ## Liga as barras aos Healers e o contador à armadilha selecionada do jogador.

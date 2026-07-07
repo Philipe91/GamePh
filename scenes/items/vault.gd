@@ -29,6 +29,12 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# Pulso de emissão: mais forte quando há item esperando (o "pisca" do radar do GDD 11).
+	var mat := marca.material_override as StandardMaterial3D
+	if mat != null:
+		var com_item := _item_atual != null and is_instance_valid(_item_atual)
+		var base := 1.6 if com_item else 0.6
+		mat.emission_energy_multiplier = base + 0.5 * sin(Time.get_ticks_msec() / 200.0)
 	if _item_atual != null and is_instance_valid(_item_atual):
 		return  # já tem item esperando ser pego; pausa o relógio
 	_t -= delta
