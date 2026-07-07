@@ -76,11 +76,11 @@ func _aplicar_dificuldade() -> void:
 
 func _physics_process(delta: float) -> void:
 	_t_plantio -= delta
-	if esta_derrubado():
-		velocity = Vector3.ZERO  # knockdown: sem controle até passar
-		return
-	if esta_imobilizado():
-		velocity = Vector3.ZERO  # preso por Cova/Gás, espera passar
+	if esta_derrubado() or esta_imobilizado():
+		# Sem controle (knockdown/Cova/Gás), mas o impulso de knockback ainda desliza
+		# o corpo (o _mover soma velocidade_impulso — empurrão físico, não teleporte).
+		velocity = Vector3.ZERO
+		_mover(delta)
 		return
 	# Desarmando uma armadilha do player (G4): parado e exposto até concluir.
 	if _desarmando != null:
@@ -184,7 +184,10 @@ func reiniciar() -> void:
 
 
 ## Aplica gravidade (mapas verticais) ou trava a altura (mapas planos) + move_and_slide.
+## Soma o impulso de knockback à velocidade do frame (empurrão físico do Combatente).
 func _mover(delta: float) -> void:
+	velocity.x += velocidade_impulso().x
+	velocity.z += velocidade_impulso().z
 	if gravidade_ativa:
 		if not is_on_floor():
 			velocity.y -= GRAVIDADE * delta
@@ -242,11 +245,23 @@ func _desvio_de_armadilhas() -> Vector3:
 	return desvio
 
 
-## Escolhe e planta uma armadilha conforme a situação: Cova quando o player está perto
-## (prende quem persegue), Mina quando longe (mina o caminho). Reseta o cooldown.
+## Escolhe e planta uma armadilha conforme a situação (controle de território — FAQ):
+## perto de uma Vault, MINA o ponto de interesse (o item atrai o player pra armadilha);
+## player perto, Cova (prende quem persegue); longe, Mina no caminho. Reseta o cooldown.
 func _plantar_situacional(dist: float) -> void:
 	_t_plantio = _intervalo_plantio
+	if _vault_proxima(3.5) != null:
+		_plantar("mina")
+		return
 	_plantar("cova" if dist < 6.0 else "mina")
+
+
+## Vault mais próxima dentro de `raio`, ou null (pra minar o território dela).
+func _vault_proxima(raio: float) -> Node:
+	for v in get_tree().get_nodes_in_group("vaults"):
+		if is_instance_valid(v) and global_position.distance_to(v.global_position) <= raio:
+			return v
+	return null
 
 
 ## Compat com testes/demos: planta uma mina no tile atual.

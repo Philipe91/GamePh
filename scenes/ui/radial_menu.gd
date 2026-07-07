@@ -21,13 +21,15 @@ func _ready() -> void:
 
 
 ## Carrega o ícone PNG do tipo, se existir em assets/sprites/armadilhas/<tipo>.png.
-## Usa Image.load (lê o arquivo do disco direto, sem depender de import do editor).
+## Prefere a textura IMPORTADA (funciona no export); Image.load é fallback de dev.
 func _icone(tipo: String) -> Texture2D:
 	if _icones.has(tipo):
 		return _icones[tipo]
 	var tex: Texture2D = null
 	var caminho := PASTA_ICONES + tipo + ".png"
-	if FileAccess.file_exists(caminho):
+	if ResourceLoader.exists(caminho):
+		tex = load(caminho) as Texture2D
+	elif FileAccess.file_exists(caminho):
 		var img := Image.new()
 		if img.load(caminho) == OK:
 			tex = ImageTexture.create_from_image(img)

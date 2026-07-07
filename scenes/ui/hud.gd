@@ -26,13 +26,17 @@ var _arma_icone: TextureRect = null   # ícone da armadilha selecionada (canto i
 var _icones_arma: Dictionary = {}     # tipo -> Texture2D (cache)
 
 
-## Carrega o PNG do ícone da armadilha (mesmo da roda), via Image.load.
+## Carrega o PNG do ícone da armadilha (mesmo da roda). Prefere a textura IMPORTADA
+## (load pega o .ctex — funciona no export, onde o PNG cru não existe no PCK);
+## Image.load fica só como fallback de dev pra PNG largado na pasta sem import.
 func _icone_arma(tipo: String) -> Texture2D:
 	if _icones_arma.has(tipo):
 		return _icones_arma[tipo]
 	var tex: Texture2D = null
 	var caminho := "res://assets/sprites/armadilhas/%s.png" % tipo
-	if FileAccess.file_exists(caminho):
+	if ResourceLoader.exists(caminho):
+		tex = load(caminho) as Texture2D
+	elif FileAccess.file_exists(caminho):
 		var img := Image.new()
 		if img.load(caminho) == OK:
 			tex = ImageTexture.create_from_image(img)
@@ -66,8 +70,8 @@ func _ready() -> void:
 ## Liga as barras aos Healers e o contador à armadilha selecionada do jogador.
 func configurar(p1: Node, p2: Node) -> void:
 	_jogador = p1
-	p1.healer_mudou.connect(func(atual: float, maximo: float): barra_p1.max_value = maximo; barra_p1.value = atual)
-	p2.healer_mudou.connect(func(atual: float, maximo: float): barra_p2.max_value = maximo; barra_p2.value = atual)
+	p1.healer_mudou.connect(_ao_healer_mudar.bind(barra_p1))
+	p2.healer_mudou.connect(_ao_healer_mudar.bind(barra_p2))
 	p1.inventario_mudou.connect(_ao_inventario_mudar)
 	p1.selecao_mudou.connect(_ao_selecao_mudar)
 	p1.municao_mudou.connect(_ao_municao_mudar)
@@ -116,6 +120,20 @@ func configurar(p1: Node, p2: Node) -> void:
 	GameManager.placar_mudou.connect(func(a: int, b: int): _lbl_placar.text = "%d  -  %d" % [a, b])
 	GameManager.round_comecou.connect(_ao_round_comecou)
 	_atualizar_label_armadilha()
+
+
+## Healer com FEEDBACK (juice): a barra desce/sobe animada (não salta) e pisca —
+## clarão frio no dano, verde na cura. O tween novo mata o anterior (sem briga).
+func _ao_healer_mudar(atual: float, maximo: float, barra: ProgressBar) -> void:
+	barra.max_value = maximo
+	if atual < barra.value:
+		barra.modulate = Color(1.8, 1.8, 2.0)      # levou dano: flash
+	elif atual > barra.value:
+		barra.modulate = Color(0.8, 1.6, 1.0)      # curou: pulso verde
+	var tw := barra.create_tween()
+	tw.tween_property(barra, "value", atual, 0.18) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(barra, "modulate", Color.WHITE, 0.3)
 
 
 func _ao_round_comecou(numero: int) -> void:
@@ -193,6 +211,14 @@ func _process(_delta: float) -> void:
 
 func _ao_tempo_mudar(restante: float) -> void:
 	lbl_timer.text = "%d" % ceili(restante)
+	# Urgência: nos 10 segundos finais o timer fica vermelho e pulsa (leitura imediata).
+	if restante <= 10.0:
+		var pulso := 0.65 + 0.35 * absf(sin(restante * PI))
+		lbl_timer.add_theme_color_override("font_color", Color(1.0, 0.35 * pulso + 0.1, 0.2))
+	elif restante <= 30.0:
+		lbl_timer.add_theme_color_override("font_color", Color(1.0, 0.8, 0.3))  # aviso Spark Bit
+	else:
+		lbl_timer.remove_theme_color_override("font_color")
 
 
 func _ao_partida_acabar(vencedor_id: int, motivo: String) -> void:

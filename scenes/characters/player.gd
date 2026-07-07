@@ -114,6 +114,21 @@ func aplicar_personagem(novo: Resource) -> void:
 
 
 var _escape_antes: bool = false      # borda do "mash" pra sair da Cova
+var _vel_mov: Vector3 = Vector3.ZERO # estado da rampa de movimento (sem o knockback)
+
+
+## Move só pelo impulso de knockback (derrubado/imobilizado): sem controle, com peso.
+func _mover_por_impulso(delta: float) -> void:
+	velocity.x = velocidade_impulso().x
+	velocity.z = velocidade_impulso().z
+	if gravidade_ativa:
+		if not is_on_floor():
+			velocity.y -= GRAVIDADE * delta
+		move_and_slide()
+	else:
+		velocity.y = 0.0
+		move_and_slide()
+		position.y = ALTURA_PISO
 
 ## Qual jogador controla este Player: 1 = teclado + gamepad 0; 2 = gamepad 1 (VS MAN).
 @export var jogador_num: int = 1
@@ -139,9 +154,10 @@ func _mouse(mb: int) -> bool:
 
 
 func _physics_process(delta: float) -> void:
-	# Derrubado (knockdown): sem controle nenhum até passar (GDD 7.2).
+	# Derrubado (knockdown): sem controle, mas o corpo DESLIZA pelo impulso do golpe
+	# (o knockback é físico agora, não teleporte — GDD 7.2 + pilar 4).
 	if esta_derrubado():
-		velocity = Vector3.ZERO
+		_mover_por_impulso(delta)
 		return
 	if _desarme_cooldown > 0.0:
 		_desarme_cooldown = maxf(0.0, _desarme_cooldown - delta)
@@ -163,7 +179,9 @@ func _physics_process(delta: float) -> void:
 	var dir := _obter_direcao()
 	if esta_imobilizado():
 		# Preso (Cova/Gás): não anda; apertar direção repetidamente acelera a saída.
-		velocity = Vector3.ZERO
+		# Explosão/Painel ainda EMPURRAM o corpo preso (impulso), como no original.
+		_vel_mov = Vector3.ZERO
+		_mover_por_impulso(delta)
 		var mash := dir.length() > 0.01
 		if mash and not _escape_antes:
 			tentar_escapar(0.3)
@@ -173,12 +191,12 @@ func _physics_process(delta: float) -> void:
 		var vel := velocidade_base * fator_velocidade()  # base do personagem × slow/speed
 		# Rampa de velocidade no plano XZ: persegue a velocidade-alvo com aceleração ao
 		# andar e um freio mais forte ao soltar (responsivo, sem ficar escorregadio).
+		# O estado da rampa vive em _vel_mov (só movimento); o knockback entra por fora.
 		var alvo_h := Vector3(dir.x, 0.0, dir.y) * vel
-		var atual_h := Vector3(velocity.x, 0.0, velocity.z)
 		var taxa := aceleracao if dir.length() > 0.01 else desaceleracao
-		atual_h = atual_h.move_toward(alvo_h, taxa * delta)
-		velocity.x = atual_h.x
-		velocity.z = atual_h.z
+		_vel_mov = _vel_mov.move_toward(alvo_h, taxa * delta)
+		velocity.x = _vel_mov.x + velocidade_impulso().x
+		velocity.z = _vel_mov.z + velocidade_impulso().z
 		if gravidade_ativa:
 			# Mapa vertical: segue o chão de colisão (rampa/ponte) com gravidade.
 			if not is_on_floor():
@@ -191,8 +209,8 @@ func _physics_process(delta: float) -> void:
 			position.y = ALTURA_PISO
 		# Encara a direção do MOVIMENTO real, girando rápido e independente de FPS
 		# (exponencial: snappy mas sem "saltar"). Antes era lerp fixo 0.25 = nariz atrasado.
-		if atual_h.length() > 0.2:
-			var alvo := atan2(-atual_h.x, -atual_h.z)
+		if _vel_mov.length() > 0.2:
+			var alvo := atan2(-_vel_mov.x, -_vel_mov.z)
 			rotation.y = lerp_angle(rotation.y, alvo, 1.0 - exp(-velocidade_giro * delta))
 	_ler_acoes()
 	_ler_caution()

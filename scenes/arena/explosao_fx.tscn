@@ -20,3 +20,11 @@ gravity = Vector3(0, -4, 0)
 initial_velocity_min = 3.0
 initial_velocity_max = 6.5
 color = Color(1, 0.7, 0.2, 1)
+
+[node name="Luz" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+light_color = Color(1, 0.75, 0.35, 1)
+light_energy = 6.0
+omni_range = 7.0
+omni_attenuation = 1.4
+shadow_enabled = false

@@ -3,7 +3,12 @@
 Registro de onde o desenvolvimento parou. Fonte de design: `GDD.md`. Regras de
 trabalho: `CLAUDE.md`. Atualize este arquivo ao fim de cada bloco.
 
-**Última atualização:** 2026-06-19
+**Última atualização:** 2026-07-06 — auditoria completa + passe de feel/correções
+(Missões 01–03 do humano). Docs novos: `docs/Architecture.md`, `docs/Roadmap.md`,
+`docs/DevLog.md`, `docs/BugReport.md`, `docs/Tasks.md`. Testes/demos saíram de
+`arena.gd` (1489→~330 linhas) para `scripts/dev_arena.gd`. Knockback agora é impulso
+físico; hit stop + flash de luz nas explosões; Spark Bit fiel ao manual; screenshake
+compatível com câmera-segue (bug corrigido).
 
 ---
 

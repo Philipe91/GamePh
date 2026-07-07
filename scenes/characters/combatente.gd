@@ -60,6 +60,13 @@ var _protegido_restante: float = 0.0     # invencível (menos contra a Plasma)
 var _cadencia_restante: float = 0.0
 var _recarga_restante: float = 0.0
 
+# Knockback por IMPULSO físico (não teleporte). O empurrão vira uma velocidade extra
+# que decai exponencialmente — o corpo DESLIZA com peso em vez de saltar de posição
+# (e respeita colisão, já que entra no move_and_slide das subclasses). A distância
+# total percorrida ≈ `forca` (integral de v0·e^(-λt) com v0 = forca·λ).
+const IMPULSO_FREIO: float = 8.0     # λ do decaimento (1/s) — alto = arcade, seco
+var _impulso: Vector3 = Vector3.ZERO
+
 # Corpo a corpo (GDD 7.2): soco de curto alcance que DERRUBA. Derrubado = sem controle.
 const SOCO_ALCANCE: float = 1.9
 const SOCO_DANO: float = 10.0
@@ -212,6 +219,10 @@ func _process(delta: float) -> void:
 		_soco_cd = maxf(0.0, _soco_cd - delta)
 	if _derrubado_restante > 0.0:
 		_derrubado_restante = maxf(0.0, _derrubado_restante - delta)
+	if _impulso != Vector3.ZERO:
+		_impulso *= exp(-IMPULSO_FREIO * delta)   # knockback decai (deslize com peso)
+		if _impulso.length_squared() < 0.16:
+			_impulso = Vector3.ZERO
 	if _carregando_unit:
 		_carga_restante = maxf(0.0, _carga_restante - delta)
 		if _carga_restante == 0.0:
@@ -249,6 +260,7 @@ func derrubar(direcao: Vector3, forca: float) -> void:
 	aplicar_empurrao(direcao, forca)
 	AudioManager.tocar("derrubado")
 	get_tree().call_group("camera", "tremer", 0.25)  # screenshake no knockdown (juice)
+	GameManager.hit_stop(0.25, 0.04)                 # micro-pausa: o soco tem peso
 	if _carregando_unit:
 		tem_unit = false
 		plasma_bombs = 0
@@ -415,6 +427,7 @@ func reiniciar() -> void:
 	_cadencia_restante = 0.0
 	_soco_cd = 0.0
 	_carregando_unit = false
+	_impulso = Vector3.ZERO
 	velocity = Vector3.ZERO
 	healer_mudou.emit(healer, vida_max)
 	municao_mudou.emit(municao, municao_max)
@@ -445,9 +458,16 @@ func receber_dano(qtd: float, tipo_dano: String = "normal") -> void:
 		healer_zerou.emit()
 
 
-## Aplica knockback (empurrão instantâneo). Usado pela explosão da Mina.
+## Aplica knockback como IMPULSO (empurrão com peso, não teleporte). `forca` ≈ distância
+## total que o corpo desliza. Usado pela explosão, pelo Painel e pelo knockdown.
 func aplicar_empurrao(direcao: Vector3, forca: float) -> void:
 	var d := direcao
 	d.y = 0.0
 	if d.length() > 0.01:
-		global_position += d.normalized() * forca
+		_impulso += d.normalized() * forca * IMPULSO_FREIO
+
+
+## Velocidade extra de knockback deste frame. As subclasses SOMAM isto à velocity
+## antes do move_and_slide (assim o empurrão respeita paredes e rampas).
+func velocidade_impulso() -> Vector3:
+	return _impulso

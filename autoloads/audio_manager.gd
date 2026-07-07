@@ -49,12 +49,15 @@ func aplicar_volume(v: float) -> void:
 
 
 ## Toca o som do evento. Retorna false se não houver som pra ele.
+## Pequena variação aleatória de pitch a cada disparo: quebra a repetição de ouvir o
+## MESMO sample dezenas de vezes por partida (identidade sonora — GDD 13).
 func tocar(evento: String) -> bool:
 	if not _sons.has(evento):
 		return false
 	var p := _players[_proximo]
 	_proximo = (_proximo + 1) % _players.size()
 	p.stream = _sons[evento]
+	p.pitch_scale = randf_range(0.92, 1.08)
 	p.play()
 	return true
 

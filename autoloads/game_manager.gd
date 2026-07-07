@@ -38,6 +38,9 @@ var _combatentes: Array = []
 var _avisou_30s: bool = false
 var _t_entre_round: float = 0.0
 
+## Hit stop (juice — GDD 13): congela o tempo por um instante em impactos fortes.
+var _hit_stop_ativo: bool = false
+
 ## Personagens escolhidos na tela de seleção (caminho do .tres). "" = usa o default.
 var personagem_jogador: String = ""
 var personagem_bot: String = ""
@@ -128,6 +131,21 @@ func _fim_round(vencedor_id: int, motivo: String) -> void:
 	else:
 		_estado = Estado.ENTRE_ROUNDS
 		_t_entre_round = PAUSA_ENTRE_ROUNDS
+
+
+## Hit stop leve: desacelera o tempo pra `escala` por `duracao` segundos REAIS e volta.
+## Dá peso a explosões e knockdowns sem animação nenhuma. Não empilha (o primeiro manda),
+## então uma cadeia de bombas em combo gera UM soluço, não uma câmera lenta longa.
+func hit_stop(escala: float = 0.15, duracao: float = 0.06) -> void:
+	if _hit_stop_ativo:
+		return
+	_hit_stop_ativo = true
+	Engine.time_scale = escala
+	# Timer de TEMPO REAL (ignora o time_scale), senão a pausa duraria duracao/escala.
+	var t := get_tree().create_timer(duracao, true, false, true)
+	t.timeout.connect(func() -> void:
+		Engine.time_scale = 1.0
+		_hit_stop_ativo = false)
 
 
 func _outro_id(id: int) -> int:

@@ -213,6 +213,7 @@ func _mostrar_explosao() -> void:
 	add_to_group("explosoes")  # a Plasma some ao passar por uma explosão (GDD 9)
 	AudioManager.tocar("explodir")
 	get_tree().call_group("camera", "tremer", 0.35)  # screenshake (juice)
+	GameManager.hit_stop(0.15, 0.05)                 # soluço de impacto (peso — pilar 4)
 	var fx := preload("res://scenes/arena/explosao_fx.tscn").instantiate()
 	get_parent().add_child(fx)
 	fx.global_position = global_position
