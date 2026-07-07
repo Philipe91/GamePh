@@ -37,6 +37,7 @@ func _capturar() -> void:
 
 func _montar_ui() -> void:
 	UIEstilo.fundo_neon(self)
+	_montar_vitrine_3d()          # personagem 3D vivo ao lado do menu (background vivo)
 	AudioManager.tocar_musica()   # trilha desde o menu (continua na arena)
 
 	var centro := CenterContainer.new()
@@ -119,6 +120,81 @@ func _montar_ui() -> void:
 	UIEstilo.estilizar_botao(settings, Color(0.6, 0.6, 0.7))
 	settings.pressed.connect(func(): Transicao.ir_para("res://scenes/ui/settings.tscn"))
 	caixa.add_child(settings)
+
+
+## Vitrine 3D no menu: um personagem do roster (aleatório por sessão) em idle armado,
+## girando devagar num pedestal, com luz própria — o menu deixa de ser só texto.
+func _montar_vitrine_3d() -> void:
+	var roster := ["brecht", "magnus", "vesna", "pip", "kestrel", "mara"]
+	var st: Resource = load("res://resources/personagens/%s.tres" % roster[randi() % roster.size()])
+	if st == null or st.cena_modelo == null:
+		return
+	var cont := SubViewportContainer.new()
+	cont.stretch = true
+	cont.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	cont.offset_left = -330.0
+	cont.offset_right = 10.0
+	cont.offset_top = -240.0
+	cont.offset_bottom = 240.0
+	cont.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(cont)
+	var vp := SubViewport.new()
+	vp.transparent_bg = true
+	vp.own_world_3d = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	cont.add_child(vp)
+	var raiz := Node3D.new()
+	vp.add_child(raiz)
+	var m: Node3D = st.cena_modelo.instantiate()
+	raiz.add_child(m)
+	m.position = Vector3(0.0, -1.05, 0.0)
+	# Idle armado em loop.
+	var anims := m.find_children("*", "AnimationPlayer", true, false)
+	if not anims.is_empty():
+		var ap := anims[0] as AnimationPlayer
+		for nome_anim in ["Idle_Gun", "Idle"]:
+			if ap.has_animation(nome_anim):
+				var a := ap.get_animation(nome_anim)
+				a.loop_mode = Animation.LOOP_LINEAR
+				ap.play(nome_anim)
+				break
+	# Pedestal com aro na cor do personagem.
+	var aro := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.55
+	tm.outer_radius = 0.7
+	aro.mesh = tm
+	var c: Color = st.cor_time
+	var mat_aro := StandardMaterial3D.new()
+	mat_aro.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat_aro.albedo_color = c
+	mat_aro.emission_enabled = true
+	mat_aro.emission = c
+	mat_aro.emission_energy_multiplier = 1.6
+	aro.material_override = mat_aro
+	raiz.add_child(aro)
+	aro.position.y = -1.0
+	# Luzes de estúdio.
+	var key := OmniLight3D.new()
+	key.light_energy = 2.4
+	key.omni_range = 10.0
+	raiz.add_child(key)
+	key.position = Vector3(-1.5, 1.6, 2.2)
+	var fill := OmniLight3D.new()
+	fill.light_energy = 1.0
+	fill.light_color = c.lerp(Color.WHITE, 0.4)
+	fill.omni_range = 10.0
+	raiz.add_child(fill)
+	fill.position = Vector3(1.8, 0.4, 1.4)
+	var cam := Camera3D.new()
+	vp.add_child(cam)
+	cam.fov = 32.0
+	cam.position = Vector3(0.0, 0.35, 3.6)
+	cam.look_at(Vector3(0.0, 0.05, 0.0), Vector3.UP)
+	cam.current = true
+	# Giro lento contínuo do personagem (vitrine de loja).
+	var tw := raiz.create_tween().set_loops()
+	tw.tween_property(m, "rotation:y", TAU, 14.0).from(0.0)
 
 
 func _escolher_dif(chave: String, nome: String) -> void:
