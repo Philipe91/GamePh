@@ -18,5 +18,6 @@ loadout = {
 }
 cena_modelo = ExtResource("2")
 escala_modelo = 0.0
+altura_modelo = 2.5
 rotacao_modelo_y = 180.0
 offset_modelo_y = -1.0

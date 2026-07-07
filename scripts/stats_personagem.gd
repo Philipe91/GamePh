@@ -25,3 +25,6 @@ class_name StatsPersonagem
 @export var escala_modelo: float = 1.0
 @export var rotacao_modelo_y: float = 0.0    # graus, p/ virar o modelo pra frente (-Z)
 @export var offset_modelo_y: float = -1.0     # desce o modelo (pivot nos pés) p/ os pés no chão
+## Altura-alvo em mundo quando escala_modelo = 0 (auto-fit). Silhueta por CLASSE DE
+## PESO: tanque maior que glass cannon (leitura de arquétipo à distância).
+@export var altura_modelo: float = 2.5

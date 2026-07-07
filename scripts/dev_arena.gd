@@ -66,6 +66,9 @@ func executar(a: Node3D, args: PackedStringArray) -> bool:
 	if "--demo-fim" in args:
 		_demo_fim_e_capturar()
 		return true
+	if "--retratos" in args:
+		_gerar_retratos()
+		return true
 	if "--capturar" in args:
 		_capturar_e_sair()
 		return true
@@ -972,6 +975,101 @@ func _rodar_teste() -> void:
 
 
 # ───────────────────────────── Demos de captura (dev) ─────────────────────────────
+
+## Gera os RETRATOS oficiais do roster (assets/sprites/retratos/<nome>.png, 256×256):
+## renderiza cada modelo 3D em close 3/4 contra um pano na cor do personagem.
+## Substitui os banners promocionais de terceiros — arte de retrato própria do jogo.
+func _gerar_retratos() -> void:
+	player.visible = false
+	bot.visible = false
+	player.set_physics_process(false)
+	bot.set_physics_process(false)
+	var hud := arena.get_node_or_null("HUD")
+	if hud != null:
+		hud.visible = false
+	var cam := arena.get_node("Camera3D") as Camera3D
+	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+	cam.fov = 28.0
+	var base := Vector3(400.0, 0.0, 400.0)   # bem longe do mapa
+	for nome in ["brecht", "magnus", "vesna", "pip", "kestrel", "mara"]:
+		var st: Resource = load("res://resources/personagens/%s.tres" % nome)
+		if st == null or st.cena_modelo == null:
+			continue
+		var m: Node3D = st.cena_modelo.instantiate()
+		arena.add_child(m)
+		m.global_position = base
+		# 3/4 de frente (o modelo cru olha +Z; giro de 180+25 = de frente, virado de leve).
+		m.rotation.y = deg_to_rad(180.0 + 25.0)
+		var alt := _altura_modelo_cru(m)
+		# Pano de fundo na cor do personagem (escura — o rosto é quem brilha).
+		var pano := MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = Vector2(8.0, 8.0)
+		pm.orientation = PlaneMesh.FACE_Z
+		pano.mesh = pm
+		var c: Color = st.cor_time
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.albedo_color = Color(c.r * 0.4, c.g * 0.4, c.b * 0.4)
+		pano.material_override = mat
+		arena.add_child(pano)
+		pano.global_position = base + Vector3(0.0, alt * 0.5, 2.2)   # atrás (modelo olha -Z)
+		# Luz de estúdio: key frontal alta + fill lateral (o rosto é o assunto).
+		var key := OmniLight3D.new()
+		key.light_energy = 2.2
+		key.omni_range = 12.0
+		key.shadow_enabled = false
+		arena.add_child(key)
+		key.global_position = base + Vector3(-1.2, alt * 1.1, -alt * 1.4)
+		var fill := OmniLight3D.new()
+		fill.light_energy = 1.0
+		fill.light_color = Color(c.r, c.g, c.b).lerp(Color.WHITE, 0.5)
+		fill.omni_range = 12.0
+		fill.shadow_enabled = false
+		arena.add_child(fill)
+		fill.global_position = base + Vector3(1.6, alt * 0.6, -alt * 1.0)
+		# Câmera na frente (-Z), na altura dos olhos, close no rosto/ombros.
+		# Enquadramento POR PERSONAGEM (frações da altura: câmera, olhar, distância) —
+		# chapéus/elmos mudam onde o rosto cai no corpo do modelo.
+		var enq: Array = {
+			"brecht": [0.70, 0.58, 1.05],
+			"magnus": [0.72, 0.60, 1.05],
+			"vesna": [0.56, 0.47, 1.2],
+			"pip": [0.70, 0.58, 1.05],
+			"kestrel": [0.72, 0.60, 1.0],
+			"mara": [0.72, 0.60, 1.05],
+		}.get(nome, [0.72, 0.6, 1.05])
+		cam.global_position = base + Vector3(0.0, alt * float(enq[0]), -alt * float(enq[2]))
+		cam.look_at(base + Vector3(0.0, alt * float(enq[1]), 0.0), Vector3.UP)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		# Recorta o quadrado central e reduz pra 256 (retrato de HUD/seleção).
+		var lado := mini(img.get_width(), img.get_height())
+		img = img.get_region(Rect2i((img.get_width() - lado) / 2, (img.get_height() - lado) / 2, lado, lado))
+		img.resize(256, 256, Image.INTERPOLATE_LANCZOS)
+		img.save_png("res://assets/sprites/retratos/%s.png" % nome)
+		print("[Retratos] salvo ", nome)
+		m.queue_free()
+		pano.queue_free()
+		key.queue_free()
+		fill.queue_free()
+	get_tree().quit()
+
+
+## Altura crua (AABB) das malhas de um modelo recém-instanciado (escala 1).
+func _altura_modelo_cru(no: Node3D) -> float:
+	var minimo := 1.0e9
+	var maximo := -1.0e9
+	for filho in no.find_children("*", "MeshInstance3D", true, false):
+		var mi := filho as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		var ab := mi.get_aabb()
+		minimo = minf(minimo, ab.position.y)
+		maximo = maxf(maximo, ab.position.y + ab.size.y)
+	return maxf(0.5, maximo - minimo)
 
 ## Planta uma de cada armadilha numa fileira e captura (dev: ver cores/tamanhos).
 func _demo_armadilhas_e_capturar() -> void:

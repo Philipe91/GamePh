@@ -164,9 +164,13 @@ func _montar_modelo() -> void:
 	m.name = "Modelo"
 	add_child(m)
 	if escala <= 0.0:
-		# Auto-fit: mede a AABB crua do modelo e escala pra ALTURA_MODELO_ALVO.
+		# Auto-fit: mede a AABB crua do modelo e escala pra altura-alvo do personagem
+		# (por arquétipo — tanque avulta, assassina é miúda) ou o padrão.
+		var alvo_alt := ALTURA_MODELO_ALVO
+		if stats != null and stats.get("altura_modelo") != null and float(stats.altura_modelo) > 0.1:
+			alvo_alt = float(stats.altura_modelo)
 		var alt := _altura_aabb(m)
-		escala = (ALTURA_MODELO_ALVO / alt) if alt > 0.01 else 1.0
+		escala = (alvo_alt / alt) if alt > 0.01 else 1.0
 	m.scale = Vector3.ONE * escala
 	m.rotation.y = deg_to_rad(rot)
 	m.position.y = offset           # pivot nos pés -> desce pro chão
