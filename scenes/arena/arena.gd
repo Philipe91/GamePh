@@ -832,7 +832,30 @@ func _galpao_vigas_e_holofotes(raiz: Node3D, w: float, h: float, mat_escuro: Mat
 		viga.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		raiz.add_child(viga)
 		viga.position = Vector3(0.0, 9.5, zi)
-	# 4 holofotes acima dos CANTOS do campo, mirando pra dentro (luz REAL — SpotLight).
+	# HOLOFOTE-MESTRE do ringue: um facho largo de cima do centro — o tabuleiro é o
+	# palco iluminado, as bordas caem ~30% pelo falloff (escada de brilho, Art Bible §2).
+	# Com o fog volumétrico, o cone vira um SHAFT de luz visível (torneio clandestino).
+	var mestre := SpotLight3D.new()
+	mestre.light_color = Color(1.0, 0.97, 0.9)
+	mestre.light_energy = 5.0
+	mestre.spot_range = 26.0
+	mestre.spot_angle = 60.0
+	mestre.spot_angle_attenuation = 1.2
+	mestre.shadow_enabled = false
+	raiz.add_child(mestre)
+	mestre.position = Vector3(0.0, 13.0, 0.0)
+	mestre.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	var luminaria := MeshInstance3D.new()
+	var lum := CylinderMesh.new()
+	lum.top_radius = 0.5
+	lum.bottom_radius = 0.75
+	lum.height = 0.8
+	luminaria.mesh = lum
+	luminaria.material_override = mat_escuro
+	luminaria.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	raiz.add_child(luminaria)
+	luminaria.position = Vector3(0.0, 13.2, 0.0)
+	# 4 holofotes menores acima dos CANTOS, mirando pra dentro (preenchem os quadrantes).
 	var cantos := [Vector3(-w * 0.55, 0, -h * 0.55), Vector3(w * 0.55, 0, -h * 0.55),
 			Vector3(-w * 0.55, 0, h * 0.55), Vector3(w * 0.55, 0, h * 0.55)]
 	for alvo in cantos:
@@ -849,9 +872,9 @@ func _galpao_vigas_e_holofotes(raiz: Node3D, w: float, h: float, mat_escuro: Mat
 		corpo.position = pos
 		var luz := SpotLight3D.new()
 		luz.light_color = Color(1.0, 0.95, 0.85)
-		luz.light_energy = 1.4
+		luz.light_energy = 1.1
 		luz.spot_range = 15.0
-		luz.spot_angle = 38.0
+		luz.spot_angle = 36.0
 		luz.shadow_enabled = false
 		raiz.add_child(luz)
 		luz.position = pos
