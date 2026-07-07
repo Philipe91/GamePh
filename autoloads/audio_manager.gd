@@ -73,6 +73,71 @@ func parar_musica() -> void:
 	_musica.stop()
 
 
+# ─────────────── Ambiência do complexo (o galpão nunca está em silêncio) ───────────────
+
+var _ambiencia: AudioStreamPlayer = null
+var _t_eco: float = 0.0
+const ECOS: Array[String] = ["eco_porta", "eco_maquina", "eco_vapor"]
+
+
+## Liga a CAMA sonora industrial (hum de máquina em loop, bem baixo) + ecos esparsos
+## aleatórios (porta ao longe, máquina, vapor). Chamada pela arena.
+func tocar_ambiencia() -> void:
+	if _ambiencia != null and _ambiencia.playing:
+		return
+	if _ambiencia == null:
+		_ambiencia = AudioStreamPlayer.new()
+		_ambiencia.volume_db = -22.0
+		add_child(_ambiencia)
+	if not ResourceLoader.exists("res://assets/audio/ambiente.ogg"):
+		return
+	var stream: AudioStream = load("res://assets/audio/ambiente.ogg")
+	if stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = true
+	_ambiencia.stream = stream
+	_ambiencia.play()
+	_t_eco = randf_range(6.0, 14.0)
+
+
+func parar_ambiencia() -> void:
+	if _ambiencia != null:
+		_ambiencia.stop()
+
+
+## Relógio dos ECOS: de tempos em tempos, um som distante do complexo (volume baixo,
+## pitch levemente variado) lembra que o prédio está vivo.
+func _process(delta: float) -> void:
+	if _ambiencia == null or not _ambiencia.playing:
+		return
+	_t_eco -= delta
+	if _t_eco > 0.0:
+		return
+	_t_eco = randf_range(7.0, 18.0)
+	var evento: String = ECOS[randi() % ECOS.size()]
+	if not _sons.has(evento):
+		_sons[evento] = _carregar_ou_gerar_eco(evento)
+	var variacoes: Array = _sons[evento]
+	if variacoes.is_empty():
+		return
+	var p := _players[_proximo]
+	_proximo = (_proximo + 1) % _players.size()
+	p.stream = variacoes[0]
+	p.volume_db = -16.0
+	p.pitch_scale = randf_range(0.85, 1.05)
+	p.play()
+	# Devolve o volume normal do player pro próximo SFX de gameplay.
+	p.finished.connect(func(): p.volume_db = 0.0, CONNECT_ONE_SHOT)
+
+
+## Ecos não têm entrada na tabela EVENTOS (nada de fallback sintetizado — sem arquivo,
+## sem eco).
+func _carregar_ou_gerar_eco(evento: String) -> Array:
+	var caminho := "res://assets/audio/%s.ogg" % evento
+	if ResourceLoader.exists(caminho):
+		return [load(caminho)]
+	return []
+
+
 ## Loop de 6.4s @ 22050Hz: kick 4x4, baixo (Lá menor: A2 C3 E3 G3) em colcheias com
 ## leve saturação, hat de ruído no contratempo. LOOP_FORWARD pra tocar sem emenda.
 func _gerar_loop_musica() -> AudioStreamWAV:

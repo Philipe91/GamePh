@@ -54,6 +54,7 @@ func _montar_menu() -> void:
 func _sair_pro_menu() -> void:
 	get_tree().paused = false
 	AudioManager.parar_musica()
+	AudioManager.parar_ambiencia()
 	Transicao.ir_para("res://scenes/ui/titulo.tscn")
 
 

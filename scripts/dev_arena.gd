@@ -69,6 +69,9 @@ func executar(a: Node3D, args: PackedStringArray) -> bool:
 	if "--retratos" in args:
 		_gerar_retratos()
 		return true
+	if "--icones" in args:
+		_gerar_icones_armadilhas()
+		return true
 	if "--capturar" in args:
 		_capturar_e_sair()
 		return true
@@ -1049,6 +1052,49 @@ func _gerar_retratos() -> void:
 		pano.queue_free()
 		key.queue_free()
 		fill.queue_free()
+	get_tree().quit()
+
+
+## Gera os ÍCONES das armadilhas (assets/sprites/armadilhas/<tipo>.png, 256×256)
+## renderizando o CORPO 3D REAL de cada uma, armada (LED aceso), em close 3/4.
+## Substitui as artes AI fora de spec — o ícone do HUD é O objeto do jogo.
+func _gerar_icones_armadilhas() -> void:
+	bot.set_physics_process(false)
+	player.set_physics_process(false)
+	bot.global_position = Vector3(40.0, 1.0, 40.0)
+	var hud := arena.get_node_or_null("HUD")
+	if hud != null:
+		hud.visible = false
+	var cam := arena.get_node("Camera3D") as Camera3D
+	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+	cam.fov = 26.0
+	var linhas := arena.get_node_or_null("LinhasGrid")
+	if linhas != null:
+		linhas.visible = false   # fundo limpo (sem as linhas ciano de dev)
+	var coord := Vector2i(6, 6)
+	var alvo := GridManager.grid_to_world(coord)
+	await get_tree().physics_frame
+	for tipo in ["mina", "bomba", "detonador", "gas", "cova", "painel"]:
+		player.global_position = alvo
+		player.plantar(tipo)
+		player.global_position = Vector3(-40.0, 1.0, -40.0)
+		await get_tree().create_timer(0.75).timeout   # arma (LED pulsando)
+		cam.global_position = alvo + Vector3(1.1, 1.5, -1.7)
+		cam.look_at(alvo + Vector3(0.0, 0.12, 0.0), Vector3.UP)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		var lado := mini(img.get_width(), img.get_height())
+		img = img.get_region(Rect2i((img.get_width() - lado) / 2, (img.get_height() - lado) / 2, lado, lado))
+		img.resize(256, 256, Image.INTERPOLATE_LANCZOS)
+		img.save_png("res://assets/sprites/armadilhas/%s.png" % tipo)
+		print("[Icones] salvo ", tipo)
+		# Recolhe pra liberar o tile pro próximo.
+		for a in get_tree().get_nodes_in_group("armadilhas"):
+			if is_instance_valid(a):
+				a.recolher()
+		await get_tree().physics_frame
 	get_tree().quit()
 
 

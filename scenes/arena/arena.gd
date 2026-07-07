@@ -126,6 +126,7 @@ func _ready() -> void:
 	GameManager.round_comecou.connect(_ao_round_comecou)  # reset a cada round (GDD 12)
 	GameManager.round_acabou.connect(_ao_round_acabou)    # vencedor comemora (animação)
 	AudioManager.tocar_musica()                           # trilha de fundo (loop)
+	AudioManager.tocar_ambiencia()                        # hum do complexo + ecos distantes
 	GameManager.iniciar_partida([player, oponente])
 
 
