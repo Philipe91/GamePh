@@ -174,10 +174,14 @@ func _montar_modelo() -> void:
 	m.scale = Vector3.ONE * escala
 	m.rotation.y = deg_to_rad(rot)
 	m.position.y = offset           # pivot nos pés -> desce pro chão
-	# Tinta de time SÓ no modelo fallback (os dois usariam o mesmo boneco). Modelos
-	# próprios do roster (KayKit) mantêm a textura — o anel colorido separa os times.
+	# Tinta de time SÓ no modelo fallback (os dois usariam o mesmo boneco).
 	if stats == null or stats.cena_modelo == null:
 		_tingir_modelo(m)
+	else:
+		# RECOLOR TÁTICO (Briefing §1.1): civil vira operador — roupa escura
+		# dessaturada, pele intacta, e a peça mais chamativa vira acento EMISSIVO
+		# na cor do TIME (o duelo azul×vermelho é a assinatura do jogo).
+		recolorir_tatico(m, Color(0.35, 0.7, 1.0) if id_jogador == 1 else Color(1.0, 0.35, 0.35))
 	_aplicar_rim_time(m)
 	_configurar_animacao(m)
 	_montar_arma_visual()
@@ -348,6 +352,41 @@ func _altura_aabb(no: Node) -> float:
 		minimo = minf(minimo, ab.position.y)
 		maximo = maxf(maximo, ab.position.y + ab.size.y)
 	return maxf(0.0, maximo - minimo)
+
+
+## Recolor TÁTICO por superfície (estático: os retratos usam também). Escurece e
+## dessatura as roupas (ambiente ≤35% — Art Bible), PRESERVA a pele, e transforma a
+## superfície mais saturada do modelo em acento emissivo na cor dada.
+static func recolorir_tatico(m: Node3D, cor_acento: Color) -> void:
+	var melhor_mi: MeshInstance3D = null
+	var melhor_si := -1
+	var melhor_sat := -1.0
+	for filho in m.find_children("*", "MeshInstance3D", true, false):
+		var mi := filho as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		for si in mi.mesh.get_surface_count():
+			var mat := mi.mesh.surface_get_material(si) as StandardMaterial3D
+			if mat == null:
+				continue
+			var c := mat.albedo_color
+			# Pele/rosto: matiz quente, claro, pouco saturado — não tocar.
+			if c.h > 0.01 and c.h < 0.13 and c.v > 0.55 and c.s < 0.55:
+				continue
+			var novo := mat.duplicate() as StandardMaterial3D
+			novo.albedo_color = Color.from_hsv(c.h, minf(c.s * 0.4, 0.3), c.v * 0.6)
+			mi.set_surface_override_material(si, novo)
+			if c.s * c.v > melhor_sat:   # a peça mais VIVA do civil vira o LED do operador
+				melhor_sat = c.s * c.v
+				melhor_mi = mi
+				melhor_si = si
+	if melhor_mi != null and melhor_si >= 0:
+		var acento := melhor_mi.get_surface_override_material(melhor_si) as StandardMaterial3D
+		if acento != null:
+			acento.albedo_color = Color(cor_acento.r * 0.45, cor_acento.g * 0.45, cor_acento.b * 0.45)
+			acento.emission_enabled = true
+			acento.emission = cor_acento
+			acento.emission_energy_multiplier = 1.1
 
 
 ## Pinta o modelo inteiro com a cor do time (material chapado): P1 azul, P2 vermelho.

@@ -1001,6 +1001,8 @@ func _gerar_retratos() -> void:
 		var m: Node3D = st.cena_modelo.instantiate()
 		arena.add_child(m)
 		m.global_position = base
+		# Mesmo recolor tático do jogo (retrato = o personagem REAL, acento na cor dele).
+		preload("res://scenes/characters/combatente.gd").recolorir_tatico(m, st.cor_time)
 		# 3/4 de frente (o modelo cru olha +Z; giro de 180+25 = de frente, virado de leve).
 		m.rotation.y = deg_to_rad(180.0 + 25.0)
 		var alt := _altura_modelo_cru(m)
