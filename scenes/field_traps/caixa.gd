@@ -18,6 +18,13 @@ var _vida: float = VIDA
 
 func _ready() -> void:
 	add_to_group("destrutiveis")
+	# Cara de objeto (não de quadrado de UI): madeira pra Obstacle, vermelho pra Bomb Box.
+	var mi := get_node_or_null("Malha") as MeshInstance3D
+	if mi != null:
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.72, 0.22, 0.16) if tipo == "bomba" else Color(0.58, 0.42, 0.24)
+		mat.roughness = 0.9
+		mi.material_override = mat
 
 
 ## Sofre dano (projétil/explosão). `tipo_dano` ignorado; quebra ao zerar a vida.

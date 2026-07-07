@@ -980,10 +980,7 @@ func _demo_setor07_e_capturar() -> void:
 	player.gravidade_ativa = true
 	bot.gravidade_ativa = true
 	arena._montar_estruturas(mapa)
-	var cam := arena.get_node_or_null("Camera3D") as Camera3D
-	if cam != null:
-		arena._cam_offset = cam.position
-		arena._seguir_camera = true
+	arena._configurar_camera()
 	await get_tree().physics_frame
 	player.global_position = Vector3(-12.0, 1.0, 14.0)
 	bot.global_position = Vector3(8.0, 1.0, 10.0)
@@ -1012,14 +1009,10 @@ func _demo_padrao_e_capturar() -> void:
 	player.set_physics_process(false)
 	var mapa: Resource = load("res://resources/mapas/padrao.tres")
 	GridManager.configurar_mapa(mapa)
-	arena._desenhar_grid()
+	arena._montar_visual_mapa(mapa)   # chão xadrez + paredes + câmera Trap Gunner
 	for c in mapa.vaults:
 		arena._colocar_vault(c)
 	arena._colocar_field_traps(mapa)
-	var cam := arena.get_node_or_null("Camera3D") as Camera3D
-	if cam != null:
-		arena._cam_offset = cam.position
-		arena._seguir_camera = true
 	await get_tree().physics_frame
 	player.global_position = GridManager.grid_to_world(Vector2i(9, 12))
 	player.global_position.y = 1.0
@@ -1088,7 +1081,7 @@ func _demo_mapa_e_capturar() -> void:
 	player.set_physics_process(false)
 	var mapa: Resource = preload("res://resources/mapas/padrao.tres")
 	GridManager.configurar_mapa(mapa)
-	arena._desenhar_grid()
+	arena._montar_visual_mapa(mapa)
 	await get_tree().physics_frame
 	player.global_position = GridManager.grid_to_world(mapa.spawn_jogador)
 	player.global_position.y = 1.0

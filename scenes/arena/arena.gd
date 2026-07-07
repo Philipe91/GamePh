@@ -20,6 +20,13 @@ var _oponente: Node = null
 ## Câmera que segue o player em mapas grandes (estilo Trap Gunner).
 var _seguir_camera: bool = false
 var _cam_offset: Vector3 = Vector3.ZERO
+## Limites (±x, ±z) do foco da câmera, pra não mostrar o vazio além das paredes.
+var _cam_limite: Vector2 = Vector2(1.0e9, 1.0e9)
+
+## Câmera estilo Trap Gunner: perspectiva inclinada (~55°) mostrando boa parte do mapa.
+const CAM_FOV: float = 50.0
+const CAM_DIST: float = 26.0
+const CAM_TILT_GRAUS: float = 55.0
 
 
 func _ready() -> void:
@@ -53,7 +60,7 @@ func _ready() -> void:
 	var caminho_mapa := GameManager.mapa if GameManager.mapa != "" else "res://resources/mapas/padrao.tres"
 	var mapa: Resource = load(caminho_mapa)
 	GridManager.configurar_mapa(mapa)
-	_desenhar_grid()
+	_montar_visual_mapa(mapa)   # chão xadrez + paredes + câmera (estilo Trap Gunner)
 	if mapa.vertical:
 		player.gravidade_ativa = true
 		_montar_estruturas(mapa)   # chão, paredes, pontes, rampas (3D com colisão)
@@ -80,12 +87,6 @@ func _ready() -> void:
 	# Modo normal de jogo: liga a HUD e inicia a partida (rounds + regras de vitória).
 	_mapa = mapa
 	_oponente = oponente
-	# Câmera segue o player em mapas grandes (Trap Gunner). Offset = pose inicial da câmera.
-	if mapa.get("camera_segue"):
-		var cam := get_node_or_null("Camera3D") as Camera3D
-		if cam != null:
-			_cam_offset = cam.position
-			_seguir_camera = true
 	$HUD.configurar(player, oponente)
 	for c in mapa.vaults:
 		_colocar_vault(c)                           # Vaults do mapa (GDD 8)
@@ -182,15 +183,118 @@ func _process(delta: float) -> void:
 		mat.albedo_color = cor
 
 
-## Câmera segue o player em XZ (mantendo o ângulo/altura 2.5D), com suavização.
+## Câmera segue o player em XZ (mantendo o ângulo), com suavização e clamp nas bordas
+## do mapa (não mostra o vazio além das paredes — leitura limpa, estilo Trap Gunner).
 func _seguir_player(delta: float) -> void:
 	if not _seguir_camera or player == null or not is_instance_valid(player):
 		return
 	var cam := get_node_or_null("Camera3D") as Camera3D
 	if cam == null:
 		return
-	var alvo := Vector3(player.global_position.x, 0.0, player.global_position.z) + _cam_offset
+	var foco := Vector3(player.global_position.x, 0.0, player.global_position.z)
+	foco.x = clampf(foco.x, -_cam_limite.x, _cam_limite.x)
+	foco.z = clampf(foco.z, -_cam_limite.y, _cam_limite.y)
+	var alvo := foco + _cam_offset
 	cam.global_position = cam.global_position.lerp(alvo, 1.0 - exp(-delta * 6.0))
+
+
+# ──────────────── Visual do mapa (estilo Trap Gunner — ver PLANO_REMAKE_VISUAL) ────────────────
+
+## Monta o visual de um mapa plano: chão xadrez cobrindo EXATAMENTE o grid, paredes com
+## colisão no perímetro e a câmera perspectiva inclinada. Mapas verticais mantêm as
+## estruturas próprias (chão texturizado) e só ganham a câmera.
+func _montar_visual_mapa(mapa: Resource) -> void:
+	_configurar_camera()
+	var chao_antigo := get_node_or_null("Chao")
+	if chao_antigo != null:
+		chao_antigo.visible = false        # o plano fixo 24×24 não serve pra mapa por dados
+	var linhas := get_node_or_null("LinhasGrid")
+	if linhas != null:
+		linhas.queue_free()                # o xadrez JÁ marca o grid (sem linhas neon)
+	if mapa.vertical:
+		_desenhar_grid()                   # mapas verticais: estruturas próprias + linhas
+		return
+	_montar_chao_tiles(mapa)
+	_montar_paredes()
+
+
+## Chão em PLACAS por tile (duas cores alternadas — leitura de grid imediata, cara de
+## Trap Gunner). MultiMesh: 2 draw calls pro chão inteiro, qualquer tamanho de mapa.
+func _montar_chao_tiles(mapa: Resource) -> void:
+	var antigo := get_node_or_null("ChaoTiles")
+	if antigo != null:
+		antigo.queue_free()
+	var raiz := Node3D.new()
+	raiz.name = "ChaoTiles"
+	add_child(raiz)
+	var ts := GridManager.TAMANHO_TILE
+	var box := BoxMesh.new()
+	box.size = Vector3(ts * 0.97, 0.14, ts * 0.97)   # fresta escura entre placas = grid
+	# Tema do mapa (se o .tres definir cores, usa; senão o metal frio padrão).
+	var cor_a: Color = mapa.get("cor_tile_a") if mapa.get("cor_tile_a") != null else Color(0.34, 0.36, 0.42)
+	var cor_b: Color = mapa.get("cor_tile_b") if mapa.get("cor_tile_b") != null else Color(0.25, 0.27, 0.33)
+	var cores := [cor_a, cor_b]
+	# Junta as transforms por paridade (xadrez) e cria um MultiMesh por cor.
+	var por_cor: Array = [[], []]
+	for x in range(GridManager.LARGURA):
+		for y in range(GridManager.ALTURA):
+			var p := GridManager.grid_to_world(Vector2i(x, y))
+			var t := Transform3D(Basis.IDENTITY, Vector3(p.x, -0.07, p.z))  # topo em y=0
+			por_cor[(x + y) % 2].append(t)
+	for ci in 2:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = box
+		mm.instance_count = por_cor[ci].size()
+		for i in por_cor[ci].size():
+			mm.set_instance_transform(i, por_cor[ci][i])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = cores[ci]
+		mat.roughness = 0.85
+		mat.metallic = 0.15
+		mmi.material_override = mat
+		raiz.add_child(mmi)
+
+
+## Paredes com colisão no perímetro do grid: seguram os personagens DENTRO da arena
+## (antes dava pra andar pro vazio infinito) e fecham a leitura do mapa.
+func _montar_paredes() -> void:
+	var ts := GridManager.TAMANHO_TILE
+	var w := float(GridManager.LARGURA) * ts
+	var h := float(GridManager.ALTURA) * ts
+	var alt := 1.1
+	var esp := 0.6
+	var cor := Color(0.16, 0.17, 0.22)
+	_caixa_solida(Vector3(0.0, alt * 0.5, -h * 0.5 - esp * 0.5), Vector3(w + esp * 2.0, alt, esp), cor)
+	_caixa_solida(Vector3(0.0, alt * 0.5, h * 0.5 + esp * 0.5), Vector3(w + esp * 2.0, alt, esp), cor)
+	_caixa_solida(Vector3(-w * 0.5 - esp * 0.5, alt * 0.5, 0.0), Vector3(esp, alt, h + esp * 2.0), cor)
+	_caixa_solida(Vector3(w * 0.5 + esp * 0.5, alt * 0.5, 0.0), Vector3(esp, alt, h + esp * 2.0), cor)
+
+
+## Câmera Trap Gunner: perspectiva, inclinada ~55°, seguindo o player com clamp.
+func _configurar_camera() -> void:
+	var cam := get_node_or_null("Camera3D") as Camera3D
+	if cam == null:
+		return
+	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+	cam.fov = CAM_FOV
+	var tilt := deg_to_rad(CAM_TILT_GRAUS)
+	_cam_offset = Vector3(0.0, sin(tilt), cos(tilt)) * CAM_DIST
+	cam.rotation_degrees = Vector3(-CAM_TILT_GRAUS, 0.0, 0.0)
+	# Clamp do foco: quanto o mapa é maior que o enquadramento, deixa a câmera passear.
+	var ts := GridManager.TAMANHO_TILE
+	var w := float(GridManager.LARGURA) * ts
+	var h := float(GridManager.ALTURA) * ts
+	_cam_limite = Vector2(maxf(0.0, w * 0.5 - 10.0), maxf(0.0, h * 0.5 - 8.0))
+	var foco := Vector3.ZERO
+	if player != null and is_instance_valid(player):
+		foco = Vector3(player.global_position.x, 0.0, player.global_position.z)
+	foco.x = clampf(foco.x, -_cam_limite.x, _cam_limite.x)
+	foco.z = clampf(foco.z, -_cam_limite.y, _cam_limite.y)
+	cam.position = foco + _cam_offset
+	_seguir_camera = true
 
 
 ## Aplica `assets/sprites/chao.png` como textura do chão (tileada), se o arquivo existir.

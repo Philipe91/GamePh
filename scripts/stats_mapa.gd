@@ -26,6 +26,10 @@ class_name StatsMapa
 ## pequenos que cabem inteiros na tela).
 @export var camera_segue: bool = false
 
+## Tema do chão xadrez (duas cores alternadas de placa) — identidade visual por mapa.
+@export var cor_tile_a: Color = Color(0.34, 0.36, 0.42)
+@export var cor_tile_b: Color = Color(0.25, 0.27, 0.33)
+
 ## Mapa vertical (com altura): liga gravidade nos personagens e monta as estruturas 3D.
 @export var vertical: bool = false
 ## Estruturas 3D (Fase 6+): lista de Dictionaries. Tipos: "chao", "parede", "pilar"

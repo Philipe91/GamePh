@@ -102,7 +102,9 @@ func _ready() -> void:
 
 ## Modelo placeholder padrão (Kenney) usado em JOGO até cada personagem ter o seu próprio.
 const MODELO_PADRAO_PATH := "res://assets/models/kenney/Character/Character.gltf"
-const ESCALA_PADRAO := 6.5
+## Altura-alvo do personagem em mundo (~1 tile de largura de ombros). O modelo padrão é
+## auto-ajustado pra esta altura pelo AABB — 6.5 fixo deixava o boneco com 2+ tiles.
+const ALTURA_MODELO_ALVO := 1.9
 const OFFSET_PADRAO := -1.0
 
 ## Troca a cápsula pelo modelo 3D. Usa o modelo do personagem (StatsPersonagem) se houver;
@@ -114,7 +116,7 @@ func _montar_modelo() -> void:
 		antigo.queue_free()
 	var malha := get_node_or_null("Malha")
 	var cena: PackedScene = null
-	var escala := ESCALA_PADRAO
+	var escala := 0.0               # 0 = auto-ajustar pela AABB (modelo padrão)
 	var rot := 0.0
 	var offset := OFFSET_PADRAO
 	if stats != null and stats.cena_modelo != null:
@@ -134,10 +136,41 @@ func _montar_modelo() -> void:
 	var m: Node3D = cena.instantiate()
 	m.name = "Modelo"
 	add_child(m)
+	if escala <= 0.0:
+		# Auto-fit: mede a AABB crua do modelo e escala pra ALTURA_MODELO_ALVO.
+		var alt := _altura_aabb(m)
+		escala = (ALTURA_MODELO_ALVO / alt) if alt > 0.01 else 1.0
 	m.scale = Vector3.ONE * escala
 	m.rotation.y = deg_to_rad(rot)
 	m.position.y = offset           # pivot nos pés -> desce pro chão
+	_tingir_modelo(m)               # cor chapada do TIME (leitura imediata, look PS1)
 	_montar_anel_time()
+
+
+## Altura combinada (eixo Y) das malhas de um modelo, no espaço local dele.
+func _altura_aabb(no: Node) -> float:
+	var minimo := 1.0e9
+	var maximo := -1.0e9
+	for filho in no.find_children("*", "MeshInstance3D", true, false):
+		var mi := filho as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		var ab := mi.get_aabb()
+		minimo = minf(minimo, ab.position.y)
+		maximo = maxf(maximo, ab.position.y + ab.size.y)
+	return maxf(0.0, maximo - minimo)
+
+
+## Pinta o modelo inteiro com a cor do time (material chapado): P1 azul, P2 vermelho.
+## Resolve o print do playtest onde os DOIS eram o mesmo boneco amarelo.
+func _tingir_modelo(m: Node3D) -> void:
+	var cor := _cor_time()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = cor.lerp(Color.WHITE, 0.25)
+	mat.roughness = 0.7
+	mat.metallic = 0.05
+	for filho in m.find_children("*", "MeshInstance3D", true, false):
+		(filho as MeshInstance3D).material_override = mat
 
 
 func _modo_teste() -> bool:

@@ -11,10 +11,17 @@ extends CPUParticles3D
 func _ready() -> void:
 	add_to_group("fx")
 	emitting = true
+	# Fumaça espessa subindo (marca das explosões do Trap Gunner original).
+	var fumaca := get_node_or_null("Fumaca") as CPUParticles3D
+	if fumaca != null:
+		fumaca.emitting = true
 	# Flash: a luz nasce forte e morre rápido (tween independente do fluxo abaixo).
 	if luz != null:
 		var tw := create_tween()
 		tw.tween_property(luz, "light_energy", 0.0, 0.4) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	await get_tree().create_timer(lifetime + 0.3).timeout
+	var dur := lifetime
+	if fumaca != null:
+		dur = maxf(dur, fumaca.lifetime)
+	await get_tree().create_timer(dur + 0.3).timeout
 	queue_free()
