@@ -430,12 +430,13 @@ func _process(delta: float) -> void:
 		_carga_restante = maxf(0.0, _carga_restante - delta)
 		if _carga_restante == 0.0:
 			_disparar_plasma()
-	# Poeira de passos ao correr (vida no movimento — só visual).
+	# Poeira + SOM de passos ao correr (vida no movimento).
 	_t_poeira -= delta
 	if _t_poeira <= 0.0 and not esta_derrubado() \
 			and Vector2(velocity.x, velocity.z).length() > 3.0:
 		_t_poeira = 0.22
 		_fx_poeira()
+		AudioManager.tocar("passos")
 	_atualizar_animacao()
 
 

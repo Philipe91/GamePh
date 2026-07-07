@@ -317,6 +317,7 @@ func _ciclo_gas() -> void:
 	if _estado != Estado.ARMADA or desarmada:
 		return
 	_gas_ativo = true
+	AudioManager.tocar("gas")                 # sibilo do vazamento
 	var c := stats.cor
 	_pintar(Color(c.r, c.g, c.b, 0.4), 0.6)  # nuvem visível
 	_revelar_para_todos()                     # veneno emitindo: TODOS veem a nuvem

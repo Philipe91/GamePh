@@ -386,6 +386,8 @@ func ativar_caution(v: bool) -> void:
 	if v == _caution_ativo:
 		return
 	_caution_ativo = v
+	if _caution_ativo:
+		AudioManager.tocar("caution")   # "scanner ligado" (aviso sonoro — GDD 13)
 	caution_mudou.emit(_caution_ativo)
 
 

@@ -22,6 +22,12 @@ const EVENTOS := {
 	"desarme": [0.25, 400.0, 900.0, 0.0, 0.8],
 	"item": [0.18, 700.0, 1200.0, 0.0, 0.8],
 	"vitoria": [0.5, 400.0, 800.0, 0.0, 0.5],
+	"passos": [0.05, 220.0, 160.0, 0.5, 1.5],
+	"caution": [0.2, 600.0, 800.0, 0.1, 0.8],
+	"gas": [0.4, 200.0, 150.0, 0.9, 1.0],
+	"ui_click": [0.04, 800.0, 900.0, 0.0, 1.0],
+	"ui_back": [0.06, 600.0, 400.0, 0.0, 1.0],
+	"ui_confirm": [0.12, 700.0, 1000.0, 0.0, 0.8],
 }
 
 var _sons: Dictionary = {}
@@ -116,15 +122,16 @@ func aplicar_volume(v: float) -> void:
 	AudioServer.set_bus_volume_db(0, db)
 
 
-## Toca o som do evento. Retorna false se não houver som pra ele.
-## Pequena variação aleatória de pitch a cada disparo: quebra a repetição de ouvir o
-## MESMO sample dezenas de vezes por partida (identidade sonora — GDD 13).
+## Toca o som do evento (sorteia entre as VARIAÇÕES do evento, se houver). Retorna
+## false se não houver som pra ele. Variação de arquivo + pitch ±8% a cada disparo:
+## quebra a repetição de ouvir o MESMO sample dezenas de vezes (identidade — GDD 13).
 func tocar(evento: String) -> bool:
 	if not _sons.has(evento):
 		return false
 	var p := _players[_proximo]
 	_proximo = (_proximo + 1) % _players.size()
-	p.stream = _sons[evento]
+	var variacoes: Array = _sons[evento]
+	p.stream = variacoes[randi() % variacoes.size()]
 	p.pitch_scale = randf_range(0.92, 1.08)
 	p.play()
 	return true
@@ -134,15 +141,23 @@ func tem_som(evento: String) -> bool:
 	return _sons.has(evento)
 
 
-## Usa o .wav do projeto se existir; senão SINTETIZA o efeito (bem melhor que beep:
-## mistura seno+ruído com varredura de frequência e envelope — explosão soa grave e
-## "cheia", tiro soa seco, chimes sobem). Ainda é placeholder até termos áudio final.
-func _carregar_ou_gerar(evento: String) -> AudioStream:
-	var caminho := "res://assets/audio/%s.wav" % evento
-	if ResourceLoader.exists(caminho):
-		return load(caminho)
+## Carrega TODAS as variações do evento (`<evento>.ogg|wav`, `<evento>_2.ogg`, ...) —
+## SFX reais (Kenney CC0) em assets/audio. Sem arquivo nenhum, SINTETIZA o efeito
+## (fallback dos tempos de placeholder). Retorna sempre um Array de streams.
+func _carregar_ou_gerar(evento: String) -> Array:
+	var achados: Array = []
+	for ext in ["ogg", "wav"]:
+		var base := "res://assets/audio/%s.%s" % [evento, ext]
+		if ResourceLoader.exists(base):
+			achados.append(load(base))
+		for i in range(2, 7):
+			var variacao := "res://assets/audio/%s_%d.%s" % [evento, i, ext]
+			if ResourceLoader.exists(variacao):
+				achados.append(load(variacao))
+	if not achados.is_empty():
+		return achados
 	var p: Array = EVENTOS[evento]
-	return _sintetizar(float(p[0]), float(p[1]), float(p[2]), float(p[3]), float(p[4]))
+	return [_sintetizar(float(p[0]), float(p[1]), float(p[2]), float(p[3]), float(p[4]))]
 
 
 ## Gera um AudioStreamWAV 16-bit mono: seno com varredura f_ini->f_fim misturado a

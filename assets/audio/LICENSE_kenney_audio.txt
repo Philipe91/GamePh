@@ -1,0 +1,4 @@
+SFX deste diretório: Kenney (kenney.nl) — packs "Sci-Fi Sounds", "Impact Sounds"
+e "Interface Sounds". Licença: Creative Commons Zero (CC0) — domínio público.
+Renomeados por evento do jogo (tiro, explodir, dano, soco, passos, plantar,
+desarme, item, vitoria, caution, gas, ui_*). Variações: sufixo _2, _3...
