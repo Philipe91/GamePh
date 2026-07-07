@@ -1,5 +1,22 @@
 # DevLog
 
+## 2026-07-07 (parte 2) — Split-screen, pathfinding e Story Mode real
+
+- **SPLIT-SCREEN no VS MAN** (decisão do humano: dividida SÓ no multiplayer local):
+  dois SubViewports lado a lado compartilhando o mundo (`own_world_3d = false`), cada
+  um com câmera própria (preset atual + screenshake + clamp) seguindo o seu jogador.
+  VS COM continua tela única. `arena._montar_split_screen`.
+- **Pathfinding A\*** (`GridManager.caminho_mundo`, AStarGrid2D diagonal-safe): caixas
+  e lançadores marcam o tile como sólido ao nascer (limpam ao morrer). O bot persegue
+  por WAYPOINTS (recalcula a cada 0.5s) — parou de esbarrar em caixa; fuga continua
+  direta (correr é reação, não plano).
+- **Story Mode de verdade**: 5 missões (Treinamento, Porto de Carga com DESARME 3,
+  Fábrica, O Cerco com SOBREVIVER, Setor 07 chefe), travas de progresso persistidas
+  (`story/missao`), objetivos no GameManager ("desarmes" vence a partida ao cumprir;
+  "sobreviver" decide o tempo pela sobrevivência) e HUD de objetivo com progresso.
+- Suíte: 141 → **148 asserções** (A*, split, objetivos). Push contínuo pro GamePh.
+
+
 ## 2026-07-07 — Assets de armas e armadilhas (+ push habilitado)
 
 - Push liberado pelo humano para `github.com/Philipe91/GamePh` (remoto `origin` já
