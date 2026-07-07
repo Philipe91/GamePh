@@ -18,6 +18,10 @@ var _t: float = 1.0
 
 func _ready() -> void:
 	add_to_group("destrutiveis")
+	# Lançador é obstáculo fixo: tile sólido pro pathfinding enquanto existir.
+	var coord := GridManager.world_to_grid(global_position)
+	GridManager.marcar_solido(coord, true)
+	tree_exiting.connect(func(): GridManager.marcar_solido(coord, false))
 
 
 func _physics_process(delta: float) -> void:

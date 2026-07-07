@@ -29,6 +29,12 @@ enum TipoTile { LIVRE, VAULT, ESCADA, RAMPA, ESTEIRA }
 var _armadilhas: Dictionary = {}
 ## Tipo de cada tile (para regras de plantio). Vazio = LIVRE.
 var _tipos_tile: Dictionary = {}
+## Pathfinding no grid (IA desvia de caixas/lançadores em vez de esbarrar).
+var _astar := AStarGrid2D.new()
+
+
+func _ready() -> void:
+	_reconstruir_astar()
 
 
 ## Aplica um StatsMapa: redimensiona o grid e limpa o estado (Fase 6). Chamado pela arena
@@ -39,6 +45,37 @@ func configurar_mapa(m: Resource) -> void:
 	TAMANHO_TILE = float(m.tamanho_tile)
 	_armadilhas.clear()
 	_tipos_tile.clear()
+	_reconstruir_astar()
+
+
+## (Re)inicializa o A* do grid — tudo livre; os obstáculos se marcam ao nascer.
+func _reconstruir_astar() -> void:
+	_astar = AStarGrid2D.new()
+	_astar.region = Rect2i(0, 0, LARGURA, ALTURA)
+	_astar.cell_size = Vector2(TAMANHO_TILE, TAMANHO_TILE)
+	_astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	_astar.update()
+
+
+## Marca/desmarca um tile como SÓLIDO pro pathfinding (caixas, lançadores).
+func marcar_solido(coord: Vector2i, solido: bool = true) -> void:
+	if dentro_do_grid(coord):
+		_astar.set_point_solid(coord, solido)
+
+
+## Caminho em pontos de MUNDO de `de` até `para`, contornando os tiles sólidos.
+## Vazio se não há rota (ou origem/destino fora do grid) — quem chama cai no rumo direto.
+func caminho_mundo(de: Vector3, para: Vector3) -> Array:
+	var a := world_to_grid(de)
+	var b := world_to_grid(para)
+	if not dentro_do_grid(a) or not dentro_do_grid(b):
+		return []
+	if _astar.is_point_solid(a) or _astar.is_point_solid(b):
+		return []
+	var pontos: Array = []
+	for id in _astar.get_id_path(a, b):
+		pontos.append(grid_to_world(id))
+	return pontos
 
 
 ## Retorna true se a coordenada está dentro dos limites do grid.

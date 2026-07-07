@@ -20,6 +20,8 @@ var _oponente: Node = null
 ## Câmera que segue o player em mapas grandes (estilo Trap Gunner).
 var _seguir_camera: bool = false
 var _cam_offset: Vector3 = Vector3.ZERO
+## Split-screen do VS MAN: [{ "cam": Camera3D, "alvo": Node3D }, ...]. Vazio = tela única.
+var _cams_split: Array = []
 ## Limites (±x, ±z) do foco da câmera, pra não mostrar o vazio além das paredes.
 var _cam_limite: Vector2 = Vector2(1.0e9, 1.0e9)
 
@@ -97,6 +99,10 @@ func _ready() -> void:
 	_mapa = mapa
 	_oponente = oponente
 	$HUD.configurar(player, oponente)
+	# VS MAN: tela DIVIDIDA (marca registrada do Trap Gunner) — cada jogador tem a sua
+	# câmera seguindo o próprio personagem. VS COM continua em tela única.
+	if GameManager.modo == "vs_man":
+		_montar_split_screen(player, oponente)
 	for c in mapa.vaults:
 		_colocar_vault(c)                           # Vaults do mapa (GDD 8)
 	_colocar_field_traps(mapa)                      # caixas, esteiras, lançadores, pontes
@@ -202,19 +208,69 @@ func _process(delta: float) -> void:
 		mat.albedo_color = cor
 
 
-## Câmera segue o player em XZ (mantendo o ângulo), com suavização e clamp nas bordas
-## do mapa (não mostra o vazio além das paredes — leitura limpa, estilo Trap Gunner).
+## Câmera segue o alvo em XZ (mantendo o ângulo), com suavização e clamp nas bordas
+## do mapa. Tela única: a câmera principal segue o player. Split (VS MAN): cada
+## câmera segue o SEU jogador.
 func _seguir_player(delta: float) -> void:
+	for entrada in _cams_split:
+		var alvo_no: Node3D = entrada["alvo"]
+		if is_instance_valid(alvo_no):
+			_seguir_alvo(entrada["cam"], alvo_no.global_position, delta)
 	if not _seguir_camera or player == null or not is_instance_valid(player):
 		return
 	var cam := get_node_or_null("Camera3D") as Camera3D
 	if cam == null:
 		return
-	var foco := Vector3(player.global_position.x, 0.0, player.global_position.z)
+	_seguir_alvo(cam, player.global_position, delta)
+
+
+func _seguir_alvo(cam: Camera3D, pos: Vector3, delta: float) -> void:
+	var foco := Vector3(pos.x, 0.0, pos.z)
 	foco.x = clampf(foco.x, -_cam_limite.x, _cam_limite.x)
 	foco.z = clampf(foco.z, -_cam_limite.y, _cam_limite.y)
 	var alvo := foco + _cam_offset
 	cam.global_position = cam.global_position.lerp(alvo, 1.0 - exp(-delta * 6.0))
+
+
+## Split-screen do VS MAN (fidelidade ao original): dois SubViewports lado a lado
+## COMPARTILHANDO o mundo da arena (own_world_3d = false), cada um com a própria
+## câmera (mesmo preset da câmera única + screenshake) seguindo o seu jogador.
+## A HUD (CanvasLayer, layer 1) fica por cima das duas telas.
+func _montar_split_screen(p1: Node3D, p2: Node3D) -> void:
+	var cam_principal := get_node_or_null("Camera3D") as Camera3D
+	if cam_principal != null:
+		cam_principal.current = false
+	_seguir_camera = false            # a câmera única não segue; as do split seguem
+	var ui := CanvasLayer.new()
+	ui.name = "SplitScreen"
+	ui.layer = 0                      # abaixo da HUD (layer 1)
+	add_child(ui)
+	var caixa := HBoxContainer.new()
+	caixa.set_anchors_preset(Control.PRESET_FULL_RECT)
+	caixa.add_theme_constant_override("separation", 4)
+	ui.add_child(caixa)
+	var p: Array = CAM_PRESETS.get(_cam_preset, CAM_PRESETS["normal"])
+	var tilt := deg_to_rad(float(p[2]))
+	_cam_offset = Vector3(0.0, sin(tilt), cos(tilt)) * float(p[1])
+	_cams_split.clear()
+	for alvo in [p1, p2]:
+		var cont := SubViewportContainer.new()
+		cont.stretch = true
+		cont.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		caixa.add_child(cont)
+		var vp := SubViewport.new()
+		vp.own_world_3d = false        # MESMO mundo da arena nas duas telas
+		vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		cont.add_child(vp)
+		var cam := Camera3D.new()
+		cam.set_script(preload("res://scenes/arena/camera_tremor.gd"))  # shake nas duas
+		vp.add_child(cam)
+		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+		cam.fov = float(p[0])
+		cam.rotation_degrees = Vector3(-float(p[2]), 0.0, 0.0)
+		cam.position = (alvo as Node3D).global_position + _cam_offset
+		cam.current = true
+		_cams_split.append({"cam": cam, "alvo": alvo})
 
 
 # ──────────────── Visual do mapa (estilo Trap Gunner — ver PLANO_REMAKE_VISUAL) ────────────────

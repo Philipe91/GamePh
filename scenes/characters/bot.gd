@@ -39,6 +39,8 @@ var _t_plantio: float = 2.0            # cooldown atual até a próxima tentativ
 var _armadilhas_ativas: int = 0
 var _combo_fase: int = 0               # combo bomba->detonador: 0 = plantar bomba, 1 = detonador
 var _t_detonar: float = 0.0            # cooldown do gatilho do combo
+var _rota: Array = []                  # waypoints (mundo) do A* até o alvo atual
+var _t_rota: float = 0.0               # recalcula a rota a cada 0.5s
 
 # Parâmetros ajustados pela dificuldade (preenchidos no _ready).
 var _intervalo_plantio: float = INTERVALO_PLANTIO
@@ -129,7 +131,11 @@ func _physics_process(delta: float) -> void:
 	var fugindo := item == null and _kite and healer < VIDA_FUGIR and dist_jog < 11.0
 
 	if dist > DIST_PARAR or fugindo:
-		var base := (-para.normalized()) if fugindo else para.normalized()
+		var base: Vector3
+		if fugindo:
+			base = -para.normalized()          # fuga: direto pra longe (sem rota)
+		else:
+			base = _direcao_pela_rota(para, delta)  # perseguição: A* contorna caixas
 		var rumo := base + _desvio_de_armadilhas() * PESO_DESVIO  # sempre foge das armadilhas
 		if rumo.length() < 0.05:
 			rumo = base
@@ -199,6 +205,8 @@ func reiniciar() -> void:
 	_t_plantio = 2.0
 	_combo_fase = 0
 	_t_detonar = 0.0
+	_rota.clear()
+	_t_rota = 0.0
 	_alvo = null
 
 
@@ -343,6 +351,27 @@ func _acionar_detonadores_proprios() -> void:
 			continue
 		if a.stats.tipo == "detonador" and a.has_method("acionar"):
 			a.acionar()
+
+
+## Direção do próximo waypoint da rota A* até o alvo (recalculada a cada 0.5s).
+## Sem rota (mesmo tile, grid bloqueado, alvo fora), cai no rumo direto `para`.
+func _direcao_pela_rota(para: Vector3, delta: float) -> Vector3:
+	_t_rota -= delta
+	if _t_rota <= 0.0:
+		_t_rota = 0.5
+		_rota = GridManager.caminho_mundo(global_position, global_position + para)
+	# Consome waypoints já alcançados (chegou perto: vai pro próximo).
+	while not _rota.is_empty():
+		var alvo: Vector3 = _rota[0]
+		if Vector2(alvo.x - global_position.x, alvo.z - global_position.z).length() < 1.1:
+			_rota.pop_front()
+		else:
+			break
+	if _rota.is_empty():
+		return para.normalized() if para.length() > 0.01 else Vector3.ZERO
+	var d: Vector3 = _rota[0] - global_position
+	d.y = 0.0
+	return d.normalized() if d.length() > 0.01 else Vector3.ZERO
 
 
 ## Vault mais próxima dentro de `raio`, ou null (pra minar o território dela).

@@ -18,6 +18,10 @@ var _vida: float = VIDA
 
 func _ready() -> void:
 	add_to_group("destrutiveis")
+	# Caixa é obstáculo: o tile fica sólido pro pathfinding da IA enquanto ela existir.
+	var coord := GridManager.world_to_grid(global_position)
+	GridManager.marcar_solido(coord, true)
+	tree_exiting.connect(func(): GridManager.marcar_solido(coord, false))
 	# Cara de objeto: caixote de MADEIRA texturizado (ambientCG CC0); a Bomb Box é a
 	# mesma madeira tingida de vermelho (perigo legível, fiel às caixas do original).
 	var mi := get_node_or_null("Malha") as MeshInstance3D

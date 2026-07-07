@@ -895,6 +895,28 @@ func _rodar_teste() -> void:
 	falhas += _checar("placar fica 2-0", GameManager.v1 == 2)
 	falhas += _checar("jogador vence a PARTIDA com 2 rounds", venceu["id"] == 1)
 
+	# Pathfinding A* (IA): com um tile sólido no meio, a rota existe e CONTORNA.
+	GridManager.configurar_mapa(preload("res://scripts/stats_mapa.gd").new())
+	GridManager.marcar_solido(Vector2i(6, 6), true)
+	var rota: Array = GridManager.caminho_mundo(
+		GridManager.grid_to_world(Vector2i(5, 6)), GridManager.grid_to_world(Vector2i(7, 6)))
+	falhas += _checar("astar: acha rota com obstaculo", not rota.is_empty())
+	var pisou_solido := false
+	for pr in rota:
+		if GridManager.world_to_grid(pr) == Vector2i(6, 6):
+			pisou_solido = true
+	falhas += _checar("astar: rota contorna o tile solido", not pisou_solido)
+	GridManager.marcar_solido(Vector2i(6, 6), false)
+
+	# Split-screen (VS MAN): monta 2 viewports compartilhando o mundo + 2 câmeras.
+	arena._montar_split_screen(player, bot)
+	falhas += _checar("split: monta o no SplitScreen", arena.get_node_or_null("SplitScreen") != null)
+	falhas += _checar("split: 2 cameras seguindo alvos", arena._cams_split.size() == 2)
+	arena.get_node("SplitScreen").queue_free()
+	arena._cams_split.clear()
+	(arena.get_node("Camera3D") as Camera3D).current = true
+	await get_tree().physics_frame
+
 	# Cannon (FAQ): o míssil teleguiado curva atrás do alvo. Lançado pra +Z com o alvo a +X,
 	# após alguns passos a velocidade deve ter ganhado componente +X (virou pro alvo).
 	var alvo_no := Node3D.new()
