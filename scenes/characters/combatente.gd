@@ -104,7 +104,7 @@ func _ready() -> void:
 const MODELO_PADRAO_PATH := "res://assets/models/kenney/Character/Character.gltf"
 ## Altura-alvo do personagem em mundo (~1 tile de largura de ombros). O modelo padrão é
 ## auto-ajustado pra esta altura pelo AABB — 6.5 fixo deixava o boneco com 2+ tiles.
-const ALTURA_MODELO_ALVO := 1.9
+const ALTURA_MODELO_ALVO := 2.5
 const OFFSET_PADRAO := -1.0
 
 ## Troca a cápsula pelo modelo 3D. Usa o modelo do personagem (StatsPersonagem) se houver;
@@ -143,8 +143,67 @@ func _montar_modelo() -> void:
 	m.scale = Vector3.ONE * escala
 	m.rotation.y = deg_to_rad(rot)
 	m.position.y = offset           # pivot nos pés -> desce pro chão
-	_tingir_modelo(m)               # cor chapada do TIME (leitura imediata, look PS1)
+	# Tinta de time SÓ no modelo fallback (os dois usariam o mesmo boneco). Modelos
+	# próprios do roster (KayKit) mantêm a textura — o anel colorido separa os times.
+	if stats == null or stats.cena_modelo == null:
+		_tingir_modelo(m)
+	_configurar_animacao(m)
 	_montar_anel_time()
+
+
+# ─────────────── Animação do modelo (idle / correr / derrubado) ───────────────
+
+var _anim: AnimationPlayer = null
+var _anim_idle: String = ""
+var _anim_mover: String = ""
+var _anim_derrubado: String = ""
+var _anim_atual: String = ""
+
+
+## Acha o AnimationPlayer do modelo e resolve os nomes das animações (KayKit ou
+## qualquer glb: procura por nome exato e cai pra substring, ex. "Rig|Idle").
+func _configurar_animacao(m: Node3D) -> void:
+	_anim = null
+	_anim_atual = ""
+	var achados := m.find_children("*", "AnimationPlayer", true, false)
+	if achados.is_empty():
+		return
+	_anim = achados[0]
+	_anim_idle = _primeira_anim(["Idle", "Idle_A"])
+	_anim_mover = _primeira_anim(["Running_A", "Running_B", "Run", "Walking_A", "Walk"])
+	_anim_derrubado = _primeira_anim(["Hit_A", "Hit_B", "Death_A"])
+	# Idle e corrida precisam de LOOP (glb nem sempre traz a flag).
+	for nome in [_anim_idle, _anim_mover]:
+		if nome != "":
+			var a := _anim.get_animation(nome)
+			if a != null:
+				a.loop_mode = Animation.LOOP_LINEAR
+
+
+func _primeira_anim(nomes: Array) -> String:
+	for n in nomes:
+		if _anim.has_animation(n):
+			return String(n)
+	for completa in _anim.get_animation_list():
+		for n in nomes:
+			if String(completa).to_lower().contains(String(n).to_lower()):
+				return String(completa)
+	return ""
+
+
+## Troca a animação conforme o estado (chamado no _process). O corpo SE MOVE junto
+## com o movimento — pedido do playtest.
+func _atualizar_animacao() -> void:
+	if _anim == null or not is_instance_valid(_anim):
+		return
+	var alvo := _anim_idle
+	if esta_derrubado():
+		alvo = _anim_derrubado
+	elif Vector2(velocity.x, velocity.z).length() > 0.8:
+		alvo = _anim_mover
+	if alvo != "" and alvo != _anim_atual:
+		_anim_atual = alvo
+		_anim.play(alvo, 0.2)
 
 
 ## Altura combinada (eixo Y) das malhas de um modelo, no espaço local dele.
@@ -186,7 +245,9 @@ func _montar_anel_time() -> void:
 	torus.inner_radius = 0.45
 	torus.outer_radius = 0.62
 	mi.mesh = torus
-	var cor := _cor_time()
+	# Anel SEMPRE na cor do TIME (P1 azul, P2 vermelho) — igual às barras da HUD.
+	# A cor do personagem (stats.cor_time) fica pra UI de seleção, não pra leitura de lado.
+	var cor := Color(0.3, 0.7, 1.0) if id_jogador == 1 else Color(1.0, 0.3, 0.3)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = cor
 	mat.emission_enabled = true
@@ -260,6 +321,7 @@ func _process(delta: float) -> void:
 		_carga_restante = maxf(0.0, _carga_restante - delta)
 		if _carga_restante == 0.0:
 			_disparar_plasma()
+	_atualizar_animacao()
 
 
 ## True enquanto recarrega (não pode atirar — GDD 7.1, fica vulnerável).

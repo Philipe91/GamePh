@@ -1013,6 +1013,9 @@ func _demo_padrao_e_capturar() -> void:
 	for c in mapa.vaults:
 		arena._colocar_vault(c)
 	arena._colocar_field_traps(mapa)
+	# Dois personagens do roster (modelos KayKit) pra conferir escala/rotação na captura.
+	player.aplicar_personagem(load("res://resources/personagens/brecht.tres"))
+	bot.aplicar_personagem(load("res://resources/personagens/magnus.tres"))
 	await get_tree().physics_frame
 	player.global_position = GridManager.grid_to_world(Vector2i(9, 12))
 	player.global_position.y = 1.0

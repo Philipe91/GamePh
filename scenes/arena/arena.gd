@@ -24,9 +24,9 @@ var _cam_offset: Vector3 = Vector3.ZERO
 var _cam_limite: Vector2 = Vector2(1.0e9, 1.0e9)
 
 ## Câmera estilo Trap Gunner: perspectiva inclinada (~55°) mostrando boa parte do mapa.
-const CAM_FOV: float = 50.0
-const CAM_DIST: float = 26.0
-const CAM_TILT_GRAUS: float = 55.0
+const CAM_FOV: float = 48.0
+const CAM_DIST: float = 21.0
+const CAM_TILT_GRAUS: float = 54.0
 
 
 func _ready() -> void:

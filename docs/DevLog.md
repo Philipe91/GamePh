@@ -1,5 +1,30 @@
 # DevLog
 
+## 2026-07-06 (noite) — Reconstrução visual "igual Trap Gunner" + personagens animados
+
+Playtest do humano reprovou o visual ("fei demais.png"): câmera reta de cima, chão que
+não cobria o mapa, vazio preto com linhas neon, dois bonecos amarelos idênticos gigantes.
+Plano completo em `docs/PLANO_REMAKE_VISUAL.md` (com a pesquisa do jogo original —
+HG101/Wikipedia/SUPERJUMP: visão inclinada com zoom, arenas pequenas legíveis em placas,
+personagens low-poly atarracados, armadilha = decalque no chão, explosão com fumaça).
+
+Executado:
+- **Câmera**: perspectiva FOV 48, inclinação 54°, dist 21, segue o player com CLAMP nas
+  bordas (não mostra o vazio). Constantes em arena.gd (CAM_*).
+- **Chão xadrez** por tile (MultiMesh 2 draw calls, cores tema no StatsMapa:
+  `cor_tile_a/b`) cobrindo exatamente o grid + **paredes com colisão** no perímetro
+  (antes dava pra andar pro infinito). Linhas neon removidas em mapas planos.
+- **Personagens KayKit (CC0, Kay Lousberg)** baixados de github.com/KayKit-Game-Assets:
+  Barbarian→Brecht, Knight→Magnus, Mage→Vesna, Rogue→Kestrel, Skeleton_Minion→Pip,
+  Skeleton_Warrior→Mara (`assets/models/kaykit/`, licenças junto). Riggados e ANIMADOS.
+- **Driver de animação** no Combatente: acha o AnimationPlayer do modelo, resolve
+  Idle/Running/Hit por nome (com fallback por substring), força loop, troca por estado
+  (parado/correndo/derrubado) com blend 0.2s. O corpo agora SE MOVE.
+- **Auto-escala** de modelo pela AABB (altura-alvo 2.5u) — acaba com gigante/anão.
+- Tinta de time só no modelo fallback; anel do chão SEMPRE azul (P1) / vermelho (P2).
+- Caixas com material por tipo (madeira/explosiva); explosão com fumaça espessa.
+
+
 ## 2026-07-06 — Auditoria completa + passe de feel/correções (Missões 01–03)
 
 **Auditoria (Missão 01).** Lidos todos os 33 scripts (~4.9k linhas), cenas, resources
