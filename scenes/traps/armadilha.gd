@@ -27,6 +27,8 @@ var desarmada: bool = false
 
 var _estado: int = Estado.ARMANDO
 var _gas_ativo: bool = false   # Gás: veneno emitido e fazendo efeito na área
+var _mat_led: StandardMaterial3D = null   # material do LED de acento (pulsa quando armada)
+var _tween_pulso: Tween = null
 @onready var detector: CollisionShape3D = $Detector
 @onready var marca: MeshInstance3D = $Marca
 
@@ -56,19 +58,28 @@ func _ready() -> void:
 	_ao_armar()
 
 
+## Todas as malhas do visual (decalque + corpo com detalhes) pra trocar camada junto.
+func _todas_as_malhas() -> Array:
+	var saida: Array = [marca]
+	var corpo := get_node_or_null("Corpo")
+	if corpo != null:
+		saida.append(corpo)
+		for f in corpo.find_children("*", "MeshInstance3D", true, false):
+			saida.append(f)
+	return saida
+
+
 ## Esconde o visual do inimigo: marca e corpo vão pra camada exclusiva do dono.
 func _aplicar_camada_de_dono() -> void:
 	var camada := CAMADA_DONO_1 if dono_id == 1 else CAMADA_DONO_2
-	for mi in [marca, get_node_or_null("Corpo")]:
-		if mi != null:
-			(mi as MeshInstance3D).layers = camada
+	for mi in _todas_as_malhas():
+		(mi as MeshInstance3D).layers = camada
 
 
 ## Torna o visual VISÍVEL PRA TODOS (gás emitindo, flash de explosão).
 func _revelar_para_todos() -> void:
-	for mi in [marca, get_node_or_null("Corpo")]:
-		if mi != null:
-			(mi as MeshInstance3D).layers = 1
+	for mi in _todas_as_malhas():
+		(mi as MeshInstance3D).layers = 1
 
 
 ## Ajusta o raio do gatilho e o tamanho/cor do marcador a partir do Resource.
@@ -82,53 +93,169 @@ func _preparar_visual_e_forma() -> void:
 	marca.scale = Vector3.ONE
 
 
-## Corpo 3D pequeno por tipo em cima do decalque (identidade de silhueta): cúpula da
-## mina, esfera da bomba, caixinha do detonador, tambor do gás, aro da cova, seta do
-## painel. USA O MESMO material do decalque — some/aparece junto (regras de
-## visibilidade intactas: discreta pro inimigo, brilha ao armar/explodir).
+## Material metálico escuro do corpo (mesma "família de fábrica" pra todas — direção
+## de arte: hardware VECTOR). O acento colorido é quem diferencia o tipo.
+func _mat_metal() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.13, 0.14, 0.17)
+	m.metallic = 0.7
+	m.roughness = 0.38
+	return m
+
+
+## Material do acento/LED: emissivo na cor do tipo — é o que pulsa quando armada.
+func _mat_acento() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	var c := stats.cor
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = c
+	m.emission_enabled = true
+	m.emission = Color(c.r, c.g, c.b)
+	m.emission_energy_multiplier = 1.4
+	return m
+
+
+## Esfera de LED presa ao corpo (indicador de armada, pulsa via _mat_led).
+func _led_esfera(pos: Vector3, raio: float) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = raio
+	sm.height = raio * 2.0
+	sm.radial_segments = 12
+	sm.rings = 6
+	mi.mesh = sm
+	mi.material_override = _mat_led
+	mi.position = pos
+	return mi
+
+
+## Peça extra do corpo (detalhe de silhueta) com material dado.
+func _peca(corpo: Node3D, malha: Mesh, pos: Vector3, mat: Material, rot_y: float = 0.0) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = malha
+	mi.material_override = mat
+	mi.position = pos
+	mi.rotation.y = rot_y
+	corpo.add_child(mi)
+	return mi
+
+
+## Corpo 3D por tipo com SILHUETA ÚNICA (identidade — cada armadilha transmite o que
+## faz só de olhar): mina com pinos de contato, bomba clássica com pavio LED,
+## detonador com antena, tambor de gás com válvula, cova com boca escura, painel com
+## chevrons na direção do arremesso. Corpo = metal escuro; acento LED = cor do tipo.
+## Só o DONO vê (camadas por dono) — o LED pulsando não vaza pro inimigo.
 func _montar_corpo_3d() -> void:
 	var corpo := MeshInstance3D.new()
 	corpo.name = "Corpo"
+	var metal := _mat_metal()
+	_mat_led = _mat_acento()
 	var y := 0.12
 	match stats.tipo:
 		"mina":
-			var sm := SphereMesh.new()
-			sm.radius = 0.24
-			sm.height = 0.26   # meia-cúpula saindo do chão
-			corpo.mesh = sm
-		"bomba":
-			var sb := SphereMesh.new()
-			sb.radius = 0.3
-			sb.height = 0.6
-			corpo.mesh = sb
-			y = 0.28
-		"detonador":
-			var bx := BoxMesh.new()
-			bx.size = Vector3(0.34, 0.22, 0.34)
-			corpo.mesh = bx
-			y = 0.11
-		"gas":
+			# Prato baixo + 4 pinos de contato + LED central: mina terrestre clássica.
 			var cil := CylinderMesh.new()
-			cil.top_radius = 0.22
+			cil.top_radius = 0.19
 			cil.bottom_radius = 0.26
-			cil.height = 0.34
+			cil.height = 0.13
 			corpo.mesh = cil
-			y = 0.17
+			corpo.material_override = metal
+			y = 0.07
+			for i in 4:
+				var pino := CylinderMesh.new()
+				pino.top_radius = 0.018
+				pino.bottom_radius = 0.03
+				pino.height = 0.14
+				var ang := TAU * float(i) / 4.0
+				_peca(corpo, pino, Vector3(cos(ang) * 0.15, 0.11, sin(ang) * 0.15), metal)
+			corpo.add_child(_led_esfera(Vector3(0.0, 0.1, 0.0), 0.05))
+		"bomba":
+			# Esfera + gargalo + ponta de pavio LED: leitura imediata de "bomba".
+			var sb := SphereMesh.new()
+			sb.radius = 0.26
+			sb.height = 0.52
+			corpo.mesh = sb
+			corpo.material_override = metal
+			y = 0.26
+			var garg := CylinderMesh.new()
+			garg.top_radius = 0.09
+			garg.bottom_radius = 0.11
+			garg.height = 0.1
+			_peca(corpo, garg, Vector3(0.0, 0.27, 0.0), metal)
+			corpo.add_child(_led_esfera(Vector3(0.0, 0.36, 0.0), 0.045))
+		"detonador":
+			# Caixa de carga + antena com LED na ponta: "explosivo por controle remoto".
+			var bx := BoxMesh.new()
+			bx.size = Vector3(0.32, 0.2, 0.32)
+			corpo.mesh = bx
+			corpo.material_override = metal
+			y = 0.1
+			var ant := CylinderMesh.new()
+			ant.top_radius = 0.012
+			ant.bottom_radius = 0.018
+			ant.height = 0.34
+			_peca(corpo, ant, Vector3(0.11, 0.26, 0.11), metal)
+			corpo.add_child(_led_esfera(Vector3(0.11, 0.45, 0.11), 0.04))
+			# Faixa de acento na lateral (a cor do tipo aparece na silhueta).
+			var faixa := BoxMesh.new()
+			faixa.size = Vector3(0.33, 0.04, 0.33)
+			_peca(corpo, faixa, Vector3(0.0, 0.055, 0.0), _mat_led)
+		"gas":
+			# Tambor industrial + aro de válvula + bocal: "contêiner de químico".
+			var cil := CylinderMesh.new()
+			cil.top_radius = 0.2
+			cil.bottom_radius = 0.24
+			cil.height = 0.36
+			corpo.mesh = cil
+			corpo.material_override = metal
+			y = 0.18
+			var aro := TorusMesh.new()
+			aro.inner_radius = 0.05
+			aro.outer_radius = 0.11
+			_peca(corpo, aro, Vector3(0.0, 0.21, 0.0), _mat_led)
+			var bocal := CylinderMesh.new()
+			bocal.top_radius = 0.045
+			bocal.bottom_radius = 0.045
+			bocal.height = 0.1
+			_peca(corpo, bocal, Vector3(0.0, 0.24, 0.0), metal)
+			# Faixas de perigo no tambor.
+			var faixa_g := CylinderMesh.new()
+			faixa_g.top_radius = 0.245
+			faixa_g.bottom_radius = 0.245
+			faixa_g.height = 0.05
+			_peca(corpo, faixa_g, Vector3(0.0, -0.05, 0.0), _mat_led)
 		"cova":
+			# Aro metálico + boca ESCURA (ilusão de buraco) + LED de borda.
 			var tor := TorusMesh.new()
 			tor.inner_radius = 0.5
 			tor.outer_radius = 0.62
 			corpo.mesh = tor
+			corpo.material_override = metal
 			y = 0.04
+			var boca := CylinderMesh.new()
+			boca.top_radius = 0.5
+			boca.bottom_radius = 0.5
+			boca.height = 0.02
+			var mat_boca := StandardMaterial3D.new()
+			mat_boca.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat_boca.albedo_color = Color(0.01, 0.01, 0.02)
+			_peca(corpo, boca, Vector3(0.0, 0.0, 0.0), mat_boca)
+			corpo.add_child(_led_esfera(Vector3(0.56, 0.05, 0.0), 0.04))
 		"painel":
-			var seta := PrismMesh.new()
-			seta.size = Vector3(0.5, 0.08, 0.6)
-			corpo.mesh = seta
-			y = 0.06
+			# Placa + 2 chevrons LED apontando a direção do arremesso.
+			var placa := BoxMesh.new()
+			placa.size = Vector3(0.56, 0.06, 0.66)
+			corpo.mesh = placa
+			corpo.material_override = metal
+			y = 0.05
+			for i in 2:
+				var chev := PrismMesh.new()
+				chev.size = Vector3(0.3, 0.18, 0.04)
+				var mi_chev := _peca(corpo, chev, Vector3(0.0, 0.06, 0.12 - 0.2 * float(i)), _mat_led)
+				mi_chev.rotation.x = -PI * 0.5   # deitado, ponta pra -Z (direção do arremesso)
 	if corpo.mesh == null:
 		corpo.free()
 		return
-	corpo.material_override = marca.material_override   # fade/brilho junto do decalque
 	add_child(corpo)
 	corpo.position.y = y
 	if stats.tipo == "painel":
@@ -140,11 +267,24 @@ func _montar_corpo_3d() -> void:
 
 
 func _ao_armar() -> void:
-	# Armada: discreta na cor do tipo (quase invisível pro inimigo — GDD).
+	# Armada: decalque discreto na cor do tipo (limpa a tela do dono; o inimigo nunca
+	# renderiza — camadas). O LED entra em PULSO lento: "estou viva e sou perigosa".
 	var c := stats.cor
 	_pintar(Color(c.r, c.g, c.b, 0.28), 0.25)
+	_iniciar_pulso_led()
 	if stats.tipo == "gas":
 		_ciclo_gas()
+
+
+## Respiração do LED de acento (identidade de "armada" — só o dono vê).
+func _iniciar_pulso_led() -> void:
+	if _mat_led == null:
+		return
+	_tween_pulso = create_tween().set_loops()
+	_tween_pulso.tween_property(_mat_led, "emission_energy_multiplier", 2.6, 0.55) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_tween_pulso.tween_property(_mat_led, "emission_energy_multiplier", 0.6, 0.55) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _ao_corpo_entrar(corpo: Node) -> void:
@@ -182,6 +322,7 @@ func _ciclo_gas() -> void:
 	_revelar_para_todos()                     # veneno emitindo: TODOS veem a nuvem
 	var e := maxf(stats.raio_efeito, 0.6) / 0.45
 	marca.scale = Vector3(e, 1.0, e)  # cresce pro raio da nuvem enquanto ativa
+	_emitir_nuvem_gas()                       # partículas de verdade (não só o decalque)
 	# Pulso inicial em todos que já estão na nuvem.
 	for corpo in get_tree().get_nodes_in_group("combatentes"):
 		if is_instance_valid(corpo) and global_position.distance_to(corpo.global_position) <= stats.raio_efeito:
@@ -207,8 +348,74 @@ func cancelar_gatilho() -> void:
 	desarmada = true
 
 
-## Desarme bem-sucedido pelo inimigo: some sem explodir e libera o tile (recontabiliza).
+## Nuvem tóxica com partículas de verdade, no raio de efeito. Morre junto do nó
+## (é filha), que se consome quando a emissão acaba.
+func _emitir_nuvem_gas() -> void:
+	var p := CPUParticles3D.new()
+	p.layers = 1                                # veneno emitindo: todos veem
+	p.amount = 46
+	p.lifetime = 1.6
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = maxf(stats.raio_efeito * 0.55, 0.5)
+	p.direction = Vector3.UP
+	p.spread = 30.0
+	p.initial_velocity_min = 0.4
+	p.initial_velocity_max = 1.1
+	p.gravity = Vector3(0.0, 0.35, 0.0)
+	p.scale_amount_min = 1.4
+	p.scale_amount_max = 2.6
+	p.mesh = SphereMesh.new()
+	(p.mesh as SphereMesh).radius = 0.16
+	(p.mesh as SphereMesh).height = 0.32
+	var mat := StandardMaterial3D.new()
+	var c := stats.cor
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(c.r, c.g, c.b, 0.28)
+	mat.emission_enabled = true
+	mat.emission = Color(c.r, c.g, c.b)
+	mat.emission_energy_multiplier = 0.5
+	p.mesh.surface_set_material(0, mat)
+	add_child(p)
+	p.position.y = 0.4
+	p.emitting = true
+
+
+## Faíscas curtas de DESARME (feedback de "circuito cortado") — visível pra todos,
+## adicionadas ao pai porque a armadilha em si vai sumir.
+func _fx_faiscas_desarme() -> void:
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = 18
+	p.lifetime = 0.45
+	p.direction = Vector3.UP
+	p.spread = 70.0
+	p.initial_velocity_min = 2.0
+	p.initial_velocity_max = 4.5
+	p.gravity = Vector3(0.0, -9.0, 0.0)
+	p.scale_amount_min = 0.05
+	p.scale_amount_max = 0.12
+	p.mesh = SphereMesh.new()
+	(p.mesh as SphereMesh).radius = 0.5
+	(p.mesh as SphereMesh).height = 1.0
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(1.0, 0.9, 0.45)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.85, 0.4)
+	mat.emission_energy_multiplier = 2.5
+	p.mesh.surface_set_material(0, mat)
+	p.add_to_group("fx")
+	get_parent().add_child(p)
+	p.global_position = global_position + Vector3(0.0, 0.3, 0.0)
+	p.emitting = true
+	p.finished.connect(p.queue_free)   # morre sozinho; seguro se o reset limpar antes
+
+
+## Desarme bem-sucedido pelo inimigo: faíscas + some sem explodir e libera o tile.
 func remover_por_desarme() -> void:
+	_fx_faiscas_desarme()
 	_consumir(false)
 
 
