@@ -1,254 +1,260 @@
 # ART BIBLE — VAULTBREAKER
-**Sucessor espiritual de Trap Gunner · padrão visual 2024–2026 · v1.0 (2026-07-07)**
+**v2.0 · A alma do jogo · 2026-07-07**
 
-Este documento governa TODA decisão visual do projeto. Nada entra no jogo sem passar
-pelo teste de cada seção. Decisões anteriores que conflitem com este documento são
-descartadas.
-
----
-
-## 1. Visão artística (uma frase)
-
-> **"Um torneio clandestino de especialistas em armadilhas, disputado nos setores de
-> um mega-complexo industrial subterrâneo da VECTOR — visto de cima, lido em um
-> relance, iluminado como um thriller."**
-
-### Os 4 pilares (ordem de prioridade)
-1. **LEITURA ACIMA DE TUDO** — é um jogo tático de grid. Personagem, armadilha, item
-   e perigo se distinguem em <0,5s a qualquer momento. Atmosfera nunca compra briga
-   com gameplay (lição de Battlerite/Advance Wars: arena limpa, bordas ricas).
-2. **O LUGAR EXISTE** — a arena é uma SALA dentro de um prédio, nunca uma plataforma
-   flutuando no vazio. Toda borda de tela mostra arquitetura: parede, duto, viga,
-   andar ao fundo. (The Ascent/Ruiner: densidade industrial na moldura.)
-3. **UMA FÁBRICA, UM ESTÚDIO** — todos os assets da mesma família de formas: low-poly
-   facetado com materiais sólidos + PBR sutil. Se um objeto parece "de outro jogo",
-   ele sai ou é re-material izado.
-4. **PERIGO É LINDO** — armadilhas, explosões e a Unit são os objetos mais bonitos e
-   luminosos do jogo (Trap Gunner: a armadilha é a estrela).
+> **"Por que alguém vai olhar uma screenshot e reconhecer o VAULTBREAKER na hora?"**
+>
+> Porque nenhum outro jogo mostra **dois profissionais se caçando num tabuleiro de
+> luz, cravado no fundo de uma fábrica que continua viva ao redor deles.**
+>
+> A assinatura visual do jogo são quatro coisas juntas, sempre:
+> 1. **O tabuleiro aceso** — um grid de placas metálicas banhado de luz no centro de
+>    uma sala escura, como um ringue iluminado num galpão apagado.
+> 2. **O duelo azul × vermelho** — dois halos de cor viva, um em cada caçador,
+>    únicas cores saturadas em movimento no quadro.
+> 3. **O perigo que respira** — LEDs de armadilha pulsando devagar no chão, como
+>    batimentos cardíacos espalhados pelo tabuleiro.
+> 4. **O mundo que não para** — além do ringue, o Complexo VECTOR segue operando:
+>    janelas acesas, vapor subindo, luzes de manutenção varrendo, máquinas ao fundo.
+>
+> Tire qualquer um dos quatro e vira "mais um top-down". Com os quatro, é Vaultbreaker.
 
 ---
 
-## 2. Universo
+## 1. FILOSOFIA VISUAL
 
-**O Complexo VECTOR**: um mega-complexo subterrâneo de P&D militar-industrial.
-A megacorp VECTOR transformou setores desativados em arenas do torneio VAULTBREAKER.
-Cada mapa é um **setor** com função crível — máquinas, sinalização e iluminação
-contam o que aquele lugar fazia antes de virar arena.
+### O que o jogador sente ao entrar numa partida
+**Que desceu onde não devia.** A partida não acontece num estádio — acontece num
+setor interditado de um complexo subterrâneo, às 3 da manhã, com a produção ainda
+rodando nos andares vizinhos. A sensação-alvo é a de um **duelo clandestino**: dois
+especialistas contratados, um contrato, noventa segundos.
 
-### Mapeamento dos 6 mapas → setores (mantém layouts/gameplay intactos)
-| Mapa (.tres) | Setor | História visual | Acento |
-|---|---|---|---|
-| Padrão | **SETOR 01 — Piso de Treinamento** | ginásio de certificação da VECTOR, sinalização didática | azul-aço |
-| Porto | **DOCA 04 — Cais de Carga** | containers, guindastes, empilhadeiras paradas | teal |
-| Corredor | **CONDUTO 09 — Galeria de Serviço** | corredor técnico longo, tubulação nas duas paredes | âmbar |
-| Fortaleza | **COFRE 12 — Antecâmara do Vault** | segurança máxima, portas blindadas, roxo institucional | roxo |
-| Cruz Vertical | **NÚCLEO 06 — Poço de Ventilação** | passarelas cruzadas sobre um poço, ar em movimento | ciano frio |
-| Setor 07 | **REATOR 07 — Sala da Usina** | maquinário pesado, aviso amarelo/preto, vapor | laranja industrial |
+### As três emoções do cenário (nesta ordem)
+1. **Opressão calma** — teto baixo implícito, vigas pesadas, ar denso de fog. O
+   lugar é maior e mais antigo que você.
+2. **Tensão de tabuleiro** — o chão quadriculado sob luz é convite e armadilha ao
+   mesmo tempo: cada tile pode ser a sua morte. O jogador deve OLHAR para o chão
+   com respeito.
+3. **Fascínio pelo perigo** — as armadilhas são os objetos mais bonitos do jogo.
+   Plantar uma mina tem que dar orgulho; ver o LED dela pulsando, um prazer quase
+   estético. O medo do oponente é o troféu.
 
----
+### A sensação do combate
+**Curto, seco, definitivo.** Nada de trocação longa: o tiro é pontuação, o soco é
+vírgula, a explosão é ponto final. Cada explosão deve parecer GRANDE demais para a
+sala — a luz estoura nas paredes, o vapor se agita, a câmera soca. É o contraste
+entre os 80 segundos de xadrez silencioso e os 2 segundos de caos que define o ritmo.
 
-## 3. Arquitetura e ambiente (mata o "vazio preto" — Missão 05)
+### A personalidade do universo
+A VECTOR é uma megacorp **burocrática e cínica**: sinalização por toda parte
+("SETOR 07", "MANUTENÇÃO NÍVEL 3", faixas amarelas), tudo etiquetado, tudo
+padronizado — e mesmo assim ela aluga os próprios setores para duelos ilegais.
+O universo não é pós-apocalíptico nem heroico: é **corporativo-noturno**. Limpo por
+fora, podre por dentro. O humor do jogo mora nessa hipocrisia: placas de "segurança
+em primeiro lugar" penduradas sobre um campo minado.
 
-### Regra das 3 camadas de profundidade
-Toda arena tem, de dentro pra fora:
-1. **CAMPO** (jogável): chão de placas + obstáculos funcionais. Contraste alto,
-   silhuetas limpas, NADA decorativo dentro do grid.
-2. **MOLDURA** (2–6m além das paredes): passarelas, dutos, pilares, painéis,
-   máquinas encostadas, luzes de manutenção. Decoração densa, mas escurecida ~40%
-   vs o campo.
-3. **HORIZONTE** (6m+): paredes distantes do "prédio", vigas superiores, andares de
-   fundo com janelas acesas, fog azulado engolindo o resto. NUNCA preto puro — o
-   fundo é sempre arquitetura + névoa.
-   
-Teto: implícito por VIGAS superiores cruzando o alto da tela nas bordas (não teto
-sólido — a câmera é top-down; vigas + cabos pendurados vendem o interior sem ocluir).
-
-### Chão (o maior delator de protótipo)
-- Base: placas metálicas PBR (já em uso) **+ camada de identidade**: faixas de
-  segurança amarelo/preto no perímetro, numeração de setor estampada em tiles-chave,
-  linhas-guia na cor do acento, manchas de desgaste/óleo (decal escuro alfa baixo),
-  grades de ventilação em tiles aleatórios fixos por seed.
-- O xadrez de duas cores CONTINUA (leitura de grid é pilar 1), mas com Δ de valor
-  reduzido e a "informação industrial" por cima.
-
-### Obstáculos (nunca mais cubos)
-| Hoje | Vira |
-|---|---|
-| Caixa de madeira | **Contêiner de suprimentos VECTOR** (caixa metálica com painel, quinas reforçadas — base atual evolui) |
-| Bomb Box vermelha | **Barril de célula volátil** (cilindro com faixas de perigo + LED) |
-| Mesa azul (ponte) | **Passarela de manutenção** (deck de grade + corrimãos + suportes) |
-| Faixa listrada (esteira) | **Esteira transportadora real** (rolos, laterais metálicas, setas de fluxo animadas) |
-| Torreta (atual ok) | mantém, ganha cabos no chão |
-| Vault POD (atual ok) | mantém, ganha vapor leve ao abrir |
+### Como o ambiente conta história sem diálogo
+- **Sinalização** conta o que o setor era (números, pictogramas, faixas).
+- **Desgaste** conta o que aconteceu (marcas de explosão antigas no piso, óleo,
+  arranhões de empilhadeira).
+- **A operação continua** conta que ninguém se importa (janelas acesas ao fundo,
+  máquinas trabalhando, ninguém veio ver o duelo).
+- **Improviso** conta que o torneio é clandestino (holofotes amarrados em vigas
+  apontados para o ringue, cabos puxados por cima da parede).
 
 ---
 
-## 4. Paleta de cores
+## 2. DIREÇÃO CINEMATOGRÁFICA
 
-### Master (todas as cenas)
-| Papel | Cor | Uso |
+### Câmera
+- Perspectiva inclinada 54° (a "câmera de mesa de guerra") — o jogador é o
+  estrategista olhando o tabuleiro, nunca um deus distante nem um ombro colado.
+- Segue o jogador com inércia suave (lerp exponencial atual) e **clamp nas bordas**:
+  a câmera nunca mostra "fim de mundo" — quando chega no limite, o que entra no
+  quadro é a moldura industrial, não vazio.
+- Shake apenas em explosão/knockdown, curto e decrescente. A câmera é invisível:
+  se o jogador notar a câmera, erramos.
+
+### Como a luz conduz o olhar
+Hierarquia de brilho IMUTÁVEL (do mais claro ao mais escuro):
+1. explosões e flashes (momentâneo, domina tudo)
+2. LEDs de armadilha, projéteis, vault, Unit (saturados, pulsantes)
+3. halos de time azul/vermelho nos personagens
+4. o campo de jogo (iluminado como palco)
+5. a moldura industrial (meia-luz, práticas pontuais)
+6. o horizonte do complexo (silhuetas + janelas + fog)
+O olho do jogador desce essa escada naturalmente: primeiro o perigo, depois o
+oponente, depois o tabuleiro, e o ambiente por último — sentido, não lido.
+
+### Como o cenário cria tensão
+- **Escuridão utilizável**: os cantos do campo são ~30% mais escuros que o centro —
+  plantar lá "parece" mais seguro, e o Caution Mode vira lanterna psicológica.
+- **Luzes de emergência vermelhas** giram devagar nos últimos 10 segundos da
+  partida (o próprio setor avisa que o tempo acaba).
+- **Vapor e fog no baixo**: esconder meio-corpo à distância cria dúvida sem nunca
+  esconder o grid.
+
+### Como os efeitos reforçam o combate
+Regra do "eco": todo evento forte tem 3 ecos — **luz** (ilumina a sala), **matéria**
+(faíscas/fumaça/cápsulas que sobram no chão por segundos) e **câmera** (shake ou
+hit-stop). Um evento sem eco parece mentira; um evento com os três parece memória.
+
+### Como os personagens se destacam
+- Rim light fresnel na cor do time (já implementado) — silhueta recortada contra
+  qualquer fundo.
+- Anel de time no chão — leitura tática mesmo com o corpo ocluso.
+- Ambiente dessaturado ≤35%, personagens e perigos saturados ≥70%.
+
+---
+
+## 3. PERSONALIDADE DOS PERSONAGENS
+
+Todos são **profissionais do submundo corporativo** — não soldados de exército, não
+heróis. Gente que trabalha à noite por dinheiro. Cada visual precisa responder:
+*"qual é a especialidade dele, e o que ele carrega para exercê-la?"*
+
+Base de malha: família Quaternius Modular (proporções humanas, mesmo rig). A
+identidade vem de **recolor + acentos emissivos + equipamento coerente**, padrão
+"mesmo alfaiate, clientes diferentes":
+
+| | BRECHT — o Demolidor | |
 |---|---|---|
-| Base escura | `#0B0F1A` | fundo/fog/sombras — nunca #000 |
-| Metal frio | `#3A4254` | estruturas, paredes |
-| Metal claro | `#6B7690` | superfícies iluminadas |
-| Perigo | `#FFB300` amarelo + `#111` preto | faixas industriais, avisos |
-| **P1** | `#4FB3FF` azul | rim, anel, HUD esquerda |
-| **P2** | `#FF5A52` vermelho | rim, anel, HUD direita |
-| Vault/positivo | `#35FF7E` verde | PODs, cura, confirmação |
-| Unit/supremo | `#B84FFF` violeta | Plasma, super, raridade |
+**Quem é** | ex-engenheiro de manutenção da própria VECTOR; conhece cada parafuso do complexo | 
+**Visual** | macacão de trabalho laranja-segurança surrado, colete de ferramentas, capacete com lanterna, luvas grossas, joelheiras gastas | 
+**Assinatura** | a lanterna do capacete acesa (LED âmbar) e bolsos visivelmente cheios |
 
-### Regra de saturação
-Ambiente dessaturado (≤35%) · gameplay saturado (≥70%). O olho vai SEMPRE primeiro
-ao que importa. (Ruined King/Battlerite fazem exatamente isso.)
+| | MAGNUS — o Muro | |
+|---|---|---|
+**Quem é** | ex-segurança corporativa demitido por excesso de zelo; agora vende o zelo | 
+**Visual** | colete balístico cinza-chumbo sobre uniforme preto, elmo fechado, ombreiras rígidas, botas pesadas | 
+**Assinatura** | visor vermelho-escuro do elmo — a única "cara" dele é uma linha de luz |
 
----
+| | VESNA — a Química | |
+|---|---|---|
+**Quem é** | cientista de materiais que descobriu que armadilha paga melhor que pesquisa | 
+**Visual** | jaleco tático branco-lab curto sobre roupa escura, luvas de nitrila, óculos de proteção na testa, cartuchos de reagente no cinto | 
+**Assinatura** | acentos verde-ácido (tubos no cinto brilham) — a cor do gás dela |
 
-## 5. Iluminação (cinematográfica industrial)
+| | PIP — o Artilheiro | |
+|---|---|---|
+**Quem é** | ex-piloto de carga orbital; trata mísseis como encomendas | 
+**Visual** | traje pressurizado oliva com mangueiras, mochila-rack de munição, botas magnéticas | 
+**Assinatura** | luzes âmbar do traje piscando em sequência quando mira (checklist de lançamento) |
 
-- **Key** quente levemente amarelada, ângulo 50–55°, sombras suaves 4K (atual, mantém).
-- **Fill** azul frio fraco (atual, mantém) — vales nunca 100% pretos.
-- **Práticas** (novo): cada máquina/painel da MOLDURA emite a própria luz (emissive
-  baixo + OmniLight fraca a cada ~6m). Luzes de emergência VERMELHAS piscando em
-  cantos de setor; VERDES fixas sobre spawns ("área segura" — leitura de The Finals).
-- **Volumetria**: fog exponencial atual + `volumetric_fog` leve SÓ nos mapas Reator
-  e Núcleo (vapor). Densidade nunca acima de leitura do grid.
-- **Dinâmica**: explosão ilumina a sala inteira por 0,4s (flash 6.0, atual);
-  tiro emite luz (atual); armadilha armada pulsa (atual).
-- Bloom moderado threshold 1.1 (atual) — NUNCA "liguei o glow em tudo".
+| | KESTREL — a Lâmina | |
+|---|---|---|
+**Quem é** | assassina urbana que aceita o torneio como "férias remuneradas" | 
+**Visual** | jaqueta preta justa, moicano violeta, coturno, munhequeiras com lâminas, sem armadura — velocidade é a armadura | 
+**Assinatura** | rastro violeta sutil quando corre; a mais escura do elenco, quase some fora do rim light |
 
----
+| | MARA — o Trator | |
+|---|---|---|
+**Quem é** | operadora de demolição pesada; o soco-foguete era ferramenta de trabalho | 
+**Visual** | uniforme verde-militar de operação, protetor de tronco, luva hidráulica GIGANTE no braço direito (assimetria = silhueta) | 
+**Assinatura** | a luva emite magenta ao carregar o soco — o braço direito é a arma |
 
-## 6. Materiais e shaders
-
-- **PBR em 3 tiers**: chão/paredes = trio albedo+normal+rough (ambientCG);
-  props modulares = materiais sólidos Quaternius (facetado, SEM textura de cor);
-  acentos = emissive unshaded. Proibido material default cinza da engine.
-- **Shaders autorizados**: `rim_time.gdshader` (personagens, cor do time — em uso);
-  fresnel sutil em vidros; scroll UV para esteiras/hologramas; dissolve na morte
-  (fase futura). Proibido: outline grosso cartoon (conflita com direção realista-estilizada).
-
----
-
-## 7. Personagens
-
-**Família travada: Quaternius Ultimate Modular Men + Women** (CC0, proporções
-humanas, mesmo rig, 24 animações). Decisão da Missão 02, reafirmada aqui após
-reavaliação — ver §10 para o que foi comparado e descartado.
-
-### Por que ainda "parecem modelos gratuitos" e o plano para consertar
-O problema NÃO é a malha — é que estão com as cores DEFAULT do pack. O conserto é
-**descaracterização por material** (barato, alto impacto):
-1. **Recolor por personagem**: cada um ganha paleta própria alinhada ao arquétipo
-   (tabela abaixo) — troca de cores dos materiais sólidos, sem retexturizar.
-2. **Detalhe emissivo**: 1–2 acentos LED por personagem (visor, ombreira, cinto) na
-   cor pessoal — assinatura de silhueta noturna.
-3. **Arma no osso da mão** (BoneAttachment3D) + muzzle point — encerra o "flutuando".
-4. Silhueta já é distinta por modelo (capacete/moicano/traje espacial/elmo SWAT);
-   escala por arquétipo já implementada.
-
-| Personagem | Modelo | Arquétipo | Paleta pessoal |
-|---|---|---|---|
-| BRECHT | Worker | engenheiro demolidor | laranja segurança + grafite |
-| MAGNUS | Swat | mercenário pesado | cinza-chumbo + vermelho escuro |
-| VESNA | SciFi (F) | cientista de combate | branco-lab + verde ácido |
-| PIP | Spacesuit | soldado futurista | oliva + âmbar |
-| KESTREL | Punk (F) | assassina urbana | preto + violeta |
-| MARA | Soldier (F) | operadora tática | verde-militar + magenta |
-
-**Proibido para sempre**: chibi, cabeçudo, cartoon infantil, mistura de packs de
-artistas diferentes no elenco.
-
-### Retratos
-Gerados por render dos PRÓPRIOS modelos (`--retratos`): mesmo enquadramento 3/4,
-mesma luz de estúdio, fundo degradê na cor pessoal. Regenerar a cada mudança de
-material. Nunca arte externa.
-
-### Animações (mapeamento travado)
-Idle=`Idle_Gun` · mover=`Run` · tiro=`Idle_Gun_Shoot` · plantar=`Interact` ·
-soco=`Punch_Right` · hit=`HitRecieve` · morte=`Death` · vitória=`Wave`.
+**Regra de silhueta**: cobrir a tela com um retângulo preto sobre cada personagem —
+se a sombra não disser quem é (capacete+lanterna / elmo+massa / jaleco / mochila-rack
+/ moicano / braço gigante), o visual está reprovado.
 
 ---
 
-## 8. VFX (linguagem: "energia contida que escapa")
+## 4. O COMPLEXO (ambiente)
 
-- Explosão = flash + fireball + fumaça + onda torus + luz dinâmica + shake + hit-stop
-  (atual — é a régua de qualidade dos demais).
-- Tiro = muzzle flash + tracer com rastro + estilhaço no impacto (atual) + **cápsula
-  ejetada** (novo, física simples 0,5s).
-- Armadilha armada = pulso LED lento; detectada = anel de scan; desarme = faíscas
-  (atual); gás = partículas volumétricas (atual) + distorção de calor (futuro).
-- Ambiente = poeira no ar (partículas lentas de moldura), vapor em grelhas, fagulhas
-  ocasionais de máquinas.
-- Sangue: **estilizado e mínimo** — respingo curto atual está no tom; sem poças,
-  sem gore (classificação: violência estilizada).
+**Não existem "arenas". Existe o Complexo — e o jogador vê só um pedaço dele.**
 
----
+### A regra das 3 camadas (toda cena, sem exceção)
+1. **O RINGUE** — o campo jogável. Limpo, aceso, legível. Só gameplay.
+2. **A MOLDURA** (0–8m além das paredes) — passarelas de manutenção, dutos, pilares,
+   geradores, containers, painéis, holofotes improvisados apontados pro ringue.
+   Meia-luz. Aqui mora a crença de que o lugar é real.
+3. **O HORIZONTE** (8m+) — as paredes verdadeiras do prédio: fachadas internas com
+   fileiras de janelas acesas (a produção continua), vigas atravessando o alto,
+   guindastes parados, fog engolindo o fundo. **Preto puro é proibido**: o último
+   plano é sempre arquitetura + névoa.
 
-## 9. Interface
+### Causalidade obrigatória (a "regra do encanador")
+Todo objeto existe POR algum motivo e LIGADO a algo: gerador tem duto que sai dele;
+painel tem cabo que corre pela parede; passarela tem pilar que a sustenta; holofote
+tem gambiarra de cabo que desce da viga. Objeto órfão = objeto reprovado.
 
-- Tipografia: Orbitron para display/números + **fonte de texto secundária a
-  adicionar** (Inter/Exo 2, OFL) para legibilidade de corpo.
-- Ícones: um único set, gerado da MESMA técnica dos retratos (render 3D dos objetos
-  reais do jogo — a mina do HUD é A mina do jogo). Elimina os ícones AI 1536×1024.
-- Feedback: tudo que muda anima ≤0,25s (barras já tweenam; pips já; adicionar pulso
-  no retrato ao tomar dano e slide nos rounds).
-- Moldura da tela: HUD ancorada em cantos com hairline na cor do time; centro da
-  tela SEMPRE limpo.
-- Sons de UI: tick/confirm Kenney (atual) — manter.
+### Áreas inacessíveis que devem EXISTIR visualmente
+Portões de setor fechados (com número), corredores gradeados que somem no fog,
+salas de controle elevadas com vidro aceso, elevador de carga parado, docas
+interditadas com fita zebrada. O jogador nunca entra — mas acredita.
 
 ---
 
-## 10. Assets — pesquisados, escolhidos, descartados
+## 5. O CHÃO (o delator número 1)
 
-### ESCOLHIDOS (todos CC0, todos verificados)
-| Asset | Fonte | Papel | Justificativa |
-|---|---|---|---|
-| Ultimate Modular **Men+Women** | Quaternius | elenco (6) | única família humana completa c/ rig+24 anims; CC0 |
-| Ultimate Modular **Sci-Fi** (46 modelos) | Quaternius | paredes/props/máquinas da MOLDURA e obstáculos | MESMO artista do elenco = coesão automática; modular; CC0; existe conversão Godot no GitHub (Malcolmnixon) |
-| MetalPlates006 PBR | ambientCG | chão/paredes | trio PBR 1K, CC0, já integrado |
-| Sci-Fi/Impact/Interface Sounds | Kenney | SFX | CC0, 30 sons já mapeados por evento |
-| Orbitron | Google Fonts (OFL) | display | já integrado; ganha par tipográfico |
-
-### DESCARTADOS (e por quê — não reabrir sem motivo novo)
-| Asset | Motivo |
-|---|---|
-| KayKit Adventurers/Skeletons | chibi/cabeçudo — banido; tema medieval errado (removido do repo) |
-| Synty POLYGON | sem versão gratuita com licença limpa |
-| Mixamo | exige conta Adobe; desnecessário (família já tem anims); rig incompatível com o pipeline atual |
-| Sketchfab/OpenGameArt avulsos | personagens de artistas diferentes = quebra do pilar 3 |
-| Kenney Sci-Fi Kit (3D) | estilo mais "brinquedo" que o Quaternius; misturar dois estilos de prop viola pilar 3 |
-| Ícones AI 1536×1024 atuais | fora de spec, estilo inconsistente — substituir por renders 3D próprios |
-
-### PESQUISA PENDENTE (aprovada em princípio, escolher na implementação)
-- **Música**: 2–3 faixas eletrônico-industrial CC0/CC-BY (OpenGameArt/FMA) — critério:
-  loop limpo, 100–120 BPM, sem melodia invasiva.
-- **Ambiência**: hum industrial + ventilação (freesound CC0) para camada constante.
+O chão é o protagonista silencioso de um jogo de armadilhas. Ele precisa parecer
+**usado por décadas e sinalizado por burocratas**:
+- placas metálicas PBR com desgaste (atual base, mantém);
+- **faixa amarela/preta contornando o perímetro** do campo;
+- **numeração do setor** estampada grande em 1–2 tiles (estêncil desbotado);
+- linhas-guia na cor do acento do mapa;
+- manchas de óleo e marcas de explosão antigas (decals escuros, α baixo);
+- grelhas de ventilação em tiles fixos por seed (vapor sutil subindo de 1–2);
+- canaletas de cabo correndo pelo perímetro, POR FORA do campo.
+O xadrez tático permanece — com Δ de valor menor, coberto de "vida industrial".
 
 ---
 
-## 11. Ordem de execução (após aprovação desta bible)
+## 6. SOM — o complexo nunca dorme
 
-1. **Matar o vazio** (Missão 05, maior impacto): moldura + horizonte nas arenas
-   planas — paredes de prédio distantes, vigas superiores, passarelas, andares de
-   fundo com janelas, fog fechando. Base: pack Sci-Fi modular.
-2. **Chão com identidade**: faixas de perímetro, numeração de setor, decals de
-   desgaste, grelhas.
-3. **Obstáculos reais**: contêiner/barril/passarela/esteira (tabela §3).
-4. **Descaracterizar elenco**: recolor por personagem + LED + arma no osso +
-   retratos regenerados.
-5. **Ícones próprios** (renders 3D) + par tipográfico.
-6. **Áudio**: ambiência + música + cápsulas/ricochete.
-7. **Práticas piscantes + volumetria** nos 2 mapas de vapor.
+Silêncio absoluto é proibido. Três camadas permanentes:
+1. **Cama** (sempre): hum grave de transformador + ventilação distante (loop CC0).
+2. **Pontuação** (aleatória, esparsa): vapor escapando, metal assentando, porta
+   automática ao longe, rádio corporativo abafado e ininteligível.
+3. **Gameplay** (atual, Kenney): tiros, explosões, passos, UI — já implementado.
+Explosão "cala" a cama por 1s (ducking) — o susto ganha espaço.
 
-Cada etapa: suíte verde → captura → commit. Teste-guia permanente:
-**"isso entraria numa screenshot oficial da Steam?"**
+## 7. COMBATE — nada pode parecer brinquedo
+
+- Tiro: muzzle flash + tracer + estilhaço (atual) + **cápsula ejetada** quicando.
+- Explosão: flash que pinta a sala + shake + hit-stop (atual) + **marca de
+  queimadura persistente no tile** até o fim do round.
+- Soco: hit-stop atual + poeira no impacto.
+- Armadilha: pulso-batimento no LED (atual); a mina é uma jóia letal, não um botão.
+- Sangue: respingo estilizado curto (atual) — impacto sem gore.
+
+## 8. UI — o "Sistema VECTOR"
+
+A HUD é diegética por atitude: parece o **overlay de monitoramento do próprio
+complexo** observando o duelo. Cantos com hairline na cor do time, tipografia
+Orbitron para números + fonte de texto secundária (OFL) para rótulos, ícones
+renderizados dos objetos 3D reais do jogo (a mina do HUD É a mina do jogo — nunca
+ícone de pack), micro-animações ≤0,25s em toda mudança de estado. Centro da tela
+sagrado: nada além do jogo.
 
 ---
 
-## 12. Referências estudadas (princípios extraídos, nunca cópia)
-- **Trap Gunner**: armadilha como estrela; grid legível; split-screen de mind games.
-- **Battlerite/Ruined King**: arena saturada no centro, moldura escura decorada.
-- **The Ascent/Ruiner**: densidade industrial, práticas emissivas, fog urbano.
-- **The Finals**: cor institucional como sinalização de gameplay.
-- **MGS/Metal Gear Acid**: tom "operação séria", sinalização militar, vermelho de alerta.
-- **V Rising/Ravenswatch**: leitura top-down com rim/contraste, não com outline.
+## 9. Decisões de produção (herdadas da v1, continuam valendo)
+
+- **Família única de assets**: Quaternius Modular (Men+Women já no jogo; **Ultimate
+  Modular Sci-Fi**, 46 modelos CC0 do mesmo artista, aprovado para moldura/objetos).
+  Descartados e proibidos: chibi/KayKit (removido), Synty (licença), Mixamo
+  (desnecessário), packs avulsos misturados, ícones AI atuais (substituir).
+- **PBR ambientCG** no chão/paredes; materiais sólidos facetados nos props; emissive
+  unshaded nos acentos. Shaders: rim por time (atual), scroll UV (esteiras),
+  dissolve (morte, futuro). Outline cartoon proibido.
+- **Paleta master**: base `#0B0F1A` · metal `#3A4254`/`#6B7690` · perigo `#FFB300`+preto
+  · P1 `#4FB3FF` · P2 `#FF5A52` · vault `#35FF7E` · Unit `#B84FFF`. Ambiente ≤35%
+  saturação, gameplay ≥70%.
+- **Áudio**: Kenney CC0 (atual) + ambiência industrial CC0 (pesquisar em freesound/
+  OpenGameArt) + 2–3 faixas eletrônico-industrial CC0/CC-BY com crédito.
+
+## 10. Ordem de execução (pós-aprovação v2)
+
+1. **Matar o vazio**: moldura + horizonte procedurais em todos os mapas planos
+   (fachadas com janelas acesas, vigas, pilares, passarela, holofotes).
+2. **Chão vivo**: faixa de perímetro, numeração de setor, decals de uso, grelhas.
+3. **Objetos com causalidade**: contêiner/barril/esteira real/passarela + cabos e
+   dutos conectando tudo (pack Sci-Fi).
+4. **Elenco descaracterizado**: recolor por personagem + acento emissivo de
+   assinatura + arma no osso + retratos regenerados.
+5. **UI própria**: ícones renderizados + par tipográfico + micro-animações restantes.
+6. **Som do complexo**: cama + pontuação + ducking.
+7. **Cinema**: luzes de emergência no fim do tempo, volumetria nos setores de vapor.
+
+Critério de aprovação de cada etapa: *"esta screenshot podia estar na página da
+Steam do Vaultbreaker — e só do Vaultbreaker?"*
