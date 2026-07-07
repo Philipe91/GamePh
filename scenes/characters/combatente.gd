@@ -227,8 +227,13 @@ var _anim_mover: String = ""
 var _anim_derrubado: String = ""
 var _anim_morte: String = ""
 var _anim_vitoria: String = ""
+var _anim_atirar: String = ""
+var _anim_plantar: String = ""
+var _anim_soco: String = ""
 var _anim_atual: String = ""
 var _comemorar_ate_ms: int = 0   # comemora (fim de round) até este tick
+var _acao_ate_ms: int = 0        # animação de AÇÃO (tiro/plantio/soco) até este tick
+var _anim_acao: String = ""
 
 
 ## Acha o AnimationPlayer do modelo e resolve os nomes das animações (KayKit ou
@@ -245,6 +250,10 @@ func _configurar_animacao(m: Node3D) -> void:
 	_anim_derrubado = _primeira_anim(["Hit_A", "Hit_B", "Death_A"])
 	_anim_morte = _primeira_anim(["Death_A", "Death_B", "Death"])
 	_anim_vitoria = _primeira_anim(["Cheer", "Victory", "Wave", "Jump"])
+	# Ações de combate (os GLB KayKit têm o set completo — estava ocioso):
+	_anim_atirar = _primeira_anim(["1H_Ranged_Shoot", "2H_Ranged_Shoot", "Shoot", "Throw"])
+	_anim_plantar = _primeira_anim(["Interact", "Use_Item", "PickUp"])
+	_anim_soco = _primeira_anim(["Unarmed_Melee_Attack_Punch_A", "Punch", "Melee"])
 	# Idle e corrida precisam de LOOP (glb nem sempre traz a flag).
 	for nome in [_anim_idle, _anim_mover]:
 		if nome != "":
@@ -282,11 +291,28 @@ func _atualizar_animacao() -> void:
 		alvo = _anim_vitoria
 	elif esta_derrubado():
 		alvo = _anim_derrubado
+	elif Time.get_ticks_msec() < _acao_ate_ms and _anim_acao != "":
+		alvo = _anim_acao   # tiro/plantio/soco: gesto curto por cima do idle/corrida
 	elif Vector2(velocity.x, velocity.z).length() > 0.8:
 		alvo = _anim_mover
 	if alvo != "" and alvo != _anim_atual:
 		_anim_atual = alvo
 		_anim.play(alvo, 0.2)
+
+
+## Toca uma animação de AÇÃO curta (tiro, plantio, soco) por cima do estado atual.
+func _tocar_acao(nome: String, dur: float) -> void:
+	if nome == "" or _anim == null or not is_instance_valid(_anim):
+		return
+	_anim_acao = nome
+	_acao_ate_ms = Time.get_ticks_msec() + int(dur * 1000.0)
+	_anim_atual = nome
+	_anim.play(nome, 0.1)
+
+
+## Gesto público de plantio (player e bot chamam ao plantar armadilha).
+func animar_plantio() -> void:
+	_tocar_acao(_anim_plantar, 0.45)
 
 
 ## Altura combinada (eixo Y) das malhas de um modelo, no espaço local dele.
@@ -459,6 +485,7 @@ func socar() -> void:
 	if _soco_cd > 0.0 or _derrubado_restante > 0.0 or _imobilizado_restante > 0.0:
 		return
 	_soco_cd = SOCO_COOLDOWN
+	_tocar_acao(_anim_soco, 0.4)   # o swing aparece mesmo errando (feedback honesto)
 	var alvo := _inimigo_no_alcance(SOCO_ALCANCE)
 	if alvo == null:
 		return
@@ -601,9 +628,55 @@ func atirar() -> void:
 	municao -= 1
 	_cadencia_restante = float(spec.get("cadencia", CADENCIA))
 	AudioManager.tocar("tiro")
+	_tocar_acao(_anim_atirar, 0.3)
+	_fx_muzzle(global_position + dir * 1.1 + Vector3(0.0, 0.15, 0.0), spec.get("cor", Color(1.0, 0.9, 0.35)))
 	municao_mudou.emit(municao, municao_max)
 	if municao <= 0:
 		_recarga_restante = RECARGA_TEMPO
+
+
+## Clarão de saída do tiro: luz curtíssima + faíscas na boca do cano. O flash é o que
+## faz o tiro "existir" — sem ele a arma parece um apontador.
+func _fx_muzzle(pos: Vector3, cor: Color) -> void:
+	var luz := OmniLight3D.new()
+	luz.light_color = cor
+	luz.light_energy = 3.0
+	luz.omni_range = 4.0
+	luz.shadow_enabled = false
+	luz.add_to_group("fx")
+	get_parent().add_child(luz)
+	luz.global_position = pos
+	var tw := luz.create_tween()
+	tw.tween_property(luz, "light_energy", 0.0, 0.1)
+	tw.tween_callback(luz.queue_free)
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = 8
+	p.lifetime = 0.18
+	p.direction = Vector3(0, 0, -1)
+	p.spread = 25.0
+	p.initial_velocity_min = 3.0
+	p.initial_velocity_max = 6.0
+	p.gravity = Vector3.ZERO
+	p.scale_amount_min = 0.04
+	p.scale_amount_max = 0.1
+	p.mesh = SphereMesh.new()
+	(p.mesh as SphereMesh).radius = 0.5
+	(p.mesh as SphereMesh).height = 1.0
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = cor
+	mat.emission_enabled = true
+	mat.emission = cor
+	mat.emission_energy_multiplier = 3.0
+	p.mesh.surface_set_material(0, mat)
+	p.add_to_group("fx")
+	get_parent().add_child(p)
+	p.global_position = pos
+	p.rotation.y = rotation.y   # cone de faíscas na direção do tiro
+	p.emitting = true
+	p.finished.connect(p.queue_free)
 
 
 ## Trava o movimento por `duracao` segundos (Cova/Gás). Não encurta um efeito maior já ativo.

@@ -443,6 +443,7 @@ func _plantar(tipo: String) -> bool:
 	GridManager.registrar_armadilha(coord, id_jogador, tipo, a)
 	a.consumida.connect(func(): _armadilhas_ativas = maxi(0, _armadilhas_ativas - 1))
 	_armadilhas_ativas += 1
+	animar_plantio()   # mesmo gesto do player (o bot também "trabalha")
 	return true
 
 

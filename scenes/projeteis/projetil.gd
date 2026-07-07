@@ -41,6 +41,76 @@ func _ready() -> void:
 	luz.omni_range = 3.0
 	luz.shadow_enabled = false
 	add_child(luz)
+	_montar_trail()
+
+
+## Rastro do projétil: partículas curtas deixadas pelo caminho (coords globais — ficam
+## pra trás enquanto o tiro avança). Transforma a esfera num TRACER legível.
+func _montar_trail() -> void:
+	var p := CPUParticles3D.new()
+	p.amount = 22
+	p.lifetime = 0.22
+	p.local_coords = false
+	p.direction = Vector3.ZERO
+	p.spread = 0.0
+	p.initial_velocity_min = 0.0
+	p.initial_velocity_max = 0.0
+	p.gravity = Vector3.ZERO
+	p.scale_amount_min = 0.35
+	p.scale_amount_max = 0.5
+	p.scale_amount_curve = _curva_encolhe()
+	p.mesh = SphereMesh.new()
+	(p.mesh as SphereMesh).radius = 0.14
+	(p.mesh as SphereMesh).height = 0.28
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(cor.r, cor.g, cor.b, 0.55)
+	mat.emission_enabled = true
+	mat.emission = cor
+	mat.emission_energy_multiplier = 1.6
+	p.mesh.surface_set_material(0, mat)
+	add_child(p)
+	p.emitting = true
+
+
+## Curva 1->0: as bolinhas do rastro encolhem até sumir (rastro afinando).
+func _curva_encolhe() -> Curve:
+	var c := Curve.new()
+	c.add_point(Vector2(0.0, 1.0))
+	c.add_point(Vector2(1.0, 0.0))
+	return c
+
+
+## Estilhaço de IMPACTO no ponto de acerto (alvo ou parede) — o tiro "termina" em algo.
+func _fx_impacto() -> void:
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = 10
+	p.lifetime = 0.3
+	p.direction = -velocidade.normalized() if velocidade.length() > 0.01 else Vector3.UP
+	p.spread = 55.0
+	p.initial_velocity_min = 2.5
+	p.initial_velocity_max = 5.0
+	p.gravity = Vector3(0.0, -6.0, 0.0)
+	p.scale_amount_min = 0.05
+	p.scale_amount_max = 0.11
+	p.mesh = SphereMesh.new()
+	(p.mesh as SphereMesh).radius = 0.5
+	(p.mesh as SphereMesh).height = 1.0
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = cor
+	mat.emission_enabled = true
+	mat.emission = cor
+	mat.emission_energy_multiplier = 2.5
+	p.mesh.surface_set_material(0, mat)
+	p.add_to_group("fx")
+	get_parent().add_child(p)
+	p.global_position = global_position
+	p.emitting = true
+	p.finished.connect(p.queue_free)
 
 
 func _physics_process(delta: float) -> void:
@@ -60,6 +130,10 @@ func _physics_process(delta: float) -> void:
 
 func _ao_corpo_entrar(corpo: Node) -> void:
 	if not corpo.has_method("receber_dano"):
+		# Parede/estrutura: o tiro estilhaça nela em vez de atravessar o cenário.
+		if corpo is StaticBody3D:
+			_fx_impacto()
+			queue_free()
 		return
 	if int(corpo.get("id_jogador")) == dono_id:
 		return  # não acerta quem atirou
@@ -67,4 +141,5 @@ func _ao_corpo_entrar(corpo: Node) -> void:
 	# Míssil/soco-foguete DERRUBAM o alvo (GDD 7.1 — armas teleguiadas knockdown).
 	if derruba and corpo.has_method("derrubar"):
 		corpo.derrubar(velocidade, DERRUBA_EMPURRAO)
+	_fx_impacto()
 	queue_free()

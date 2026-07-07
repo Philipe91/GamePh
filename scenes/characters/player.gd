@@ -347,6 +347,7 @@ func plantar(tipo: String = "") -> bool:
 	GridManager.registrar_armadilha(coord, id_jogador, tipo, a)
 	a.consumida.connect(_ao_armadilha_consumida.bind(tipo))
 	AudioManager.tocar("plantar")
+	animar_plantio()   # gesto de agachar/plantar (leitura da ação)
 	inventario[tipo] = int(inventario[tipo]) - 1
 	inventario_mudou.emit(tipo, inventario[tipo], STATS[tipo].inventario_inicial)
 	return true
