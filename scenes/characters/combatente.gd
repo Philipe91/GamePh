@@ -174,7 +174,48 @@ func _montar_modelo() -> void:
 	if stats == null or stats.cena_modelo == null:
 		_tingir_modelo(m)
 	_configurar_animacao(m)
+	_montar_arma_visual()
 	_montar_anel_time()
+
+
+## Modelo 3D da ARMA do personagem (Quaternius CC0 em assets/models/armas/<arma>.fbx),
+## segurado ao lado direito, apontando pra frente. Auto-escala pela AABB (FBX varia).
+## Sem arquivo pro tipo (soco_foguete etc.), fica sem arma visível — mão livre.
+func _montar_arma_visual() -> void:
+	var antigo := get_node_or_null("ArmaVisual")
+	if antigo != null:
+		antigo.queue_free()
+	if stats == null:
+		return
+	var caminho := "res://assets/models/armas/%s.fbx" % stats.arma
+	if not ResourceLoader.exists(caminho):
+		return
+	var cena: PackedScene = load(caminho)
+	if cena == null:
+		return
+	var arma: Node3D = cena.instantiate()
+	arma.name = "ArmaVisual"
+	add_child(arma)
+	# Auto-escala em ESPAÇO DE MUNDO: FBX costuma trazer ×100 embutido em nós internos
+	# — medir a AABB local ignorava isso e a arma nascia colossal (regressão pega em
+	# captura). Medindo global, a escala compensa qualquer fator interno.
+	var dim := _maior_dim_aabb_mundo(arma)
+	if dim > 0.001:
+		arma.scale = arma.scale * (0.85 / dim)     # ~0.85u de comprimento na mão
+	arma.position = Vector3(0.42, -0.05, -0.25)    # lado direito, altura da mão
+	arma.rotation.y = PI                            # FBX costuma "olhar" +Z; frente é -Z
+
+
+## Maior dimensão (X/Y/Z) das malhas em espaço de MUNDO (precisa estar na árvore).
+func _maior_dim_aabb_mundo(no: Node3D) -> float:
+	var maior := 0.0
+	for filho in no.find_children("*", "MeshInstance3D", true, false):
+		var mi := filho as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		var ab: AABB = mi.global_transform * mi.get_aabb()
+		maior = maxf(maior, maxf(ab.size.x, maxf(ab.size.y, ab.size.z)))
+	return maior
 
 
 # ─────────────── Animação do modelo (idle / correr / derrubado) ───────────────

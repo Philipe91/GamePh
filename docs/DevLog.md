@@ -1,5 +1,19 @@
 # DevLog
 
+## 2026-07-07 — Assets de armas e armadilhas (+ push habilitado)
+
+- Push liberado pelo humano para `github.com/Philipe91/GamePh` (remoto `origin` já
+  apontava pra lá). Fluxo agora: commit + push a cada progresso.
+- **Armas 3D (Quaternius, CC0)** em `assets/models/armas/<arma>.fbx` (pistola, shotgun,
+  handgun=Ray Gun, missil=Lightning Gun, laminas=Dagger; soco_foguete fica de mão
+  livre). Montadas na mão direita do personagem com auto-escala pela AABB
+  (`combatente._montar_arma_visual`). Fonte: mirror beep2bleep no GitHub.
+- **Armadilhas com corpo 3D** por tipo em cima do decalque (cúpula/esfera/caixinha/
+  tambor/aro/seta — a seta do Painel aponta pro arremesso). O corpo usa o MESMO
+  material do decalque, então respeita as regras de visibilidade (discreta pro
+  inimigo, acende ao armar/explodir).
+
+
 ## 2026-07-07 (madrugada, parte 2) — Plano Noturno 3
 
 - **3 câmeras do original**: Normal/Quarter/Top na tecla **V** (persiste em settings) —

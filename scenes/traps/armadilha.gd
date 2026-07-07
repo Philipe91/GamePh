@@ -35,6 +35,7 @@ func _ready() -> void:
 	add_to_group("armadilhas")
 	position.y = 0.1
 	_preparar_visual_e_forma()
+	_montar_corpo_3d()
 	body_entered.connect(_ao_corpo_entrar)
 	var c0 := stats.cor
 	_pintar(Color(c0.r, c0.g, c0.b, 0.9), 0.9)  # armando: brilho na cor do tipo
@@ -54,6 +55,63 @@ func _preparar_visual_e_forma() -> void:
 	# Marcador sempre pequeno e discreto (limpa a tela). O raio só aparece no flash da
 	# explosão (_mostrar_explosao) e na nuvem de Gás ativa (_ciclo_gas).
 	marca.scale = Vector3.ONE
+
+
+## Corpo 3D pequeno por tipo em cima do decalque (identidade de silhueta): cúpula da
+## mina, esfera da bomba, caixinha do detonador, tambor do gás, aro da cova, seta do
+## painel. USA O MESMO material do decalque — some/aparece junto (regras de
+## visibilidade intactas: discreta pro inimigo, brilha ao armar/explodir).
+func _montar_corpo_3d() -> void:
+	var corpo := MeshInstance3D.new()
+	corpo.name = "Corpo"
+	var y := 0.12
+	match stats.tipo:
+		"mina":
+			var sm := SphereMesh.new()
+			sm.radius = 0.24
+			sm.height = 0.26   # meia-cúpula saindo do chão
+			corpo.mesh = sm
+		"bomba":
+			var sb := SphereMesh.new()
+			sb.radius = 0.3
+			sb.height = 0.6
+			corpo.mesh = sb
+			y = 0.28
+		"detonador":
+			var bx := BoxMesh.new()
+			bx.size = Vector3(0.34, 0.22, 0.34)
+			corpo.mesh = bx
+			y = 0.11
+		"gas":
+			var cil := CylinderMesh.new()
+			cil.top_radius = 0.22
+			cil.bottom_radius = 0.26
+			cil.height = 0.34
+			corpo.mesh = cil
+			y = 0.17
+		"cova":
+			var tor := TorusMesh.new()
+			tor.inner_radius = 0.5
+			tor.outer_radius = 0.62
+			corpo.mesh = tor
+			y = 0.04
+		"painel":
+			var seta := PrismMesh.new()
+			seta.size = Vector3(0.5, 0.08, 0.6)
+			corpo.mesh = seta
+			y = 0.06
+	if corpo.mesh == null:
+		corpo.free()
+		return
+	corpo.material_override = marca.material_override   # fade/brilho junto do decalque
+	add_child(corpo)
+	corpo.position.y = y
+	if stats.tipo == "painel":
+		# A seta aponta pra onde o Painel ARREMESSA (direção do plantio).
+		var d := direcao_plantio
+		d.y = 0.0
+		if d.length() > 0.01:
+			corpo.rotation.y = atan2(-d.x, -d.z)
 
 
 func _ao_armar() -> void:
