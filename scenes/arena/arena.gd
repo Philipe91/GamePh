@@ -309,9 +309,140 @@ func _montar_visual_mapa(mapa: Resource) -> void:
 		_desenhar_grid()                   # mapas verticais: estruturas próprias + linhas
 		return
 	_montar_chao_tiles(mapa)
+	_montar_chao_identidade(mapa)
 	_montar_paredes()
 	_montar_avental()
 	_montar_decoracao(mapa)
+
+
+## IDENTIDADE do piso (Art Bible §5 — "usado por décadas, sinalizado por burocratas"):
+## faixa amarela/preta no perímetro, estêncil do setor, manchas de óleo/queimadura e
+## grelhas de ventilação com vapor. Tudo decal fino ACIMA das placas, sem colisão.
+func _montar_chao_identidade(mapa: Resource) -> void:
+	var antigo := get_node_or_null("ChaoIdentidade")
+	if antigo != null:
+		antigo.queue_free()
+	var raiz := Node3D.new()
+	raiz.name = "ChaoIdentidade"
+	add_child(raiz)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(String(mapa.nome)) + 7
+	var ts := GridManager.TAMANHO_TILE
+	var w := float(GridManager.LARGURA) * ts * 0.5
+	var h := float(GridManager.ALTURA) * ts * 0.5
+	# ── Faixa de segurança amarelo/preto contornando o campo (rente às paredes).
+	var seg := BoxMesh.new()
+	seg.size = Vector3(1.0, 0.02, 0.34)
+	var mat_amarelo := StandardMaterial3D.new()
+	mat_amarelo.albedo_color = Color(0.85, 0.65, 0.1)
+	mat_amarelo.roughness = 0.9
+	var mat_preto := StandardMaterial3D.new()
+	mat_preto.albedo_color = Color(0.06, 0.06, 0.07)
+	mat_preto.roughness = 0.9
+	var tf_am: Array[Transform3D] = []
+	var tf_pr: Array[Transform3D] = []
+	var passo := 1.0
+	var nx := int(w * 2.0 / passo)
+	for i in nx:
+		var x := -w + 0.5 + float(i) * passo
+		for zz in [-h + 0.22, h - 0.22]:
+			var t := Transform3D(Basis.IDENTITY, Vector3(x, 0.015, zz))
+			if i % 2 == 0:
+				tf_am.append(t)
+			else:
+				tf_pr.append(t)
+	var nz := int(h * 2.0 / passo) - 1
+	for i in nz:
+		var z := -h + 1.0 + float(i) * passo
+		for xx in [-w + 0.22, w - 0.22]:
+			var t2 := Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(xx, 0.015, z))
+			if i % 2 == 0:
+				tf_am.append(t2)
+			else:
+				tf_pr.append(t2)
+	for par in [[tf_am, mat_amarelo], [tf_pr, mat_preto]]:
+		var lista: Array = par[0]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = seg
+		mm.instance_count = lista.size()
+		for i in lista.size():
+			mm.set_instance_transform(i, lista[i])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		mmi.material_override = par[1]
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(mmi)
+	# ── Estêncil do setor pintado no piso (desbotado — burocracia VECTOR).
+	var estencil := Label3D.new()
+	estencil.text = String(mapa.nome).to_upper()
+	estencil.font_size = 200
+	estencil.pixel_size = 0.007
+	estencil.modulate = Color(0.9, 0.92, 1.0, 0.09)
+	estencil.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	raiz.add_child(estencil)
+	estencil.position = Vector3(-w * 0.35, 0.03, h * 0.35)
+	# ── Manchas de óleo e queimaduras antigas (o setor tem passado).
+	for i in 9:
+		var mancha := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		var r := rng.randf_range(0.5, 1.3)
+		cm.top_radius = r
+		cm.bottom_radius = r
+		cm.height = 0.012
+		cm.radial_segments = 10
+		mancha.mesh = cm
+		var matm := StandardMaterial3D.new()
+		matm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		matm.albedo_color = Color(0.01, 0.01, 0.015, rng.randf_range(0.25, 0.5))
+		matm.roughness = 0.25 if rng.randf() < 0.5 else 0.9   # óleo brilha, queimadura não
+		mancha.material_override = matm
+		mancha.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(mancha)
+		mancha.position = Vector3(rng.randf_range(-w + 2.0, w - 2.0), 0.012, rng.randf_range(-h + 2.0, h - 2.0))
+	# ── Grelhas de ventilação em tiles fixos por seed (2 soltam vapor).
+	for i in 5:
+		var gx := rng.randi_range(1, GridManager.LARGURA - 2)
+		var gy := rng.randi_range(1, GridManager.ALTURA - 2)
+		var p := GridManager.grid_to_world(Vector2i(gx, gy))
+		var grelha := MeshInstance3D.new()
+		var gm := BoxMesh.new()
+		gm.size = Vector3(ts * 0.7, 0.025, ts * 0.7)
+		grelha.mesh = gm
+		var matg := StandardMaterial3D.new()
+		matg.albedo_color = Color(0.11, 0.12, 0.15)
+		matg.metallic = 0.7
+		matg.roughness = 0.4
+		grelha.material_override = matg
+		grelha.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(grelha)
+		grelha.position = Vector3(p.x, 0.015, p.z)
+		if i < 2:
+			var vapor := CPUParticles3D.new()
+			vapor.amount = 10
+			vapor.lifetime = 2.4
+			vapor.preprocess = 2.4
+			vapor.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+			vapor.emission_box_extents = Vector3(ts * 0.3, 0.05, ts * 0.3)
+			vapor.direction = Vector3.UP
+			vapor.spread = 10.0
+			vapor.initial_velocity_min = 0.3
+			vapor.initial_velocity_max = 0.7
+			vapor.gravity = Vector3(0.0, 0.15, 0.0)
+			vapor.scale_amount_min = 0.6
+			vapor.scale_amount_max = 1.2
+			var vm := SphereMesh.new()
+			vm.radius = 0.1
+			vm.height = 0.2
+			vapor.mesh = vm
+			var vmat := StandardMaterial3D.new()
+			vmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			vmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			vmat.albedo_color = Color(0.75, 0.8, 0.9, 0.06)
+			vapor.mesh.surface_set_material(0, vmat)
+			raiz.add_child(vapor)
+			vapor.position = Vector3(p.x, 0.1, p.z)
+			vapor.emitting = true
 
 
 ## Piso escuro GIGANTE por baixo de tudo: o que aparece além das paredes deixa de ser
@@ -559,12 +690,12 @@ func _desenhar_grid() -> void:
 	add_child(linhas)
 
 
-# ───────────────────── Decoração de entorno (cosmética, fora do grid) ─────────────────────
+# ───────────────── O GALPÃO (Art Bible §4: moldura + horizonte, fim do vazio) ─────────────────
 
-## Preenche o "fora da arena" com props industriais NA COR DO TEMA: pilhas de
-## containers, pilares com topo de luz e dutos. Tudo além das paredes — zero impacto
-## no gameplay, mas o mapa deixa de parecer um editor vazio. Determinístico por mapa
-## (seed = hash do nome) pra captura/identidade estável.
+## Constrói o COMPLEXO ao redor do campo: fachadas com janelas acesas, vigas no alto,
+## pilares, passarela de manutenção, dutos, geradores, containers, holofotes apontados
+## pro ringue, luzes de emergência piscando, poeira no ar. A arena vira uma SALA
+## dentro de um prédio vivo. Determinístico por mapa (seed = hash do nome).
 func _montar_decoracao(mapa: Resource) -> void:
 	var antigo := get_node_or_null("Decoracao")
 	if antigo != null:
@@ -578,80 +709,343 @@ func _montar_decoracao(mapa: Resource) -> void:
 	var w := float(GridManager.LARGURA) * ts * 0.5
 	var h := float(GridManager.ALTURA) * ts * 0.5
 	var cor_tema: Color = mapa.cor_tile_a
+	# Materiais compartilhados da moldura (meia-luz) e horizonte (escuro).
 	var mat_escuro := StandardMaterial3D.new()
 	mat_escuro.albedo_color = Color(0.12, 0.13, 0.16)
 	mat_escuro.metallic = 0.6
 	mat_escuro.roughness = 0.5
+	var mat_fachada := StandardMaterial3D.new()
+	_aplicar_pbr_metal(mat_fachada)
+	mat_fachada.albedo_color = Color(0.22, 0.24, 0.3)
+	mat_fachada.uv1_triplanar = true
+	mat_fachada.uv1_scale = Vector3(0.25, 0.25, 0.25)
 	var mat_tema := StandardMaterial3D.new()
 	mat_tema.albedo_color = Color(cor_tema.r * 0.55, cor_tema.g * 0.55, cor_tema.b * 0.55)
 	mat_tema.metallic = 0.4
 	mat_tema.roughness = 0.6
+	var cor_luz := Color(minf(cor_tema.r * 2.2, 1.0), minf(cor_tema.g * 2.2, 1.0), minf(cor_tema.b * 2.2, 1.0))
 	var mat_luz := StandardMaterial3D.new()
 	mat_luz.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	var cor_luz := Color(minf(cor_tema.r * 2.2, 1.0), minf(cor_tema.g * 2.2, 1.0), minf(cor_tema.b * 2.2, 1.0))
 	mat_luz.albedo_color = cor_luz
 	mat_luz.emission_enabled = true
 	mat_luz.emission = cor_luz
 	mat_luz.emission_energy_multiplier = 1.4
-	# Containers empilhados nos 4 quadrantes do entorno (distância segura das paredes).
-	for i in 10:
-		var lado_x := 1.0 if rng.randf() < 0.5 else -1.0
-		var lado_z := 1.0 if rng.randf() < 0.5 else -1.0
-		var px := lado_x * (w + rng.randf_range(4.0, 12.0))
-		var pz := lado_z * rng.randf_range(-h - 4.0, h + 10.0)
-		var alt := rng.randf_range(1.6, 2.2)
-		var comp := rng.randf_range(3.5, 5.5)
+	_galpao_fachadas(raiz, rng, w, h, mat_fachada)
+	_galpao_vigas_e_holofotes(raiz, w, h, mat_escuro)
+	_galpao_passarela(raiz, w, h, mat_escuro)
+	_galpao_maquinas(raiz, rng, w, h, mat_escuro, mat_tema, mat_luz)
+	_galpao_emergencia_e_ar(raiz, w, h)
+
+
+## HORIZONTE: 4 fachadas internas do prédio com fileiras de JANELAS (parte acesa —
+## a produção continua nos outros setores) + pilares estruturais.
+func _galpao_fachadas(raiz: Node3D, rng: RandomNumberGenerator, w: float, h: float, mat_fachada: Material) -> void:
+	var mat_janela_acesa := StandardMaterial3D.new()
+	mat_janela_acesa.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat_janela_acesa.albedo_color = Color(0.95, 0.82, 0.5)
+	mat_janela_acesa.emission_enabled = true
+	mat_janela_acesa.emission = Color(0.95, 0.78, 0.45)
+	mat_janela_acesa.emission_energy_multiplier = 1.7
+	var mat_janela_apagada := StandardMaterial3D.new()
+	mat_janela_apagada.albedo_color = Color(0.04, 0.05, 0.08)
+	mat_janela_apagada.roughness = 0.2
+	mat_janela_apagada.metallic = 0.8
+	var quad := BoxMesh.new()
+	quad.size = Vector3(1.1, 1.5, 0.1)
+	var lados := [
+		{"pos": Vector3(0, 0, -h - 10.0), "rot": 0.0, "span": w * 2.0 + 32.0},
+		{"pos": Vector3(0, 0, h + 10.0), "rot": PI, "span": w * 2.0 + 32.0},
+		{"pos": Vector3(-w - 10.0, 0, 0), "rot": PI * 0.5, "span": h * 2.0 + 32.0},
+		{"pos": Vector3(w + 10.0, 0, 0), "rot": -PI * 0.5, "span": h * 2.0 + 32.0},
+	]
+	for lado in lados:
+		var span: float = lado["span"]
+		var rot: float = lado["rot"]
+		var base: Vector3 = lado["pos"]
+		var dir := Vector3(cos(rot), 0.0, sin(rot))   # eixo AO LONGO da fachada
+		# Parede do prédio (alta — o teto fica implícito acima do quadro).
+		var parede := MeshInstance3D.new()
+		var pm := BoxMesh.new()
+		pm.size = Vector3(span, 14.0, 1.0)
+		parede.mesh = pm
+		parede.material_override = mat_fachada
+		raiz.add_child(parede)
+		parede.position = base + Vector3(0.0, 6.7, 0.0)
+		parede.rotation.y = rot
+		# Duas fileiras de janelas por fachada (MultiMesh: acesas e apagadas).
+		var acesas: Array[Transform3D] = []
+		var apagadas: Array[Transform3D] = []
+		var n := int(span / 3.0)
+		for fileira in 2:
+			var y := 4.2 + 3.2 * float(fileira)
+			for i in n:
+				var off := (float(i) - float(n - 1) * 0.5) * 3.0
+				var p := base + dir * off + Vector3(0.0, y, 0.0)
+				# Janela levemente à frente da parede (evita z-fighting).
+				var recuo := Vector3(sin(rot), 0.0, -cos(rot)) * 0.06
+				if base.z > 0.0:
+					recuo = Vector3(sin(rot), 0.0, -cos(rot)) * 0.06
+				var t := Transform3D(Basis(Vector3.UP, rot), p + recuo * (1.0 if base.z <= 0.0 and absf(base.x) < 0.1 else 1.0))
+				if rng.randf() < 0.5:
+					acesas.append(t)
+				else:
+					apagadas.append(t)
+		for par in [[acesas, mat_janela_acesa], [apagadas, mat_janela_apagada]]:
+			var lista: Array = par[0]
+			if lista.is_empty():
+				continue
+			var mm := MultiMesh.new()
+			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.mesh = quad
+			mm.instance_count = lista.size()
+			for i in lista.size():
+				mm.set_instance_transform(i, lista[i])
+			var mmi := MultiMeshInstance3D.new()
+			mmi.multimesh = mm
+			mmi.material_override = par[1]
+			raiz.add_child(mmi)
+		# Pilares estruturais na fachada.
+		var n_pil := int(span / 12.0)
+		for i in n_pil:
+			var off2 := (float(i) - float(n_pil - 1) * 0.5) * 12.0
+			var pil := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(1.3, 14.0, 1.6)
+			pil.mesh = bm
+			pil.material_override = mat_fachada
+			raiz.add_child(pil)
+			pil.position = base + dir * off2 + Vector3(0.0, 6.7, 0.0)
+			pil.rotation.y = rot
+
+
+## Vigas metálicas no alto — SÓ sobre a moldura (nunca sobre o campo: ocluiriam o
+## gameplay) e SEM sombra (não sujam a leitura do ringue). Holofotes pendurados
+## mirando os quadrantes (a luz do "torneio clandestino").
+func _galpao_vigas_e_holofotes(raiz: Node3D, w: float, h: float, mat_escuro: Material) -> void:
+	for zi in [-h - 4.0, -h - 8.5, h + 4.0, h + 8.5]:
+		var viga := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(w * 2.0 + 24.0, 0.9, 0.7)
+		viga.mesh = bm
+		viga.material_override = mat_escuro
+		viga.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(viga)
+		viga.position = Vector3(0.0, 9.5, zi)
+	# 4 holofotes acima dos CANTOS do campo, mirando pra dentro (luz REAL — SpotLight).
+	var cantos := [Vector3(-w * 0.55, 0, -h * 0.55), Vector3(w * 0.55, 0, -h * 0.55),
+			Vector3(-w * 0.55, 0, h * 0.55), Vector3(w * 0.55, 0, h * 0.55)]
+	for alvo in cantos:
+		var corpo := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.35
+		cm.bottom_radius = 0.5
+		cm.height = 0.7
+		corpo.mesh = cm
+		corpo.material_override = mat_escuro
+		corpo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(corpo)
+		var pos := (alvo as Vector3) * 1.15 + Vector3(0.0, 9.2, 0.0)
+		corpo.position = pos
+		var luz := SpotLight3D.new()
+		luz.light_color = Color(1.0, 0.95, 0.85)
+		luz.light_energy = 1.4
+		luz.spot_range = 15.0
+		luz.spot_angle = 38.0
+		luz.shadow_enabled = false
+		raiz.add_child(luz)
+		luz.position = pos
+		luz.look_at(alvo, Vector3.FORWARD if absf(Vector3.UP.dot(((alvo as Vector3) - pos).normalized())) > 0.99 else Vector3.UP)
+
+
+## Passarela de manutenção elevada ao longo da fachada norte (com guarda-corpo e
+## pilares — regra do encanador: nada flutua).
+func _galpao_passarela(raiz: Node3D, w: float, h: float, mat_escuro: Material) -> void:
+	var z := -h - 6.5
+	var span := w * 2.0 + 20.0
+	var deck := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(span, 0.25, 2.4)
+	deck.mesh = bm
+	deck.material_override = mat_escuro
+	raiz.add_child(deck)
+	deck.position = Vector3(0.0, 4.6, z)
+	for lado_z in [-1.1, 1.1]:
+		var grade := MeshInstance3D.new()
+		var gm := BoxMesh.new()
+		gm.size = Vector3(span, 0.08, 0.06)
+		grade.mesh = gm
+		grade.material_override = mat_escuro
+		raiz.add_child(grade)
+		grade.position = Vector3(0.0, 5.6, z + float(lado_z))
+	var n_sup := int(span / 7.0)
+	for i in n_sup:
+		var x := (float(i) - float(n_sup - 1) * 0.5) * 7.0
+		var sup := MeshInstance3D.new()
+		var sm := BoxMesh.new()
+		sm.size = Vector3(0.35, 4.7, 0.35)
+		sup.mesh = sm
+		sup.material_override = mat_escuro
+		raiz.add_child(sup)
+		sup.position = Vector3(x, 2.35, z)
+		# Balaústres do guarda-corpo em cima de cada pilar.
+		var bal := MeshInstance3D.new()
+		var blm := BoxMesh.new()
+		blm.size = Vector3(0.08, 1.0, 0.08)
+		bal.mesh = blm
+		bal.material_override = mat_escuro
+		raiz.add_child(bal)
+		bal.position = Vector3(x, 5.1, z)
+
+
+## MOLDURA: geradores com dutos ligados à fachada, containers, tubulação — máquinas
+## que parecem operar (regra do encanador).
+func _galpao_maquinas(raiz: Node3D, rng: RandomNumberGenerator, w: float, h: float,
+		mat_escuro: Material, mat_tema: Material, mat_luz: Material) -> void:
+	# Geradores: caixa + topo cilíndrico + LED + DUTO conectando à fachada mais próxima.
+	for i in 4:
+		var lado_x := -1.0 if i % 2 == 0 else 1.0
+		var px := lado_x * (w + rng.randf_range(4.0, 8.0))
+		var pz := rng.randf_range(-h * 0.7, h * 0.7)
+		var corpo := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(2.6, 2.0, 3.4)
+		corpo.mesh = bm
+		corpo.material_override = mat_tema
+		raiz.add_child(corpo)
+		corpo.position = Vector3(px, 0.7, pz)
+		var topo := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.8
+		cm.bottom_radius = 0.8
+		cm.height = 1.1
+		topo.mesh = cm
+		topo.material_override = mat_escuro
+		raiz.add_child(topo)
+		topo.position = Vector3(px, 2.2, pz)
+		var led := MeshInstance3D.new()
+		var lm := BoxMesh.new()
+		lm.size = Vector3(0.5, 0.12, 0.12)
+		led.mesh = lm
+		led.material_override = mat_luz
+		raiz.add_child(led)
+		led.position = Vector3(px - lado_x * 1.31, 1.1, pz)
+		# Duto do gerador correndo até a fachada lateral.
+		var comp := absf((w + 10.0) - absf(px)) + 1.0
+		var duto := MeshInstance3D.new()
+		var dm := CylinderMesh.new()
+		dm.top_radius = 0.28
+		dm.bottom_radius = 0.28
+		dm.height = comp
+		duto.mesh = dm
+		duto.material_override = mat_escuro
+		raiz.add_child(duto)
+		duto.rotation.z = PI * 0.5
+		duto.position = Vector3(lado_x * (absf(px) + comp * 0.5), 1.9, pz)
+	# Containers empilhados (carga do setor).
+	for i in 8:
+		var lado_z2 := -1.0 if rng.randf() < 0.5 else 1.0
+		var px2 := rng.randf_range(-w - 10.0, w + 10.0)
+		var pz2 := lado_z2 * (h + rng.randf_range(4.0, 10.0))
+		var alt := rng.randf_range(1.7, 2.2)
 		var caixa := BoxMesh.new()
-		caixa.size = Vector3(comp, alt, 2.2)
+		caixa.size = Vector3(rng.randf_range(3.5, 5.0), alt, 2.2)
 		var mi := MeshInstance3D.new()
 		mi.mesh = caixa
 		mi.material_override = mat_tema if rng.randf() < 0.5 else mat_escuro
 		raiz.add_child(mi)
-		mi.position = Vector3(px, alt * 0.5 - 0.3, pz)
-		mi.rotation.y = rng.randf_range(-0.25, 0.25) + (0.0 if rng.randf() < 0.7 else PI * 0.5)
-		# 40% ganham um segundo container em cima (pilha de porto/carga).
-		if rng.randf() < 0.4:
-			var topo := MeshInstance3D.new()
-			topo.mesh = caixa
-			topo.material_override = mat_escuro if mi.material_override == mat_tema else mat_tema
-			raiz.add_child(topo)
-			topo.position = mi.position + Vector3(rng.randf_range(-0.4, 0.4), alt, 0.0)
-			topo.rotation.y = mi.rotation.y + rng.randf_range(-0.08, 0.08)
-	# Torres de luz: pilar escuro com topo emissivo na cor do tema (pontos de vida
-	# no horizonte — quebram o breu além do fog).
-	for i in 8:
-		var ang := TAU * float(i) / 8.0 + rng.randf_range(-0.2, 0.2)
-		var dist := maxf(w, h) + rng.randf_range(7.0, 16.0)
-		var px2 := cos(ang) * dist
-		var pz2 := sin(ang) * dist
-		var alt2 := rng.randf_range(4.0, 7.0)
-		var pilar := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(0.8, alt2, 0.8)
-		pilar.mesh = bm
-		pilar.material_override = mat_escuro
-		raiz.add_child(pilar)
-		pilar.position = Vector3(px2, alt2 * 0.5 - 0.3, pz2)
-		var topo_luz := MeshInstance3D.new()
-		var bl := BoxMesh.new()
-		bl.size = Vector3(0.9, 0.18, 0.9)
-		topo_luz.mesh = bl
-		topo_luz.material_override = mat_luz
-		raiz.add_child(topo_luz)
-		topo_luz.position = pilar.position + Vector3(0.0, alt2 * 0.5 + 0.1, 0.0)
-	# Dutos correndo paralelos a duas paredes (tubulação industrial).
-	for i in 2:
-		var lado := 1.0 if i == 0 else -1.0
-		var duto := MeshInstance3D.new()
-		var cm := CylinderMesh.new()
-		cm.top_radius = 0.35
-		cm.bottom_radius = 0.35
-		cm.height = h * 2.0 + 8.0
-		duto.mesh = cm
-		duto.material_override = mat_escuro
-		raiz.add_child(duto)
-		duto.rotation.x = PI * 0.5
-		duto.position = Vector3(lado * (w + 2.6), 0.45, 0.0)
+		mi.position = Vector3(px2, alt * 0.5 - 0.3, pz2)
+		mi.rotation.y = rng.randf_range(-0.2, 0.2)
+		if rng.randf() < 0.45:
+			var topo2 := MeshInstance3D.new()
+			topo2.mesh = caixa
+			topo2.material_override = mat_escuro if mi.material_override == mat_tema else mat_tema
+			raiz.add_child(topo2)
+			topo2.position = mi.position + Vector3(rng.randf_range(-0.3, 0.3), alt, 0.0)
+			topo2.rotation.y = mi.rotation.y + rng.randf_range(-0.06, 0.06)
+	# Tubulação dupla rente às fachadas leste/oeste.
+	for lado in [-1.0, 1.0]:
+		for alt_d in [0.45, 1.05]:
+			var duto2 := MeshInstance3D.new()
+			var cm2 := CylinderMesh.new()
+			cm2.top_radius = 0.3
+			cm2.bottom_radius = 0.3
+			cm2.height = h * 2.0 + 18.0
+			duto2.mesh = cm2
+			duto2.material_override = mat_escuro
+			raiz.add_child(duto2)
+			duto2.rotation.x = PI * 0.5
+			duto2.position = Vector3(lado * (w + 8.8), alt_d, 0.0)
+
+
+## Luzes de emergência vermelhas piscando nos cantos + POEIRA no ar do galpão
+## (o lugar respira) + placas "SETOR" nas fachadas.
+func _galpao_emergencia_e_ar(raiz: Node3D, w: float, h: float) -> void:
+	for canto in [Vector3(-w - 7.0, 3.2, -h - 7.0), Vector3(w + 7.0, 3.2, h + 7.0)]:
+		var bulbo := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 0.18
+		sm.height = 0.36
+		bulbo.mesh = sm
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.albedo_color = Color(1.0, 0.15, 0.1)
+		mat.emission_enabled = true
+		mat.emission = Color(1.0, 0.15, 0.1)
+		mat.emission_energy_multiplier = 0.4
+		bulbo.material_override = mat
+		raiz.add_child(bulbo)
+		bulbo.position = canto
+		var luz := OmniLight3D.new()
+		luz.light_color = Color(1.0, 0.2, 0.12)
+		luz.light_energy = 0.0
+		luz.omni_range = 9.0
+		luz.shadow_enabled = false
+		raiz.add_child(luz)
+		luz.position = canto
+		var tw := luz.create_tween().set_loops()
+		tw.tween_property(luz, "light_energy", 1.4, 0.9).set_trans(Tween.TRANS_SINE)
+		tw.parallel().tween_property(mat, "emission_energy_multiplier", 2.2, 0.9)
+		tw.tween_property(luz, "light_energy", 0.1, 0.9).set_trans(Tween.TRANS_SINE)
+		tw.parallel().tween_property(mat, "emission_energy_multiplier", 0.3, 0.9)
+	# Placa do setor nas fachadas norte/sul (Label3D — sinalização burocrática VECTOR).
+	var nome_setor := String(_mapa.nome).to_upper() if _mapa != null else "SETOR"
+	for dados in [[Vector3(0.0, 8.6, -h - 9.4), 0.0], [Vector3(0.0, 8.6, h + 9.4), PI]]:
+		var placa := Label3D.new()
+		placa.text = "VECTOR · %s" % nome_setor
+		placa.font_size = 220
+		placa.pixel_size = 0.02
+		placa.modulate = Color(0.95, 0.75, 0.25, 0.85)
+		placa.outline_size = 24
+		placa.outline_modulate = Color(0.0, 0.0, 0.0, 0.9)
+		raiz.add_child(placa)
+		placa.position = dados[0]
+		placa.rotation.y = dados[1]
+	# Poeira suspensa sobre o campo (partículas lentas, quase invisíveis — ar denso).
+	var p := CPUParticles3D.new()
+	p.amount = 40
+	p.lifetime = 7.0
+	p.preprocess = 7.0
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	p.emission_box_extents = Vector3(w, 2.5, h)
+	p.direction = Vector3(0.3, 0.1, 0.0)
+	p.spread = 20.0
+	p.initial_velocity_min = 0.15
+	p.initial_velocity_max = 0.5
+	p.gravity = Vector3.ZERO
+	p.scale_amount_min = 0.5
+	p.scale_amount_max = 1.0
+	var pm := SphereMesh.new()
+	pm.radius = 0.03
+	pm.height = 0.06
+	p.mesh = pm
+	var pmat := StandardMaterial3D.new()
+	pmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	pmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	pmat.albedo_color = Color(0.8, 0.85, 1.0, 0.18)
+	p.mesh.surface_set_material(0, pmat)
+	raiz.add_child(p)
+	p.position.y = 2.0
+	p.emitting = true
 
 
 # ─────────────────── Construção de estruturas 3D (mapas verticais) ───────────────────

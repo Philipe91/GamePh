@@ -9,7 +9,7 @@ const ROSTER: Array[String] = ["brecht", "magnus", "vesna", "pip", "kestrel", "m
 const ARENA := "res://scenes/arena/arena.tscn"
 ## Mapas disponíveis (nome + caminho do .tres).
 const MAPAS: Array = [
-	{"nome": "Padrão", "path": "res://resources/mapas/padrao.tres"},
+	{"nome": "Setor 01", "path": "res://resources/mapas/padrao.tres"},
 	{"nome": "Porto", "path": "res://resources/mapas/porto.tres"},
 	{"nome": "Corredor", "path": "res://resources/mapas/corredor.tres"},
 	{"nome": "Fortaleza", "path": "res://resources/mapas/fortaleza.tres"},

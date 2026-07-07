@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-nome = "Padrão"
+nome = "Setor 01"
 largura = 20
 altura = 20
 tamanho_tile = 2.0

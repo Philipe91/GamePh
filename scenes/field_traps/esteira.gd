@@ -25,17 +25,22 @@ func _montar_faixas() -> void:
 	if d.length() < 0.01:
 		return
 	d = d.normalized()
+	# CHEVRONS âmbar (setas industriais) deslizando na direção do empurrão — a esteira
+	# lê como maquinário, não como faixa de pedestre.
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.85, 0.95, 1.0)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(1.0, 0.72, 0.15)
 	mat.emission_enabled = true
-	mat.emission = Color(0.6, 0.85, 1.0)
-	mat.emission_energy_multiplier = 1.2
+	mat.emission = Color(1.0, 0.65, 0.1)
+	mat.emission_energy_multiplier = 1.1
 	for i in 3:
 		var mi := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(0.18, 0.06, 1.7) if absf(d.x) > absf(d.z) else Vector3(1.7, 0.06, 0.18)
-		mi.mesh = bm
+		var pm := PrismMesh.new()
+		pm.size = Vector3(1.1, 0.5, 0.05)
+		mi.mesh = pm
 		mi.material_override = mat
+		mi.rotation.x = -PI * 0.5                       # deitado no chão, ponta pra -Z
+		mi.rotation.y = atan2(-d.x, -d.z)               # ponta pra DIREÇÃO do empurrão
 		add_child(mi)
 		_faixas.append(mi)
 

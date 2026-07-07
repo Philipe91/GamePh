@@ -1,23 +1,27 @@
-[gd_scene load_steps=6 format=3 uid="uid://bponte000field1"]
+[gd_scene load_steps=8 format=3 uid="uid://bponte000field1"]
 
 [ext_resource type="Script" path="res://scenes/field_traps/ponte.gd" id="1"]
 
 [sub_resource type="BoxMesh" id="Mesh_deck"]
 size = Vector3(2.4, 0.22, 2.4)
 
+[sub_resource type="StandardMaterial3D" id="Mat_deck"]
+albedo_color = Color(0.16, 0.18, 0.22, 1)
+metallic = 0.65
+roughness = 0.45
+
+[sub_resource type="BoxMesh" id="Mesh_faixa"]
+size = Vector3(2.4, 0.04, 0.2)
+
+[sub_resource type="StandardMaterial3D" id="Mat_faixa"]
+albedo_color = Color(0.85, 0.65, 0.1, 1)
+roughness = 0.85
+
 [sub_resource type="BoxMesh" id="Mesh_pilar"]
-size = Vector3(0.2, 2.0, 0.2)
+size = Vector3(0.3, 2.0, 0.3)
 
 [sub_resource type="BoxMesh" id="Mesh_grade"]
-size = Vector3(2.4, 0.1, 0.08)
-
-[sub_resource type="StandardMaterial3D" id="Mat_ponte"]
-albedo_color = Color(0.3, 0.34, 0.43, 1)
-metallic = 0.55
-roughness = 0.45
-emission_enabled = true
-emission = Color(0.4, 0.7, 1, 1)
-emission_energy_multiplier = 0.1
+size = Vector3(2.4, 0.08, 0.06)
 
 [node name="ponte" type="Area3D"]
 script = ExtResource("1")
@@ -25,34 +29,54 @@ script = ExtResource("1")
 [node name="Malha" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
 mesh = SubResource("Mesh_deck")
-material_override = SubResource("Mat_ponte")
+material_override = SubResource("Mat_deck")
+
+[node name="FaixaA" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.13, -1.1)
+mesh = SubResource("Mesh_faixa")
+material_override = SubResource("Mat_faixa")
+
+[node name="FaixaB" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.13, 1.1)
+mesh = SubResource("Mesh_faixa")
+material_override = SubResource("Mat_faixa")
 
 [node name="PilarA" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 1, -1)
 mesh = SubResource("Mesh_pilar")
-material_override = SubResource("Mat_ponte")
+material_override = SubResource("Mat_deck")
 
 [node name="PilarB" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, -1)
 mesh = SubResource("Mesh_pilar")
-material_override = SubResource("Mat_ponte")
+material_override = SubResource("Mat_deck")
 
 [node name="PilarC" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 1, 1)
 mesh = SubResource("Mesh_pilar")
-material_override = SubResource("Mat_ponte")
+material_override = SubResource("Mat_deck")
 
 [node name="PilarD" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1)
 mesh = SubResource("Mesh_pilar")
-material_override = SubResource("Mat_ponte")
+material_override = SubResource("Mat_deck")
 
 [node name="GradeA" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.45, -1.15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.62, -1.15)
 mesh = SubResource("Mesh_grade")
-material_override = SubResource("Mat_ponte")
+material_override = SubResource("Mat_deck")
+
+[node name="GradeA2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.38, -1.15)
+mesh = SubResource("Mesh_grade")
+material_override = SubResource("Mat_deck")
 
 [node name="GradeB" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.45, 1.15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.62, 1.15)
 mesh = SubResource("Mesh_grade")
-material_override = SubResource("Mat_ponte")
+material_override = SubResource("Mat_deck")
+
+[node name="GradeB2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.38, 1.15)
+mesh = SubResource("Mesh_grade")
+material_override = SubResource("Mat_deck")
