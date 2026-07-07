@@ -18,7 +18,9 @@ extends CanvasLayer
 const SETAS: Array[String] = ["↑", "↓", "←", "→"]
 
 var _jogador: Node = null
+var _oponente: Node = null
 var _fim: bool = false   # partida acabou: habilita o rematch (Enter)
+var _ultimo_restante: float = 0.0   # p/ mostrar a duração na tela de fim
 var _lbl_placar: Label = null    # placar de rounds (ex.: "1  -  0")
 var _lbl_round: Label = null      # anúncio grande "ROUND N"
 var _t_round_aviso: float = 0.0   # tempo restante do anúncio na tela
@@ -79,6 +81,7 @@ func _ready() -> void:
 ## Liga as barras aos Healers e o contador à armadilha selecionada do jogador.
 func configurar(p1: Node, p2: Node) -> void:
 	_jogador = p1
+	_oponente = p2
 	p1.healer_mudou.connect(_ao_healer_mudar.bind(barra_p1))
 	p2.healer_mudou.connect(_ao_healer_mudar.bind(barra_p2))
 	p1.inventario_mudou.connect(_ao_inventario_mudar)
@@ -323,6 +326,7 @@ func _process(_delta: float) -> void:
 
 
 func _ao_tempo_mudar(restante: float) -> void:
+	_ultimo_restante = restante
 	lbl_timer.text = "%d" % ceili(restante)
 	# Urgência: nos 10 segundos finais o timer fica vermelho e pulsa (leitura imediata).
 	if restante <= 10.0:
@@ -334,33 +338,114 @@ func _ao_tempo_mudar(restante: float) -> void:
 		lbl_timer.remove_theme_color_override("font_color")
 
 
+## TELA DE FIM memorável (missão Steam): véu escurecendo, painel com borda na cor do
+## resultado, retrato do vencedor, placar, duração e botões — com animação de entrada.
 func _ao_partida_acabar(vencedor_id: int, motivo: String) -> void:
-	if vencedor_id == 0:
-		lbl_fim.text = "EMPATE\n(%s)" % motivo
-	elif vencedor_id == 1:
-		lbl_fim.text = "VOCÊ VENCEU\n(%s)" % motivo
-	else:
-		lbl_fim.text = "VOCÊ PERDEU\n(%s)" % motivo
-	lbl_fim.text += "\n\nEnter: jogar de novo"
-	# Estilo premium: cor por resultado, texto com glow e painel escuro com borda neon.
-	var cor := Color(1.0, 0.9, 0.4)            # empate = amarelo
-	if vencedor_id == 1:
-		cor = Color(0.3, 1.0, 0.5)             # vitória = verde
-	elif vencedor_id == 2:
-		cor = Color(1.0, 0.4, 0.45)            # derrota = vermelho
-	lbl_fim.add_theme_color_override("font_color", cor)
-	lbl_fim.add_theme_color_override("font_shadow_color", Color(cor.r, cor.g, cor.b, 0.9))
-	lbl_fim.add_theme_constant_override("shadow_offset_x", 0)
-	lbl_fim.add_theme_constant_override("shadow_offset_y", 0)
-	lbl_fim.add_theme_constant_override("shadow_outline_size", 18)
-	var painel := StyleBoxFlat.new()
-	painel.bg_color = Color(0.02, 0.03, 0.06, 0.88)
-	painel.set_corner_radius_all(14)
-	painel.set_content_margin_all(28.0)
-	painel.set_border_width_all(2)
-	painel.border_color = Color(cor.r, cor.g, cor.b, 0.6)
-	painel.shadow_color = Color(cor.r, cor.g, cor.b, 0.35)
-	painel.shadow_size = 16
-	lbl_fim.add_theme_stylebox_override("normal", painel)
-	lbl_fim.visible = true
 	_fim = true
+	var cor := Color(1.0, 0.9, 0.4)            # empate = amarelo
+	var titulo := "EMPATE"
+	if vencedor_id == 1:
+		cor = Color(0.3, 1.0, 0.5)
+		titulo = "VITÓRIA"
+	elif vencedor_id == 2:
+		cor = Color(1.0, 0.4, 0.45)
+		titulo = "DERROTA"
+	# Véu que escurece a arena (foco total no resultado).
+	var veu := ColorRect.new()
+	veu.color = Color(0.0, 0.0, 0.02, 0.0)
+	veu.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(veu)
+	veu.create_tween().tween_property(veu, "color:a", 0.72, 0.5)
+	# Painel central.
+	var centro := CenterContainer.new()
+	centro.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(centro)
+	var painel := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.02, 0.03, 0.06, 0.94)
+	sb.set_corner_radius_all(16)
+	sb.set_content_margin_all(30.0)
+	sb.set_border_width_all(2)
+	sb.border_color = Color(cor.r, cor.g, cor.b, 0.7)
+	sb.shadow_color = Color(cor.r, cor.g, cor.b, 0.35)
+	sb.shadow_size = 22
+	painel.add_theme_stylebox_override("panel", sb)
+	centro.add_child(painel)
+	var caixa := VBoxContainer.new()
+	caixa.add_theme_constant_override("separation", 10)
+	caixa.alignment = BoxContainer.ALIGNMENT_CENTER
+	painel.add_child(caixa)
+	var lbl_titulo := Label.new()
+	lbl_titulo.text = titulo
+	lbl_titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl_titulo.add_theme_font_size_override("font_size", 52)
+	lbl_titulo.add_theme_color_override("font_color", Color.WHITE)
+	lbl_titulo.add_theme_color_override("font_shadow_color", Color(cor.r, cor.g, cor.b, 0.95))
+	lbl_titulo.add_theme_constant_override("shadow_offset_x", 0)
+	lbl_titulo.add_theme_constant_override("shadow_offset_y", 0)
+	lbl_titulo.add_theme_constant_override("shadow_outline_size", 18)
+	caixa.add_child(lbl_titulo)
+	# Retrato do vencedor (se houver personagem com retrato).
+	var vencedor: Node = _jogador if vencedor_id == 1 else _oponente
+	if vencedor_id != 0 and vencedor != null and is_instance_valid(vencedor):
+		var stats: Resource = vencedor.get("stats")
+		if stats != null:
+			var caminho := "res://assets/sprites/retratos/%s.png" % String(stats.nome).to_lower()
+			if ResourceLoader.exists(caminho):
+				var tr := TextureRect.new()
+				tr.texture = load(caminho)
+				tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				tr.custom_minimum_size = Vector2(128.0, 128.0)
+				var moldura := PanelContainer.new()
+				var msb := StyleBoxFlat.new()
+				msb.bg_color = Color(0, 0, 0, 0)
+				msb.set_border_width_all(2)
+				msb.border_color = cor
+				msb.set_corner_radius_all(10)
+				moldura.add_theme_stylebox_override("panel", msb)
+				moldura.add_child(tr)
+				var linha_r := HBoxContainer.new()
+				linha_r.alignment = BoxContainer.ALIGNMENT_CENTER
+				linha_r.add_child(moldura)
+				caixa.add_child(linha_r)
+				var lbl_nome := Label.new()
+				lbl_nome.text = String(stats.nome)
+				lbl_nome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				lbl_nome.add_theme_font_size_override("font_size", 22)
+				lbl_nome.add_theme_color_override("font_color", cor)
+				caixa.add_child(lbl_nome)
+	# Estatísticas da partida: motivo, placar de rounds e duração do round final.
+	var lbl_stats := Label.new()
+	var placar := _lbl_placar.text if _lbl_placar != null else ""
+	var dur := maxf(0.0, GameManager.DURACAO_PARTIDA - _ultimo_restante)
+	lbl_stats.text = "%s\nrounds  %s   ·   round final  %ds" % [motivo, placar, int(dur)]
+	lbl_stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl_stats.add_theme_font_size_override("font_size", 16)
+	lbl_stats.add_theme_color_override("font_color", Color(0.75, 0.8, 0.9))
+	caixa.add_child(lbl_stats)
+	# Botões.
+	var linha := HBoxContainer.new()
+	linha.alignment = BoxContainer.ALIGNMENT_CENTER
+	linha.add_theme_constant_override("separation", 12)
+	caixa.add_child(linha)
+	var UIEstilo := preload("res://scenes/ui/ui_estilo.gd")
+	var rematch := Button.new()
+	rematch.text = "Jogar de novo  (Enter)"
+	rematch.custom_minimum_size = Vector2(230, 44)
+	UIEstilo.estilizar_botao(rematch, cor)
+	rematch.pressed.connect(func(): Transicao.ir_para("res://scenes/ui/selecao.tscn"))
+	linha.add_child(rematch)
+	var menu := Button.new()
+	menu.text = "Menu"
+	menu.custom_minimum_size = Vector2(120, 44)
+	UIEstilo.estilizar_botao(menu, Color(0.6, 0.6, 0.7))
+	menu.pressed.connect(func(): Transicao.ir_para("res://scenes/ui/titulo.tscn"))
+	linha.add_child(menu)
+	# Entrada com "pop" (escala 0.85 -> 1.0 com easing) — momento memorável.
+	painel.pivot_offset = painel.size * 0.5
+	painel.scale = Vector2(0.85, 0.85)
+	painel.modulate.a = 0.0
+	var tw := painel.create_tween().set_parallel()
+	tw.tween_property(painel, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(painel, "modulate:a", 1.0, 0.25)
