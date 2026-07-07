@@ -178,9 +178,24 @@ func _montar_modelo() -> void:
 	# próprios do roster (KayKit) mantêm a textura — o anel colorido separa os times.
 	if stats == null or stats.cena_modelo == null:
 		_tingir_modelo(m)
+	_aplicar_rim_time(m)
 	_configurar_animacao(m)
 	_montar_arma_visual()
 	_montar_anel_time()
+
+
+## Rim light fresnel na cor do TIME por cima do material original (overlay — não
+## repinta a textura KayKit). Personagem legível sobre chão escuro + leitura de lado.
+func _aplicar_rim_time(m: Node3D) -> void:
+	var shader := load("res://assets/shaders/rim_time.gdshader") as Shader
+	if shader == null:
+		return
+	var cor := Color(0.35, 0.7, 1.0) if id_jogador == 1 else Color(1.0, 0.35, 0.35)
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	mat.set_shader_parameter("cor", cor)
+	for filho in m.find_children("*", "MeshInstance3D", true, false):
+		(filho as MeshInstance3D).material_overlay = mat
 
 
 ## Modelo 3D da ARMA do personagem (Quaternius CC0 em assets/models/armas/<arma>.fbx),
