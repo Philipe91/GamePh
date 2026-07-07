@@ -529,6 +529,14 @@ func atirar() -> void:
 	if dir.length() < 0.01:
 		return
 	dir = dir.normalized()
+	# Aim assist leve (mira por movimento precisa de ajuda): se o inimigo está num
+	# cone de 30° na frente, o tiro sai NELE. Fora do cone, sai reto (dá pra errar).
+	var assistido := _inimigo_no_alcance(20.0)
+	if assistido != null:
+		var para_inim: Vector3 = assistido.global_position - global_position
+		para_inim.y = 0.0
+		if para_inim.length() > 0.01 and dir.angle_to(para_inim.normalized()) <= deg_to_rad(30.0):
+			dir = para_inim.normalized()
 	var spec: Dictionary = {}
 	if stats != null:
 		spec = ARMAS.get(stats.arma, {})

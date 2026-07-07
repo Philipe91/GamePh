@@ -219,6 +219,12 @@ func _rodar_teste() -> void:
 	player.plantar("mina")
 	var coord_propria := GridManager.world_to_grid(player.global_position)
 	falhas += _checar("caution ignora a propria armadilha", not (coord_propria in player.armadilhas_detectadas()))
+	# Invisibilidade REAL (GDD 6): cada armadilha renderiza só na camada do dono —
+	# a câmera do adversário corta essa camada (cull_mask).
+	var no_inim: Node = GridManager.armadilha_em(coord_inim).get("no")
+	var no_prop: Node = GridManager.armadilha_em(coord_propria).get("no")
+	falhas += _checar("armadilha do bot na camada oculta (12)", no_inim.marca.layers == (1 << 11))
+	falhas += _checar("armadilha do player na camada propria (11)", no_prop.marca.layers == (1 << 10))
 	player.global_position = GridManager.grid_to_world(Vector2i(10, 10))
 	falhas += _checar("caution nao detecta fora do alcance", player.armadilhas_detectadas().is_empty())
 	player.ativar_caution(false)

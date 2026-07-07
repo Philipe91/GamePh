@@ -1,5 +1,22 @@
 # DevLog
 
+## 2026-07-07 (parte 3) — Passe de acabamento "Steam" (feedback do playtest)
+
+Humano: "ainda com cara de não terminado; paredes; IA burra; corrija bugs".
+- **Paredes de verdade**: base 1.7u texturizada + FRISO NEON no topo na cor do tema
+  do mapa + pilares nos 4 cantos — a arena fecha como um ringue.
+- **BUG DE FIDELIDADE corrigido — armadilha inimiga agora é INVISÍVEL de verdade**
+  (alma do Caution Mode; antes aparecia um disco translúcido + corpo 3D pra todo
+  mundo): cada armadilha renderiza na camada do dono (11/12) e cada câmera corta a
+  camada do adversário via cull_mask (funciona também no split-screen — mind games).
+  Gás emitindo e explosões voltam à camada visível (perigo ativo todos veem).
+- **IA v2**: em média distância ORBITA o player (strafe circular com troca de lado
+  imprevisível) em vez de andar reto; ENCARA o alvo em alcance de combate (atira
+  muito mais); ESQUIVA pro lado de projéteis vindo na direção dela.
+- **Aim assist** (todos os atiradores): inimigo num cone de 30° à frente, o tiro sai
+  nele; fora do cone sai reto — mira por movimento ficou justa sem ficar automática.
+
+
 ## 2026-07-07 (parte 2) — Split-screen, pathfinding e Story Mode real
 
 - **SPLIT-SCREEN no VS MAN** (decisão do humano: dividida SÓ no multiplayer local):

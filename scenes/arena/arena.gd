@@ -270,6 +270,9 @@ func _montar_split_screen(p1: Node3D, p2: Node3D) -> void:
 		cam.rotation_degrees = Vector3(-float(p[2]), 0.0, 0.0)
 		cam.position = (alvo as Node3D).global_position + _cam_offset
 		cam.current = true
+		# Cada tela esconde as armadilhas do ADVERSÁRIO (mind games do split).
+		var id := int((alvo as Node).get("id_jogador"))
+		cam.cull_mask = 0xFFFFF & ~((1 << 11) if id == 1 else (1 << 10))
 		_cams_split.append({"cam": cam, "alvo": alvo})
 
 
@@ -279,6 +282,7 @@ func _montar_split_screen(p1: Node3D, p2: Node3D) -> void:
 ## colisão no perímetro e a câmera perspectiva inclinada. Mapas verticais mantêm as
 ## estruturas próprias (chão texturizado) e só ganham a câmera.
 func _montar_visual_mapa(mapa: Resource) -> void:
+	_mapa = mapa   # cedo: as paredes usam a cor do tema no friso neon
 	_configurar_camera()
 	var chao_antigo := get_node_or_null("Chao")
 	if chao_antigo != null:
@@ -364,31 +368,62 @@ func _montar_chao_tiles(mapa: Resource) -> void:
 		raiz.add_child(mmi)
 
 
-## Paredes com colisão no perímetro do grid: seguram os personagens DENTRO da arena
-## (antes dava pra andar pro vazio infinito) e fecham a leitura do mapa.
+## Paredes de VERDADE no perímetro (acabamento Steam): base alta texturizada com
+## colisão, friso NEON no topo na cor do tema do mapa e pilares nos cantos. Seguram
+## os personagens dentro e fecham a leitura da arena como um "ringue".
 func _montar_paredes() -> void:
 	var ts := GridManager.TAMANHO_TILE
 	var w := float(GridManager.LARGURA) * ts
 	var h := float(GridManager.ALTURA) * ts
-	var alt := 1.1
-	var esp := 0.6
-	var cor := Color(0.16, 0.17, 0.22)
+	var alt := 1.7
+	var esp := 0.8
+	var cor := Color(0.2, 0.21, 0.27)
 	var lados := [
 		_caixa_solida(Vector3(0.0, alt * 0.5, -h * 0.5 - esp * 0.5), Vector3(w + esp * 2.0, alt, esp), cor),
 		_caixa_solida(Vector3(0.0, alt * 0.5, h * 0.5 + esp * 0.5), Vector3(w + esp * 2.0, alt, esp), cor),
 		_caixa_solida(Vector3(-w * 0.5 - esp * 0.5, alt * 0.5, 0.0), Vector3(esp, alt, h + esp * 2.0), cor),
 		_caixa_solida(Vector3(w * 0.5 + esp * 0.5, alt * 0.5, 0.0), Vector3(esp, alt, h + esp * 2.0), cor),
 	]
-	# Textura de metal nas paredes (triplanar: não estica no comprimento).
+	# Textura de metal (triplanar: não estica no comprimento).
 	if ResourceLoader.exists(TEX_CHAO):
 		var tex := load(TEX_CHAO) as Texture2D
 		for sb in lados:
 			var mi := (sb as Node).get_child(0) as MeshInstance3D
 			var mat := mi.material_override as StandardMaterial3D
 			mat.albedo_texture = tex
-			mat.albedo_color = Color(0.5, 0.53, 0.62)
+			mat.albedo_color = Color(0.55, 0.58, 0.68)
 			mat.uv1_triplanar = true
 			mat.uv1_scale = Vector3(0.5, 0.5, 0.5)
+	# Friso neon no topo de cada lado, na cor clara do tema (o glow faz ele "acender").
+	var cor_neon: Color = _mapa.cor_tile_a if _mapa != null else Color(0.3, 0.6, 1.0)
+	cor_neon = Color(minf(cor_neon.r * 2.4, 1.0), minf(cor_neon.g * 2.4, 1.0), minf(cor_neon.b * 2.4, 1.0))
+	var mat_neon := StandardMaterial3D.new()
+	mat_neon.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat_neon.albedo_color = cor_neon
+	mat_neon.emission_enabled = true
+	mat_neon.emission = cor_neon
+	mat_neon.emission_energy_multiplier = 1.6
+	var frisos := [
+		[Vector3(0.0, alt + 0.04, -h * 0.5 - esp * 0.5), Vector3(w + esp * 2.0, 0.08, 0.2)],
+		[Vector3(0.0, alt + 0.04, h * 0.5 + esp * 0.5), Vector3(w + esp * 2.0, 0.08, 0.2)],
+		[Vector3(-w * 0.5 - esp * 0.5, alt + 0.04, 0.0), Vector3(0.2, 0.08, h + esp * 2.0)],
+		[Vector3(w * 0.5 + esp * 0.5, alt + 0.04, 0.0), Vector3(0.2, 0.08, h + esp * 2.0)],
+	]
+	for f in frisos:
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = f[1]
+		mi.mesh = bm
+		mi.material_override = mat_neon
+		add_child(mi)
+		mi.add_to_group("geometria")
+		mi.position = f[0]
+	# Pilares nos 4 cantos (fecham a moldura).
+	for canto in [Vector3(-w * 0.5 - esp * 0.5, 0.0, -h * 0.5 - esp * 0.5),
+			Vector3(w * 0.5 + esp * 0.5, 0.0, -h * 0.5 - esp * 0.5),
+			Vector3(-w * 0.5 - esp * 0.5, 0.0, h * 0.5 + esp * 0.5),
+			Vector3(w * 0.5 + esp * 0.5, 0.0, h * 0.5 + esp * 0.5)]:
+		_caixa_solida(canto + Vector3(0.0, 1.15, 0.0), Vector3(1.2, 2.3, 1.2), Color(0.26, 0.27, 0.34))
 
 
 ## Alterna Normal -> Quarter -> Top com a tecla V (os 3 modos do original) e salva.
@@ -420,6 +455,9 @@ func _configurar_camera() -> void:
 	var tilt := deg_to_rad(tilt_graus)
 	_cam_offset = Vector3(0.0, sin(tilt), cos(tilt)) * dist
 	cam.rotation_degrees = Vector3(-tilt_graus, 0.0, 0.0)
+	# A câmera do P1 NÃO renderiza a camada das armadilhas do oponente (invisíveis
+	# de verdade — GDD seção 6; o Caution Mode é quem revela).
+	cam.cull_mask = 0xFFFFF & ~(1 << 11)
 	# Clamp do foco: quanto o mapa é maior que o enquadramento, deixa a câmera passear.
 	var ts := GridManager.TAMANHO_TILE
 	var w := float(GridManager.LARGURA) * ts

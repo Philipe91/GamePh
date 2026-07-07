@@ -31,11 +31,21 @@ var _gas_ativo: bool = false   # Gás: veneno emitido e fazendo efeito na área
 @onready var marca: MeshInstance3D = $Marca
 
 
+## Camadas de render por dono (GDD: a armadilha é INVISÍVEL pro inimigo — essa é a
+## alma do Caution Mode). Dono 1 renderiza na camada 11, dono 2 na 12; cada câmera
+## corta a camada do adversário (arena configura o cull_mask). O Caution Mode revela
+## via marcadores próprios (camada normal), e o Gás ATIVO/explosões voltam à camada
+## visível (perigo emitindo todo mundo vê).
+const CAMADA_DONO_1: int = 1 << 10   # camada 11
+const CAMADA_DONO_2: int = 1 << 11   # camada 12
+
+
 func _ready() -> void:
 	add_to_group("armadilhas")
 	position.y = 0.1
 	_preparar_visual_e_forma()
 	_montar_corpo_3d()
+	_aplicar_camada_de_dono()
 	body_entered.connect(_ao_corpo_entrar)
 	var c0 := stats.cor
 	_pintar(Color(c0.r, c0.g, c0.b, 0.9), 0.9)  # armando: brilho na cor do tipo
@@ -44,6 +54,21 @@ func _ready() -> void:
 		return
 	_estado = Estado.ARMADA
 	_ao_armar()
+
+
+## Esconde o visual do inimigo: marca e corpo vão pra camada exclusiva do dono.
+func _aplicar_camada_de_dono() -> void:
+	var camada := CAMADA_DONO_1 if dono_id == 1 else CAMADA_DONO_2
+	for mi in [marca, get_node_or_null("Corpo")]:
+		if mi != null:
+			(mi as MeshInstance3D).layers = camada
+
+
+## Torna o visual VISÍVEL PRA TODOS (gás emitindo, flash de explosão).
+func _revelar_para_todos() -> void:
+	for mi in [marca, get_node_or_null("Corpo")]:
+		if mi != null:
+			(mi as MeshInstance3D).layers = 1
 
 
 ## Ajusta o raio do gatilho e o tamanho/cor do marcador a partir do Resource.
@@ -154,6 +179,7 @@ func _ciclo_gas() -> void:
 	_gas_ativo = true
 	var c := stats.cor
 	_pintar(Color(c.r, c.g, c.b, 0.4), 0.6)  # nuvem visível
+	_revelar_para_todos()                     # veneno emitindo: TODOS veem a nuvem
 	var e := maxf(stats.raio_efeito, 0.6) / 0.45
 	marca.scale = Vector3(e, 1.0, e)  # cresce pro raio da nuvem enquanto ativa
 	# Pulso inicial em todos que já estão na nuvem.
@@ -275,6 +301,7 @@ func _mostrar_explosao() -> void:
 	var fx := preload("res://scenes/arena/explosao_fx.tscn").instantiate()
 	get_parent().add_child(fx)
 	fx.global_position = global_position
+	_revelar_para_todos()                    # o estouro todo mundo vê
 	_pintar(Color(1.0, 0.9, 0.4, 1.0), 3.0)
 	var e := maxf(stats.raio_efeito, 0.6) / 0.45
 	marca.scale = Vector3(e, 1.0, e)

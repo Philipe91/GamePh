@@ -41,6 +41,8 @@ var _combo_fase: int = 0               # combo bomba->detonador: 0 = plantar bom
 var _t_detonar: float = 0.0            # cooldown do gatilho do combo
 var _rota: Array = []                  # waypoints (mundo) do A* até o alvo atual
 var _t_rota: float = 0.0               # recalcula a rota a cada 0.5s
+var _lado_orbita: float = 1.0          # strafe circular: +1 horário, -1 anti-horário
+var _t_orbita: float = 0.0             # troca de lado de tempos em tempos
 
 # Parâmetros ajustados pela dificuldade (preenchidos no _ready).
 var _intervalo_plantio: float = INTERVALO_PLANTIO
@@ -130,13 +132,25 @@ func _physics_process(delta: float) -> void:
 	# Com pouca vida e o player por perto, RECUA (kite) — mas não se está indo buscar item.
 	var fugindo := item == null and _kite and healer < VIDA_FUGIR and dist_jog < 11.0
 
+	# Troca o lado da órbita de tempos em tempos (imprevisível) ou quando bate em algo.
+	_t_orbita -= delta
+	if _t_orbita <= 0.0 or is_on_wall():
+		_t_orbita = randf_range(1.6, 3.2)
+		if is_on_wall() or randf() < 0.6:
+			_lado_orbita = -_lado_orbita
 	if dist > DIST_PARAR or fugindo:
 		var base: Vector3
 		if fugindo:
 			base = -para.normalized()          # fuga: direto pra longe (sem rota)
+		elif item == null and dist_jog > 4.5 and dist_jog < 10.5:
+			# Média distância: ORBITA o player atirando (strafe circular — não é um
+			# zumbi que anda reto na tua cara), com leve aproximação.
+			var orbita := para_jog.normalized().cross(Vector3.UP) * _lado_orbita
+			base = (orbita * 0.75 + para_jog.normalized() * 0.25).normalized()
 		else:
-			base = _direcao_pela_rota(para, delta)  # perseguição: A* contorna caixas
+			base = _direcao_pela_rota(para, delta)  # longe: A* contorna caixas
 		var rumo := base + _desvio_de_armadilhas() * PESO_DESVIO  # sempre foge das armadilhas
+		rumo += _esquiva_de_tiros() * 2.2          # sidestep de projétil vindo
 		if rumo.length() < 0.05:
 			rumo = base
 		var d := rumo.normalized()
@@ -156,9 +170,10 @@ func _physics_process(delta: float) -> void:
 	if _t_detonar <= 0.0 and _player_no_raio_de_bomba():
 		_t_detonar = 1.5
 		_acionar_detonadores_proprios()
-	# Fugindo: encara o player (atira recuando). Senão: olha pra onde anda.
-	if fugindo and dist > 0.01:
-		rotation.y = lerp_angle(rotation.y, atan2(-para.x, -para.z), 0.25)
+	# Em alcance de combate (ou fugindo), ENCARA o player — atira de verdade em vez de
+	# dar as costas enquanto orbita. Fora de alcance, olha pra onde anda.
+	if (fugindo or dist_jog < ALCANCE_TIRO) and para_jog.length() > 0.01:
+		rotation.y = lerp_angle(rotation.y, atan2(-para_jog.x, -para_jog.z), 1.0 - exp(-10.0 * delta))
 	elif velocity.length() > 0.01:
 		rotation.y = lerp_angle(rotation.y, atan2(-velocity.x, -velocity.z), 0.2)
 
@@ -269,6 +284,29 @@ func _desvio_de_armadilhas() -> Vector3:
 		if is_instance_valid(s) and not s.esta_morto():
 			desvio += _empurrao_de(s.global_position, 3.2)
 	return desvio
+
+
+## Esquiva de projéteis: se um tiro inimigo vem na direção do bot (perto e alinhado),
+## empurra pro LADO perpendicular à trajetória — o bot "lê" o tiro e sai da frente.
+func _esquiva_de_tiros() -> Vector3:
+	for p in get_tree().get_nodes_in_group("projeteis"):
+		if not is_instance_valid(p) or int(p.get("dono_id")) == id_jogador:
+			continue
+		var vel_p: Vector3 = p.get("velocidade")
+		if vel_p.length() < 0.1:
+			continue
+		var para_mim: Vector3 = global_position - p.global_position
+		para_mim.y = 0.0
+		var dist_p := para_mim.length()
+		if dist_p > 7.0 or dist_p < 0.1:
+			continue
+		if vel_p.normalized().dot(para_mim.normalized()) > 0.85:   # vem na minha direção
+			var lado := vel_p.normalized().cross(Vector3.UP)
+			# Escolhe o lado que AUMENTA a distância da linha de tiro.
+			if lado.dot(para_mim) < 0.0:
+				lado = -lado
+			return lado
+	return Vector3.ZERO
 
 
 ## Vetor unitário-decaído pra longe de `origem` (mais forte quanto mais perto).
