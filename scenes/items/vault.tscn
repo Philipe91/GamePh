@@ -1,40 +1,96 @@
-[gd_scene load_steps=6 format=3 uid="uid://bvault00pods01"]
+[gd_scene load_steps=12 format=3 uid="uid://bvault00pods01"]
 
 [ext_resource type="Script" path="res://scenes/items/vault.gd" id="1"]
 
-[sub_resource type="CylinderMesh" id="Mesh_vault"]
-top_radius = 0.7
-bottom_radius = 0.7
-height = 0.3
+[sub_resource type="CylinderMesh" id="Mesh_base"]
+top_radius = 0.78
+bottom_radius = 0.92
+height = 0.34
+radial_segments = 8
+
+[sub_resource type="StandardMaterial3D" id="Mat_base"]
+albedo_color = Color(0.14, 0.15, 0.19, 1)
+metallic = 0.7
+roughness = 0.4
+
+[sub_resource type="TorusMesh" id="Mesh_anel"]
+inner_radius = 0.55
+outer_radius = 0.76
 
 [sub_resource type="StandardMaterial3D" id="Mat_vault"]
+shading_mode = 0
 albedo_color = Color(0.2, 1, 0.4, 1)
 emission_enabled = true
 emission = Color(0.2, 1, 0.4, 1)
 emission_energy_multiplier = 0.8
 
+[sub_resource type="SphereMesh" id="Mesh_nucleo"]
+radius = 0.42
+height = 0.5
+
+[sub_resource type="StandardMaterial3D" id="Mat_nucleo"]
+albedo_color = Color(0.1, 0.14, 0.12, 1)
+metallic = 0.6
+roughness = 0.35
+emission_enabled = true
+emission = Color(0.15, 0.8, 0.35, 1)
+emission_energy_multiplier = 0.25
+
+[sub_resource type="BoxMesh" id="Mesh_pino"]
+size = Vector3(0.15, 0.55, 0.15)
+
 [sub_resource type="CylinderMesh" id="Mesh_feixe"]
-top_radius = 0.32
-bottom_radius = 0.5
+top_radius = 0.26
+bottom_radius = 0.44
 height = 3.0
 
 [sub_resource type="StandardMaterial3D" id="Mat_feixe"]
 transparency = 1
 shading_mode = 0
-albedo_color = Color(0.2, 1, 0.4, 0.14)
+albedo_color = Color(0.2, 1, 0.4, 0.1)
 emission_enabled = true
 emission = Color(0.2, 1, 0.4, 1)
-emission_energy_multiplier = 0.5
+emission_energy_multiplier = 0.4
 
 [node name="vault" type="Node3D"]
 script = ExtResource("1")
 
+[node name="Base" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.17, 0)
+mesh = SubResource("Mesh_base")
+material_override = SubResource("Mat_base")
+
 [node name="Marca" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
-mesh = SubResource("Mesh_vault")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.36, 0)
+mesh = SubResource("Mesh_anel")
 material_override = SubResource("Mat_vault")
 
+[node name="Nucleo" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+mesh = SubResource("Mesh_nucleo")
+material_override = SubResource("Mat_nucleo")
+
+[node name="PinoA" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.68, 0.27, 0.68)
+mesh = SubResource("Mesh_pino")
+material_override = SubResource("Mat_base")
+
+[node name="PinoB" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.68, 0.27, 0.68)
+mesh = SubResource("Mesh_pino")
+material_override = SubResource("Mat_base")
+
+[node name="PinoC" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.68, 0.27, -0.68)
+mesh = SubResource("Mesh_pino")
+material_override = SubResource("Mat_base")
+
+[node name="PinoD" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.68, 0.27, -0.68)
+mesh = SubResource("Mesh_pino")
+material_override = SubResource("Mat_base")
+
 [node name="Feixe" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.9, 0)
 mesh = SubResource("Mesh_feixe")
 material_override = SubResource("Mat_feixe")

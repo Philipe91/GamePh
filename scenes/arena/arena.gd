@@ -311,6 +311,7 @@ func _montar_visual_mapa(mapa: Resource) -> void:
 	_montar_chao_tiles(mapa)
 	_montar_paredes()
 	_montar_avental()
+	_montar_decoracao(mapa)
 
 
 ## Piso escuro GIGANTE por baixo de tudo: o que aparece além das paredes deixa de ser
@@ -556,6 +557,101 @@ func _desenhar_grid() -> void:
 
 	linhas.mesh = im
 	add_child(linhas)
+
+
+# ───────────────────── Decoração de entorno (cosmética, fora do grid) ─────────────────────
+
+## Preenche o "fora da arena" com props industriais NA COR DO TEMA: pilhas de
+## containers, pilares com topo de luz e dutos. Tudo além das paredes — zero impacto
+## no gameplay, mas o mapa deixa de parecer um editor vazio. Determinístico por mapa
+## (seed = hash do nome) pra captura/identidade estável.
+func _montar_decoracao(mapa: Resource) -> void:
+	var antigo := get_node_or_null("Decoracao")
+	if antigo != null:
+		antigo.queue_free()
+	var raiz := Node3D.new()
+	raiz.name = "Decoracao"
+	add_child(raiz)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(String(mapa.nome))
+	var ts := GridManager.TAMANHO_TILE
+	var w := float(GridManager.LARGURA) * ts * 0.5
+	var h := float(GridManager.ALTURA) * ts * 0.5
+	var cor_tema: Color = mapa.cor_tile_a
+	var mat_escuro := StandardMaterial3D.new()
+	mat_escuro.albedo_color = Color(0.12, 0.13, 0.16)
+	mat_escuro.metallic = 0.6
+	mat_escuro.roughness = 0.5
+	var mat_tema := StandardMaterial3D.new()
+	mat_tema.albedo_color = Color(cor_tema.r * 0.55, cor_tema.g * 0.55, cor_tema.b * 0.55)
+	mat_tema.metallic = 0.4
+	mat_tema.roughness = 0.6
+	var mat_luz := StandardMaterial3D.new()
+	mat_luz.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var cor_luz := Color(minf(cor_tema.r * 2.2, 1.0), minf(cor_tema.g * 2.2, 1.0), minf(cor_tema.b * 2.2, 1.0))
+	mat_luz.albedo_color = cor_luz
+	mat_luz.emission_enabled = true
+	mat_luz.emission = cor_luz
+	mat_luz.emission_energy_multiplier = 1.4
+	# Containers empilhados nos 4 quadrantes do entorno (distância segura das paredes).
+	for i in 10:
+		var lado_x := 1.0 if rng.randf() < 0.5 else -1.0
+		var lado_z := 1.0 if rng.randf() < 0.5 else -1.0
+		var px := lado_x * (w + rng.randf_range(4.0, 12.0))
+		var pz := lado_z * rng.randf_range(-h - 4.0, h + 10.0)
+		var alt := rng.randf_range(1.6, 2.2)
+		var comp := rng.randf_range(3.5, 5.5)
+		var caixa := BoxMesh.new()
+		caixa.size = Vector3(comp, alt, 2.2)
+		var mi := MeshInstance3D.new()
+		mi.mesh = caixa
+		mi.material_override = mat_tema if rng.randf() < 0.5 else mat_escuro
+		raiz.add_child(mi)
+		mi.position = Vector3(px, alt * 0.5 - 0.3, pz)
+		mi.rotation.y = rng.randf_range(-0.25, 0.25) + (0.0 if rng.randf() < 0.7 else PI * 0.5)
+		# 40% ganham um segundo container em cima (pilha de porto/carga).
+		if rng.randf() < 0.4:
+			var topo := MeshInstance3D.new()
+			topo.mesh = caixa
+			topo.material_override = mat_escuro if mi.material_override == mat_tema else mat_tema
+			raiz.add_child(topo)
+			topo.position = mi.position + Vector3(rng.randf_range(-0.4, 0.4), alt, 0.0)
+			topo.rotation.y = mi.rotation.y + rng.randf_range(-0.08, 0.08)
+	# Torres de luz: pilar escuro com topo emissivo na cor do tema (pontos de vida
+	# no horizonte — quebram o breu além do fog).
+	for i in 8:
+		var ang := TAU * float(i) / 8.0 + rng.randf_range(-0.2, 0.2)
+		var dist := maxf(w, h) + rng.randf_range(7.0, 16.0)
+		var px2 := cos(ang) * dist
+		var pz2 := sin(ang) * dist
+		var alt2 := rng.randf_range(4.0, 7.0)
+		var pilar := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.8, alt2, 0.8)
+		pilar.mesh = bm
+		pilar.material_override = mat_escuro
+		raiz.add_child(pilar)
+		pilar.position = Vector3(px2, alt2 * 0.5 - 0.3, pz2)
+		var topo_luz := MeshInstance3D.new()
+		var bl := BoxMesh.new()
+		bl.size = Vector3(0.9, 0.18, 0.9)
+		topo_luz.mesh = bl
+		topo_luz.material_override = mat_luz
+		raiz.add_child(topo_luz)
+		topo_luz.position = pilar.position + Vector3(0.0, alt2 * 0.5 + 0.1, 0.0)
+	# Dutos correndo paralelos a duas paredes (tubulação industrial).
+	for i in 2:
+		var lado := 1.0 if i == 0 else -1.0
+		var duto := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.35
+		cm.bottom_radius = 0.35
+		cm.height = h * 2.0 + 8.0
+		duto.mesh = cm
+		duto.material_override = mat_escuro
+		raiz.add_child(duto)
+		duto.rotation.x = PI * 0.5
+		duto.position = Vector3(lado * (w + 2.6), 0.45, 0.0)
 
 
 # ─────────────────── Construção de estruturas 3D (mapas verticais) ───────────────────

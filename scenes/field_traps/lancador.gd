@@ -22,6 +22,13 @@ func _ready() -> void:
 	var coord := GridManager.world_to_grid(global_position)
 	GridManager.marcar_solido(coord, true)
 	tree_exiting.connect(func(): GridManager.marcar_solido(coord, false))
+	# A torreta APONTA o cano pra direção do disparo (leitura de perigo à distância).
+	var cabeca := get_node_or_null("Cabeca") as Node3D
+	if cabeca != null:
+		var d := direcao
+		d.y = 0.0
+		if d.length() > 0.01:
+			cabeca.rotation.y = atan2(-d.x, -d.z)
 
 
 func _physics_process(delta: float) -> void:
