@@ -484,9 +484,11 @@ func _montar_chao_tiles(mapa: Resource) -> void:
 	var ts := GridManager.TAMANHO_TILE
 	var box := BoxMesh.new()
 	box.size = Vector3(ts * 0.97, 0.14, ts * 0.97)   # fresta escura entre placas = grid
-	# Tema do mapa (se o .tres definir cores, usa; senão o metal frio padrão).
+	# Tema do mapa: a cor A manda; a "B" é a MESMA placa só 12% mais escura (variação
+	# sutil de lote de fabricação — o grid continua legível pela FRESTA, não por
+	# xadrez de alto contraste, que lia como arcade/protótipo).
 	var cor_a: Color = mapa.get("cor_tile_a") if mapa.get("cor_tile_a") != null else Color(0.34, 0.36, 0.42)
-	var cor_b: Color = mapa.get("cor_tile_b") if mapa.get("cor_tile_b") != null else Color(0.25, 0.27, 0.33)
+	var cor_b := Color(cor_a.r * 0.88, cor_a.g * 0.88, cor_a.b * 0.88)
 	var cores := [cor_a, cor_b]
 	# Junta as transforms por paridade (xadrez) e cria um MultiMesh por cor.
 	var por_cor: Array = [[], []]
