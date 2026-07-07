@@ -366,7 +366,13 @@ Decisões travadas no passe de qualidade visual (base: câmera inclinada + chão
 - **Personagens:** retratos 256×256 ORIGINAIS renderizados dos próprios modelos
   (gerador `--retratos` no dev_arena) — nunca usar material promocional de packs;
   altura por arquétipo (`altura_modelo` no .tres); rim light fresnel na cor do time
-  (`assets/shaders/rim_time.gdshader`, overlay — não repinta o KayKit).
+  (`assets/shaders/rim_time.gdshader`, overlay — não repinta as texturas).
+- **Elenco (2026-07-07, missão "sem chibi"):** família ÚNICA Quaternius Ultimate
+  Modular Men + Women (CC0, proporções humanas, mesmo rig, 24 animações — Idle_Gun,
+  Run, Gun_Shoot, Interact, Punch, HitRecieve, Death, Wave). Mapa: Brecht→Worker,
+  Magnus→Swat, Vesna→SciFi(F), Pip→Spacesuit, Kestrel→Punk(F), Mara→Soldier(F), em
+  `assets/models/quaternius/`. KayKit (chibi) foi REMOVIDO do projeto — nunca voltar
+  a personagens cabeçudos/cartoon; o fallback sem stats é o Swat tingido.
 
 ---
 

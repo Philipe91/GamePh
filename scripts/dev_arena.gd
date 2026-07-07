@@ -1030,15 +1030,9 @@ func _gerar_retratos() -> void:
 		fill.global_position = base + Vector3(1.6, alt * 0.6, -alt * 1.0)
 		# Câmera na frente (-Z), na altura dos olhos, close no rosto/ombros.
 		# Enquadramento POR PERSONAGEM (frações da altura: câmera, olhar, distância) —
-		# chapéus/elmos mudam onde o rosto cai no corpo do modelo.
+		# a família Quaternius tem proporções humanas: rosto a ~90% da altura.
 		var enq: Array = {
-			"brecht": [0.70, 0.58, 1.05],
-			"magnus": [0.72, 0.60, 1.05],
-			"vesna": [0.56, 0.47, 1.2],
-			"pip": [0.70, 0.58, 1.05],
-			"kestrel": [0.72, 0.60, 1.0],
-			"mara": [0.72, 0.60, 1.05],
-		}.get(nome, [0.72, 0.6, 1.05])
+		}.get(nome, [0.88, 0.82, 0.62])
 		cam.global_position = base + Vector3(0.0, alt * float(enq[0]), -alt * float(enq[2]))
 		cam.look_at(base + Vector3(0.0, alt * float(enq[1]), 0.0), Vector3.UP)
 		await get_tree().process_frame

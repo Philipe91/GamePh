@@ -126,9 +126,9 @@ func _ready() -> void:
 	municao_mudou.emit(municao, municao_max)
 
 
-## Modelo fallback (sem StatsPersonagem): KayKit Knight tingido pela cor do time —
-## MESMA família visual do roster (o Kenney destoava; direção de arte unificada).
-const MODELO_PADRAO_PATH := "res://assets/models/kaykit/Knight.glb"
+## Modelo fallback (sem StatsPersonagem): Quaternius SWAT tingido pela cor do time —
+## MESMA família visual do roster (Modular Men/Women, proporções humanas, CC0).
+const MODELO_PADRAO_PATH := "res://assets/models/quaternius/swat.gltf"
 ## Altura-alvo do personagem em mundo (~1 tile de largura de ombros). O modelo padrão é
 ## auto-ajustado pra esta altura pelo AABB — 6.5 fixo deixava o boneco com 2+ tiles.
 const ALTURA_MODELO_ALVO := 2.5
@@ -264,15 +264,17 @@ func _configurar_animacao(m: Node3D) -> void:
 	if achados.is_empty():
 		return
 	_anim = achados[0]
-	_anim_idle = _primeira_anim(["Idle", "Idle_A"])
-	_anim_mover = _primeira_anim(["Running_A", "Running_B", "Run", "Walking_A", "Walk"])
-	_anim_derrubado = _primeira_anim(["Hit_A", "Hit_B", "Death_A"])
-	_anim_morte = _primeira_anim(["Death_A", "Death_B", "Death"])
-	_anim_vitoria = _primeira_anim(["Cheer", "Victory", "Wave", "Jump"])
-	# Ações de combate (os GLB KayKit têm o set completo — estava ocioso):
-	_anim_atirar = _primeira_anim(["1H_Ranged_Shoot", "2H_Ranged_Shoot", "Shoot", "Throw"])
+	# Nomes da família Quaternius Modular primeiro (Idle_Gun = postura armada, a cara
+	# de "gunner"); nomes KayKit/genéricos como fallback pra qualquer glb futuro.
+	_anim_idle = _primeira_anim(["Idle_Gun", "Idle", "Idle_A"])
+	_anim_mover = _primeira_anim(["Run", "Running_A", "Running_B", "Walking_A", "Walk"])
+	_anim_derrubado = _primeira_anim(["HitRecieve", "Hit_A", "Hit_B", "Death_A"])
+	_anim_morte = _primeira_anim(["Death", "Death_A", "Death_B"])
+	_anim_vitoria = _primeira_anim(["Wave", "Cheer", "Victory", "Jump"])
+	# Ações de combate:
+	_anim_atirar = _primeira_anim(["Idle_Gun_Shoot", "Gun_Shoot", "1H_Ranged_Shoot", "Shoot", "Throw"])
 	_anim_plantar = _primeira_anim(["Interact", "Use_Item", "PickUp"])
-	_anim_soco = _primeira_anim(["Unarmed_Melee_Attack_Punch_A", "Punch", "Melee"])
+	_anim_soco = _primeira_anim(["Punch_Right", "Punch_Left", "Unarmed_Melee_Attack_Punch_A", "Punch"])
 	# Idle e corrida precisam de LOOP (glb nem sempre traz a flag).
 	for nome in [_anim_idle, _anim_mover]:
 		if nome != "":
