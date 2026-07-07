@@ -320,6 +320,9 @@ Alguns mapas têm armadilhas fixas que são obstáculos:
 ## 12. Modos de jogo
 
 - MVP: VS COM (contra bot) local e VS MAN (contra humano) local em tela dividida.
+  **[2026-07-07] VS MAN em SPLIT-SCREEN implementado** (decisão do humano: dividida
+  SÓ no multiplayer local): dois SubViewports lado a lado compartilhando o mundo,
+  câmera própria por jogador (mesmo preset + screenshake + clamp). VS COM = tela única.
 - Story Mode: campanha de um personagem até o chefe da VECTOR. Algumas missões não
   são matar o oponente, são desarmar todas as armadilhas e obstáculos da fase.
   **[estado 2026-06-19] ESQUELETO navegável** (`scenes/ui/story.tscn`): 3 missões

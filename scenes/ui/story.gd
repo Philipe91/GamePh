@@ -7,10 +7,19 @@ const TITULO := "res://scenes/ui/titulo.tscn"
 const SELECAO := "res://scenes/ui/selecao.tscn"
 const UIEstilo := preload("res://scenes/ui/ui_estilo.gd")
 
+## Campanha VECTOR: 5 missões com objetivos variados (GDD 12 — nem toda missão é
+## "mate o oponente"). Vencer uma missão desbloqueia a próxima (persistido).
 const MISSOES: Array = [
-	{"nome": "Missão 1 — Treinamento", "mapa": "padrao", "dif": "facil"},
-	{"nome": "Missão 2 — Fábrica VECTOR", "mapa": "corredor", "dif": "normal"},
-	{"nome": "Missão 3 — O Cofre (chefe)", "mapa": "fortaleza", "dif": "dificil"},
+	{"nome": "1 — Treinamento", "mapa": "padrao", "dif": "facil",
+		"obj": "", "meta": 0, "desc": "Vença a partida"},
+	{"nome": "2 — Porto de Carga", "mapa": "porto", "dif": "normal",
+		"obj": "desarmes", "meta": 3, "desc": "Desarme 3 armadilhas inimigas"},
+	{"nome": "3 — Fábrica VECTOR", "mapa": "corredor", "dif": "normal",
+		"obj": "", "meta": 0, "desc": "Vença a partida"},
+	{"nome": "4 — O Cerco", "mapa": "fortaleza", "dif": "dificil",
+		"obj": "sobreviver", "meta": 0, "desc": "Sobreviva até o tempo acabar"},
+	{"nome": "5 — Setor 07 (chefe)", "mapa": "setor07", "dif": "dificil",
+		"obj": "", "meta": 0, "desc": "Derrote o executor da VECTOR"},
 ]
 
 
@@ -42,12 +51,18 @@ func _montar_ui() -> void:
 	UIEstilo.titulo_glow(titulo)
 	caixa.add_child(titulo)
 
-	for m in MISSOES:
+	var progresso := int(Persistencia.get_config("story", "missao", 0))
+	for i in MISSOES.size():
+		var m: Dictionary = MISSOES[i]
 		var b := Button.new()
-		b.text = String(m["nome"])
-		b.custom_minimum_size = Vector2(420, 46)
-		UIEstilo.estilizar_botao(b)
-		b.pressed.connect(_missao.bind(String(m["mapa"]), String(m["dif"])))
+		b.text = "%s   ·   %s" % [String(m["nome"]), String(m["desc"])]
+		b.custom_minimum_size = Vector2(520, 46)
+		var liberada := i <= progresso
+		UIEstilo.estilizar_botao(b, Color(0.5, 0.8, 1.0) if liberada else Color(0.35, 0.35, 0.4))
+		b.disabled = not liberada
+		if not liberada:
+			b.text = "🔒  " + b.text
+		b.pressed.connect(_missao.bind(i))
 		caixa.add_child(b)
 
 	var voltar := Button.new()
@@ -58,10 +73,14 @@ func _montar_ui() -> void:
 	caixa.add_child(voltar)
 
 
-func _missao(mapa: String, dif: String) -> void:
+func _missao(idx: int) -> void:
+	var m: Dictionary = MISSOES[idx]
 	GameManager.modo = "vs_com"
-	GameManager.mapa = "res://resources/mapas/%s.tres" % mapa
-	GameManager.dificuldade = dif
+	GameManager.mapa = "res://resources/mapas/%s.tres" % String(m["mapa"])
+	GameManager.dificuldade = String(m["dif"])
+	GameManager.objetivo = String(m["obj"])
+	GameManager.objetivo_meta = int(m["meta"])
+	GameManager.story_missao = idx
 	get_tree().change_scene_to_file.call_deferred(SELECAO)
 
 

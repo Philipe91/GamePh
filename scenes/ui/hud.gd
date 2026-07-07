@@ -134,6 +134,30 @@ func configurar(p1: Node, p2: Node) -> void:
 	GameManager.round_comecou.connect(_ao_round_comecou)
 	_atualizar_label_armadilha()
 	_mostrar_dica_controles()
+	_montar_objetivo()
+
+
+## Objetivo especial do Story visível no topo (abaixo do placar), com progresso.
+func _montar_objetivo() -> void:
+	if GameManager.objetivo == "":
+		return
+	var lbl := Label.new()
+	lbl.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	lbl.offset_left = -220.0
+	lbl.offset_right = 220.0
+	lbl.offset_top = 88.0
+	lbl.offset_bottom = 112.0
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+	match GameManager.objetivo:
+		"desarmes":
+			lbl.text = "OBJETIVO: desarme %d armadilhas (0/%d)" % [GameManager.objetivo_meta, GameManager.objetivo_meta]
+			GameManager.objetivo_progrediu.connect(func(atual: int, meta: int) -> void:
+				lbl.text = "OBJETIVO: desarme %d armadilhas (%d/%d)" % [meta, atual, meta])
+		"sobreviver":
+			lbl.text = "OBJETIVO: sobreviva até o tempo acabar"
+	add_child(lbl)
 
 
 ## Lembrete de controles no rodapé durante os primeiros segundos (fade e some).

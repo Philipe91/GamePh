@@ -114,6 +114,8 @@ func _escolher_dif(chave: String, nome: String) -> void:
 
 func _jogar(modo: String) -> void:
 	GameManager.modo = modo
+	GameManager.objetivo = ""       # partida avulsa: sem objetivo especial do Story
+	GameManager.story_missao = -1
 	_ir_pra_selecao()
 
 

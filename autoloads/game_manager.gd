@@ -47,6 +47,16 @@ var personagem_bot: String = ""
 
 ## Modo da partida (GDD 12): "vs_com" (contra o bot) ou "vs_man" (2 jogadores locais).
 var modo: String = "vs_com"
+## Objetivo especial do Story (GDD 12): "" = vencer normal; "desarmes" = desarmar
+## `objetivo_meta` armadilhas inimigas vence a PARTIDA; "sobreviver" = no fim do tempo
+## o jogador vence se estiver vivo (só perde morrendo).
+var objetivo: String = ""
+var objetivo_meta: int = 3
+## Índice da missão do Story em andamento (-1 = fora do Story). Vitória salva progresso.
+var story_missao: int = -1
+var _desarmes: int = 0
+## Progresso do objetivo especial (a HUD ouve).
+signal objetivo_progrediu(atual: int, meta: int)
 ## Caminho do mapa escolhido (.tres). "" = padrão.
 var mapa: String = ""
 ## Dificuldade do bot: "facil" | "normal" | "dificil".
@@ -56,9 +66,14 @@ var dificuldade: String = "normal"
 ## Inicia (ou reinicia) a PARTIDA: zera o placar e começa o round 1.
 func iniciar_partida(combatentes: Array) -> void:
 	_combatentes = combatentes
+	_desarmes = 0
 	for c in _combatentes:
 		if c.has_signal("healer_zerou") and not c.healer_zerou.is_connected(_ao_combatente_zerar):
 			c.healer_zerou.connect(_ao_combatente_zerar.bind(c))
+		# Objetivo "desarmes": conta os desarmes BEM-SUCEDIDOS do jogador 1.
+		if int(c.get("id_jogador")) == 1 and c.has_signal("desarme_encerrado") \
+				and not c.desarme_encerrado.is_connected(_ao_desarme_p1):
+			c.desarme_encerrado.connect(_ao_desarme_p1)
 	v1 = 0
 	v2 = 0
 	round_num = 1
@@ -100,8 +115,31 @@ func _ao_combatente_zerar(combatente: Node) -> void:
 	_fim_round(_outro_id(combatente.id_jogador), "Healer zerado")
 
 
+## Objetivo "desarmes" (Story): N desarmes bem-sucedidos vencem a PARTIDA na hora.
+func _ao_desarme_p1(sucesso: bool) -> void:
+	if not sucesso or objetivo != "desarmes" or _estado != Estado.JOGANDO:
+		return
+	_desarmes += 1
+	objetivo_progrediu.emit(_desarmes, objetivo_meta)
+	if _desarmes >= objetivo_meta:
+		v1 = ROUNDS_PRA_VENCER - 1        # o _fim_round soma o que falta
+		_fim_round(1, "Objetivo cumprido")
+
+
 ## No fim do tempo, ganha o round quem tem mais Healer (tomou menos dano). Empate possível.
+## Objetivo "sobreviver" (Story): chegou vivo ao fim do tempo, o jogador vence.
 func _decidir_por_tempo() -> void:
+	if objetivo == "sobreviver":
+		var p1_vivo := false
+		for c in _combatentes:
+			if int(c.get("id_jogador")) == 1 and c.healer > 0.0:
+				p1_vivo = true
+		_fim_round(1 if p1_vivo else 2, "Sobreviveu ao cerco" if p1_vivo else "Caiu no cerco")
+		return
+	_decidir_por_dano()
+
+
+func _decidir_por_dano() -> void:
 	var melhor: Node = null
 	var empate := false
 	for c in _combatentes:
@@ -127,6 +165,12 @@ func _fim_round(vencedor_id: int, motivo: String) -> void:
 		_estado = Estado.ACABOU
 		var campeao := 1 if v1 > v2 else 2
 		Persistencia.registrar_resultado(campeao)  # progressão local (vitórias/derrotas)
+		# Story: vencer a missão desbloqueia a próxima (persistido).
+		if campeao == 1 and story_missao >= 0:
+			var prox := story_missao + 1
+			if prox > int(Persistencia.get_config("story", "missao", 0)):
+				Persistencia.set_config("story", "missao", prox)
+				Persistencia.salvar()
 		partida_acabou.emit(campeao, motivo)
 	else:
 		_estado = Estado.ENTRE_ROUNDS

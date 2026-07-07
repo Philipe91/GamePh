@@ -895,6 +895,29 @@ func _rodar_teste() -> void:
 	falhas += _checar("placar fica 2-0", GameManager.v1 == 2)
 	falhas += _checar("jogador vence a PARTIDA com 2 rounds", venceu["id"] == 1)
 
+	# Story — objetivo "desarmes": N desarmes bem-sucedidos vencem a PARTIDA na hora.
+	GameManager.objetivo = "desarmes"
+	GameManager.objetivo_meta = 2
+	GameManager.story_missao = -1
+	player.healer = Combatente.HEALER_MAX
+	bot.healer = Combatente.HEALER_MAX
+	GameManager.iniciar_partida([player, bot])
+	var venceu_obj := { "id": -1 }
+	GameManager.partida_acabou.connect(func(vid: int, _m: String): venceu_obj["id"] = vid)
+	GameManager._ao_desarme_p1(true)
+	falhas += _checar("objetivo desarmes: 1/2 nao vence", venceu_obj["id"] == -1)
+	GameManager._ao_desarme_p1(true)
+	falhas += _checar("objetivo desarmes: 2/2 vence a partida", venceu_obj["id"] == 1)
+	# Story — objetivo "sobreviver": no fim do tempo, o jogador vivo vence o round.
+	GameManager.objetivo = "sobreviver"
+	player.healer = 5.0
+	bot.healer = Combatente.HEALER_MAX
+	GameManager.iniciar_partida([player, bot])
+	GameManager._decidir_por_tempo()
+	falhas += _checar("objetivo sobreviver: vivo no fim -> round do jogador", GameManager.v1 == 1)
+	GameManager.objetivo = ""
+	GameManager.objetivo_meta = 3
+
 	# Pathfinding A* (IA): com um tile sólido no meio, a rota existe e CONTORNA.
 	GridManager.configurar_mapa(preload("res://scripts/stats_mapa.gd").new())
 	GridManager.marcar_solido(Vector2i(6, 6), true)
