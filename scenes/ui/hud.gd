@@ -179,7 +179,7 @@ func _ao_objetivo_progrediu(atual: int, meta: int) -> void:
 ## Lembrete de controles no rodapé durante os primeiros segundos (fade e some).
 func _mostrar_dica_controles() -> void:
 	var dica := Label.new()
-	dica.text = "WASD mover · ESPAÇO plantar · TAB roda · C desarmar · J atirar · K soco · F detonar"
+	dica.text = "WASD mover · MOUSE mirar · CLIQUE atirar · SHIFT pular · ESPAÇO plantar · TAB roda · C desarmar · K soco · F detonar"
 	dica.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dica.add_theme_font_size_override("font_size", 13)
 	dica.add_theme_color_override("font_color", Color(1, 1, 1, 0.45))

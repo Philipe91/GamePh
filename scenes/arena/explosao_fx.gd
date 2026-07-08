@@ -15,6 +15,10 @@ func _ready() -> void:
 	var fumaca := get_node_or_null("Fumaca") as CPUParticles3D
 	if fumaca != null:
 		fumaca.emitting = true
+	# BRASAS: fagulhas incandescentes voando em arco (vendem o "fogo de verdade").
+	var brasas := get_node_or_null("Brasas") as CPUParticles3D
+	if brasas != null:
+		brasas.emitting = true
 	# FOGO residual: chamas contínuas no ponto por ~0.9s depois do estouro.
 	var chamas := get_node_or_null("Chamas") as CPUParticles3D
 	if chamas != null:

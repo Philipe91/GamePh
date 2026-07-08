@@ -184,7 +184,7 @@ func _montar_modelo() -> void:
 		recolorir_tatico(m, Color(0.35, 0.7, 1.0) if id_jogador == 1 else Color(1.0, 0.35, 0.35))
 	_aplicar_rim_time(m)
 	_configurar_animacao(m)
-	_montar_arma_visual()
+	_montar_arma_visual(m)
 	_montar_anel_time()
 
 
@@ -203,9 +203,10 @@ func _aplicar_rim_time(m: Node3D) -> void:
 
 
 ## Modelo 3D da ARMA do personagem (Quaternius CC0 em assets/models/armas/<arma>.fbx),
-## segurado ao lado direito, apontando pra frente. Auto-escala pela AABB (FBX varia).
-## Sem arquivo pro tipo (soco_foguete etc.), fica sem arma visível — mão livre.
-func _montar_arma_visual() -> void:
+## preso ao OSSO DA MÃO direita (BoneAttachment3D em Wrist.R) — antes ficava pendurado
+## no corpo na altura do quadril e lia como "faca amarrada na coxa" (bug do playtest).
+## Sem esqueleto/osso, cai no ponto fixo antigo. Sem arquivo pro tipo, mão livre.
+func _montar_arma_visual(m: Node3D = null) -> void:
 	var antigo := get_node_or_null("ArmaVisual")
 	if antigo != null:
 		antigo.queue_free()
@@ -218,16 +219,41 @@ func _montar_arma_visual() -> void:
 	if cena == null:
 		return
 	var arma: Node3D = cena.instantiate()
-	arma.name = "ArmaVisual"
-	add_child(arma)
-	# Auto-escala em ESPAÇO DE MUNDO: FBX costuma trazer ×100 embutido em nós internos
-	# — medir a AABB local ignorava isso e a arma nascia colossal (regressão pega em
-	# captura). Medindo global, a escala compensa qualquer fator interno.
-	var dim := _maior_dim_aabb_mundo(arma)
-	if dim > 0.001:
-		arma.scale = arma.scale * (0.85 / dim)     # ~0.85u de comprimento na mão
-	arma.position = Vector3(0.42, -0.05, -0.25)    # lado direito, altura da mão
-	arma.rotation.y = PI                            # FBX costuma "olhar" +Z; frente é -Z
+	# Procura o esqueleto do modelo e o osso da mão direita (família Quaternius: Wrist.R).
+	var skel: Skeleton3D = null
+	if m != null:
+		var achados := m.find_children("*", "Skeleton3D", true, false)
+		if not achados.is_empty():
+			skel = achados[0]
+	var osso := -1
+	if skel != null:
+		for nome_osso in ["Wrist.R", "Hand.R", "hand.R"]:
+			osso = skel.find_bone(nome_osso)
+			if osso >= 0:
+				break
+	if skel != null and osso >= 0:
+		var ba := BoneAttachment3D.new()
+		ba.name = "ArmaNaMao"
+		ba.bone_name = skel.get_bone_name(osso)
+		skel.add_child(ba)
+		arma.name = "Arma"
+		ba.add_child(arma)
+		# Auto-escala em ESPAÇO DE MUNDO (compensa o ×100 dos FBX e a escala do modelo).
+		var dim := _maior_dim_aabb_mundo(arma)
+		if dim > 0.001:
+			arma.scale = arma.scale * (0.62 / dim)   # ~0.62u de cano na mão
+		# Empunhadura: cabo dentro da palma, cano pra frente do personagem.
+		arma.position = Vector3(0.0, 0.07, 0.03)
+		arma.rotation_degrees = Vector3(0.0, 180.0, 90.0)
+	else:
+		# Fallback sem rig: ponto fixo ao lado direito (comportamento antigo).
+		arma.name = "ArmaVisual"
+		add_child(arma)
+		var dim2 := _maior_dim_aabb_mundo(arma)
+		if dim2 > 0.001:
+			arma.scale = arma.scale * (0.85 / dim2)
+		arma.position = Vector3(0.42, 0.1, -0.25)
+		arma.rotation.y = PI
 
 
 ## Maior dimensão (X/Y/Z) das malhas em espaço de MUNDO (precisa estar na árvore).

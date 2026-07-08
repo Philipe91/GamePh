@@ -116,6 +116,19 @@ func aplicar_personagem(novo: Resource) -> void:
 var _escape_antes: bool = false      # borda do "mash" pra sair da Cova
 var _vel_mov: Vector3 = Vector3.ZERO # estado da rampa de movimento (sem o knockback)
 
+# MIRA COM MOUSE (pedido 2026-07-07): o personagem encara o cursor (twin-stick de
+# PC — anda com WASD, mira com o mouse). Liga no primeiro movimento do mouse; até
+# lá (ou no gamepad), vale a mira por movimento antiga.
+var _mira_mouse: bool = false
+var _mouse_pos_antes: Vector2 = Vector2.INF
+
+# PULO (pedido 2026-07-07): Shift (teclado) / L3 (gamepad). Nos mapas planos o pulo
+# é vertical puro por cima da trava de altura; nos verticais usa a gravidade real.
+const PULO_VEL: float = 8.5
+var _pulo_vel: float = 0.0
+var _no_ar: bool = false
+var _pular_antes: bool = false
+
 
 ## Move só pelo impulso de knockback (derrubado/imobilizado): sem controle, com peso.
 func _mover_por_impulso(delta: float) -> void:
@@ -197,25 +210,81 @@ func _physics_process(delta: float) -> void:
 		_vel_mov = _vel_mov.move_toward(alvo_h, taxa * delta)
 		velocity.x = _vel_mov.x + velocidade_impulso().x
 		velocity.z = _vel_mov.z + velocidade_impulso().z
+		# PULO: borda de Shift/L3. Plano = arco vertical próprio; vertical = velocity.y.
+		var pular_p := _tecla(KEY_SHIFT) or _botao(JOY_BUTTON_LEFT_STICK)
+		var quer_pular := pular_p and not _pular_antes
+		_pular_antes = pular_p
 		if gravidade_ativa:
 			# Mapa vertical: segue o chão de colisão (rampa/ponte) com gravidade.
-			if not is_on_floor():
+			if quer_pular and is_on_floor():
+				velocity.y = PULO_VEL
+				AudioManager.tocar("passos")
+			elif not is_on_floor():
 				velocity.y -= GRAVIDADE * delta
 			move_and_slide()
 		else:
-			# Mapa plano: altura travada (comportamento original, rápido).
+			# Mapa plano: altura travada — o pulo sobrepõe a trava com um arco próprio
+			# (dá pra saltar POR CIMA de armadilhas: o detector fica rente ao chão).
 			velocity.y = 0.0
 			move_and_slide()
-			position.y = ALTURA_PISO
-		# Encara a direção do MOVIMENTO real, girando rápido e independente de FPS
-		# (exponencial: snappy mas sem "saltar"). Antes era lerp fixo 0.25 = nariz atrasado.
-		if _vel_mov.length() > 0.2:
+			if quer_pular and not _no_ar:
+				_no_ar = true
+				_pulo_vel = PULO_VEL
+				AudioManager.tocar("passos")
+			if _no_ar:
+				position.y += _pulo_vel * delta
+				_pulo_vel -= GRAVIDADE * delta
+				if position.y <= ALTURA_PISO:
+					position.y = ALTURA_PISO
+					_no_ar = false
+					_fx_poeira()   # baque da aterrissagem
+			else:
+				position.y = ALTURA_PISO
+		# MIRA: com o mouse ativo, encara o cursor (twin-stick). Senão, encara a
+		# direção do movimento real (comportamento clássico — gamepad e headless).
+		var mira := _ponto_mira_mouse()
+		if mira != Vector3.INF:
+			var para_mira := mira - global_position
+			para_mira.y = 0.0
+			if para_mira.length() > 0.5:
+				rotation.y = lerp_angle(rotation.y, atan2(-para_mira.x, -para_mira.z),
+					1.0 - exp(-velocidade_giro * delta))
+		elif _vel_mov.length() > 0.2:
 			var alvo := atan2(-_vel_mov.x, -_vel_mov.z)
 			rotation.y = lerp_angle(rotation.y, alvo, 1.0 - exp(-velocidade_giro * delta))
 	_ler_acoes()
 	_ler_caution()
 	_atualizar_overlay_caution()
 	_ler_interacao()
+
+
+## Ponto do CHÃO sob o cursor (mira livre de PC). Vector3.INF = sem mira de mouse
+## (gamepad, headless, mouse parado desde o início — cai na mira por movimento).
+func _ponto_mira_mouse() -> Vector3:
+	if not _usa_teclado or _modo_teste():
+		return Vector3.INF
+	var vp := get_viewport()
+	if vp == null:
+		return Vector3.INF
+	var mp := vp.get_mouse_position()
+	if not _mira_mouse:
+		if _mouse_pos_antes == Vector2.INF:
+			_mouse_pos_antes = mp
+			return Vector3.INF
+		if mp.distance_to(_mouse_pos_antes) < 2.0:
+			return Vector3.INF
+		_mira_mouse = true   # mouse mexeu de verdade: mira livre ligada
+	var cam := vp.get_camera_3d()
+	if cam == null:
+		return Vector3.INF
+	var origem := cam.project_ray_origin(mp)
+	var dir := cam.project_ray_normal(mp)
+	if absf(dir.y) < 0.0001:
+		return Vector3.INF
+	var t := (global_position.y - origem.y) / dir.y
+	if t <= 0.0:
+		return Vector3.INF
+	return origem + dir * t
 
 
 func _obter_direcao() -> Vector2:

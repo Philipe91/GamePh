@@ -27,8 +27,9 @@ const TRAPS := {
 	"painel": preload("res://resources/armadilhas/painel.tres"),
 }
 const KIT_CLASSICO: Array = ["mina", "cova", "gas"]
-const INTERVALO_PLANTIO: float = 3.5   # tenta plantar a cada 3.5s
-const MAX_ARMADILHAS: int = 4          # teto de armadilhas suas no mapa ao mesmo tempo
+const INTERVALO_PLANTIO: float = 2.8   # tenta plantar com frequência (a teia é o jogo)
+const MAX_ARMADILHAS: int = 5          # teto de armadilhas suas no mapa ao mesmo tempo
+const DIST_TECER: float = 12.0         # player mais longe que isso -> tece a teia (território)
 const DESARME_DIST: float = 1.7        # encostou na armadilha do player -> pode desarmar
 const DESARME_TEMPO: float = 1.5       # segundos parado desarmando (exposto)
 const ITEM_INTERESSE: float = 7.0      # raio pra pegar item por oportunidade
@@ -141,7 +142,11 @@ func _physics_process(delta: float) -> void:
 	if dist > DIST_PARAR or fugindo:
 		var base: Vector3
 		if fugindo:
-			base = -para.normalized()          # fuga: direto pra longe (sem rota)
+			base = _direcao_fuga(para)         # fuga com EMBOSCADA: recua pela própria teia
+		elif item == null and dist_jog > DIST_TECER:
+			# Player longe: NÃO persegue — tece a teia (vai a um ponto estratégico,
+			# planta, escolhe o próximo). O bot "trabalha o mapa" como um jogador real.
+			base = _direcao_tecer(delta)
 		elif item == null and dist_jog > 4.5 and dist_jog < 10.5:
 			# Média distância: ORBITA o player atirando (strafe circular — não é um
 			# zumbi que anda reto na tua cara), com leve aproximação.
@@ -190,6 +195,70 @@ func _physics_process(delta: float) -> void:
 		socar()
 
 
+var _tecer_alvo: Vector3 = Vector3.INF   # ponto estratégico atual da teia
+var _t_tecer: float = 0.0                # desiste do ponto se demorar demais
+
+
+## Fuga com EMBOSCADA: recua do player, mas ENTORTA a rota pra passar perto de uma
+## armadilha própria armada — o perseguidor é atraído pra cima da teia (Trap Gunner).
+func _direcao_fuga(para_jog: Vector3) -> Vector3:
+	var fuga := -para_jog.normalized()
+	var isca := _propria_armadilha_perto(12.0)
+	if isca != null:
+		var d: Vector3 = isca.global_position - global_position
+		d.y = 0.0
+		# Só usa a isca se ela não estiver na direção do player (senão correria pra ele).
+		if d.length() > 1.0 and d.normalized().dot(fuga) > -0.2:
+			fuga = (fuga * 0.55 + d.normalized() * 0.45).normalized()
+	return fuga
+
+
+## Armadilha PRÓPRIA armada mais próxima dentro de `raio` (a isca da emboscada).
+func _propria_armadilha_perto(raio: float) -> Node:
+	var melhor: Node = null
+	var melhor_d := raio
+	for a in get_tree().get_nodes_in_group("armadilhas"):
+		if not is_instance_valid(a) or int(a.dono_id) != id_jogador:
+			continue
+		var d := global_position.distance_to(a.global_position)
+		if d <= melhor_d:
+			melhor_d = d
+			melhor = a
+	return melhor
+
+
+## Teia: caminha até o ponto estratégico atual; chegando, planta e escolhe o próximo.
+func _direcao_tecer(delta: float) -> Vector3:
+	_t_tecer -= delta
+	if _tecer_alvo != Vector3.INF and \
+			Vector2(_tecer_alvo.x - global_position.x, _tecer_alvo.z - global_position.z).length() < 1.1:
+		if _t_plantio <= 0.0:
+			_plantar_situacional(99.0)   # longe do player: armadilha de território
+		_tecer_alvo = Vector3.INF        # ponto concluído: sorteia o próximo
+	if _tecer_alvo == Vector3.INF or _t_tecer <= 0.0:
+		_t_tecer = 7.0
+		_tecer_alvo = _sortear_ponto_teia()
+	var para := _tecer_alvo - global_position
+	para.y = 0.0
+	return _direcao_pela_rota(para, delta)
+
+
+## Ponto estratégico da teia: vizinhança de uma Vault (nega o ponto de interesse)
+## ou um tile aleatório da banda central (corredores que o player usa).
+func _sortear_ponto_teia() -> Vector3:
+	var vaults := get_tree().get_nodes_in_group("vaults")
+	if not vaults.is_empty() and randf() < 0.6:
+		var v := vaults[randi() % vaults.size()] as Node3D
+		if is_instance_valid(v):
+			var c := GridManager.world_to_grid(v.global_position) \
+				+ Vector2i(randi_range(-1, 1), randi_range(-1, 1))
+			if GridManager.dentro_do_grid(c):
+				return GridManager.grid_to_world(c)
+	var cx := randi_range(2, GridManager.LARGURA - 3)
+	var cy := randi_range(2, GridManager.ALTURA - 3)
+	return GridManager.grid_to_world(Vector2i(cx, cy))
+
+
 ## Melhor item da Vault pra buscar (G6): com pouca vida, vai atrás do Healer (mesmo longe);
 ## senão pega qualquer item próximo por oportunidade. Null se não vale a pena.
 func _melhor_item() -> Node3D:
@@ -223,6 +292,8 @@ func reiniciar() -> void:
 	_rota.clear()
 	_t_rota = 0.0
 	_alvo = null
+	_tecer_alvo = Vector3.INF
+	_t_tecer = 0.0
 
 
 ## Aplica gravidade (mapas verticais) ou trava a altura (mapas planos) + move_and_slide.

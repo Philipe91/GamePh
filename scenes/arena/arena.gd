@@ -29,6 +29,9 @@ var _cam_limite: Vector2 = Vector2(1.0e9, 1.0e9)
 const TEX_CHAO := "res://assets/sprites/texturas/MetalPlates006_1K-JPG_Color.jpg"
 const TEX_CHAO_NORMAL := "res://assets/sprites/texturas/MetalPlates006_1K-JPG_NormalGL.jpg"
 const TEX_CHAO_ROUGH := "res://assets/sprites/texturas/MetalPlates006_1K-JPG_Roughness.jpg"
+const TEX_CIMENTO := "res://assets/sprites/texturas/Concrete031_1K-JPG_Color.jpg"
+const TEX_CIMENTO_NORMAL := "res://assets/sprites/texturas/Concrete031_1K-JPG_NormalGL.jpg"
+const TEX_CIMENTO_ROUGH := "res://assets/sprites/texturas/Concrete031_1K-JPG_Roughness.jpg"
 
 
 ## Aplica o conjunto PBR de placas de metal (albedo+normal+roughness) num material.
@@ -42,6 +45,20 @@ static func _aplicar_pbr_metal(mat: StandardMaterial3D) -> void:
 		mat.normal_scale = 0.8
 	if ResourceLoader.exists(TEX_CHAO_ROUGH):
 		mat.roughness_texture = load(TEX_CHAO_ROUGH) as Texture2D
+
+
+## Aplica o conjunto PBR de CIMENTO (ambientCG Concrete031, CC0) — o pedido urbano
+## do humano (2026-07-07): a arena é um pátio de concreto, não um deck de metal.
+static func _aplicar_pbr_concreto(mat: StandardMaterial3D) -> void:
+	if ResourceLoader.exists(TEX_CIMENTO):
+		mat.albedo_texture = load(TEX_CIMENTO) as Texture2D
+	if ResourceLoader.exists(TEX_CIMENTO_NORMAL):
+		mat.normal_enabled = true
+		mat.normal_texture = load(TEX_CIMENTO_NORMAL) as Texture2D
+		mat.normal_scale = 0.7
+	if ResourceLoader.exists(TEX_CIMENTO_ROUGH):
+		mat.roughness_texture = load(TEX_CIMENTO_ROUGH) as Texture2D
+	mat.metallic = 0.0
 
 ## Os 3 ângulos de câmera do Trap Gunner original (tecla V alterna; persiste em
 ## settings): Normal (inclinada), Quarter (mais alta) e Top (quase reta de cima).
@@ -315,6 +332,164 @@ func _montar_visual_mapa(mapa: Resource) -> void:
 	_montar_avental()
 	_montar_decoracao(mapa)
 	_montar_pilares_luz(mapa)
+	_montar_moldura_urbana(mapa)
+
+
+## MOLDURA URBANA (pedido 2026-07-07): prédios com janelas acesas, um viaduto com
+## pilares atrás do muro norte e postes de luz — a arena vira um pátio no meio da
+## cidade, não uma sala flutuando no vazio. Tudo FORA do campo (sem colisão, o clamp
+## da câmera nunca deixa o jogo entrar lá).
+func _montar_moldura_urbana(mapa: Resource) -> void:
+	var antigo := get_node_or_null("MolduraUrbana")
+	if antigo != null:
+		antigo.queue_free()
+	var raiz := Node3D.new()
+	raiz.name = "MolduraUrbana"
+	add_child(raiz)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(String(mapa.nome)) + 31
+	var ts := GridManager.TAMANHO_TILE
+	var w := float(GridManager.LARGURA) * ts * 0.5
+	var h := float(GridManager.ALTURA) * ts * 0.5
+	# ── Prédios: caixas escuras de alturas variadas num anel ao redor da arena.
+	var mat_predio := StandardMaterial3D.new()
+	if ResourceLoader.exists(TEX_CIMENTO):
+		_aplicar_pbr_concreto(mat_predio)
+		mat_predio.uv1_triplanar = true
+		mat_predio.uv1_scale = Vector3(0.25, 0.25, 0.25)
+	mat_predio.albedo_color = Color(0.10, 0.10, 0.13)
+	# Janelas acesas: MultiMesh de plaquinhas emissivas coladas nas fachadas.
+	var mat_janela := StandardMaterial3D.new()
+	mat_janela.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat_janela.emission_enabled = true
+	var tf_janelas: Array[Transform3D] = []
+	var cores_janela: Array[Color] = []
+	var lados := [
+		{"pos": Vector3(0, 0, -h - 4.5), "eixo": Vector3.RIGHT, "normal": Vector3.BACK, "comp": w * 2.4},
+		{"pos": Vector3(0, 0, h + 4.5), "eixo": Vector3.RIGHT, "normal": Vector3.FORWARD, "comp": w * 2.4},
+		{"pos": Vector3(-w - 4.5, 0, 0), "eixo": Vector3.BACK, "normal": Vector3.RIGHT, "comp": h * 2.0},
+		{"pos": Vector3(w + 4.5, 0, 0), "eixo": Vector3.BACK, "normal": Vector3.LEFT, "comp": h * 2.0},
+	]
+	for lado in lados:
+		var eixo: Vector3 = lado["eixo"]
+		var normal: Vector3 = lado["normal"]
+		var pos_lado: Vector3 = lado["pos"]
+		var comp: float = lado["comp"]
+		var percorrido := -comp * 0.5
+		while percorrido < comp * 0.5 - 4.0:
+			var larg := rng.randf_range(5.0, 9.0)
+			var alt := rng.randf_range(7.0, 18.0)
+			var prof := rng.randf_range(5.0, 8.0)
+			var centro: Vector3 = pos_lado + eixo * (percorrido + larg * 0.5) \
+				- normal * (prof * 0.5 + rng.randf_range(0.0, 3.0))
+			var predio := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(larg, alt, prof) if absf(eixo.x) > 0.5 else Vector3(prof, alt, larg)
+			predio.mesh = bm
+			predio.material_override = mat_predio
+			raiz.add_child(predio)
+			predio.position = Vector3(centro.x, alt * 0.5 - 0.3, centro.z)
+			# Janelas na FACHADA voltada pra arena (grade com ~40% acesas).
+			var meia_prof: float = absf((bm.size * 0.5).dot(normal))
+			var face: Vector3 = predio.position + normal * (meia_prof + 0.03)
+			var colunas := int((larg - 1.2) / 1.1)
+			var linhas := int((alt - 2.0) / 1.6)
+			for cx in colunas:
+				for cy in linhas:
+					if rng.randf() > 0.4:
+						continue
+					var px := -larg * 0.5 + 1.0 + float(cx) * 1.1
+					var py := 1.4 + float(cy) * 1.6
+					var pos_j: Vector3 = face + eixo * px
+					pos_j.y = py - 0.3
+					var base_j := Basis.looking_at(-normal, Vector3.UP)
+					tf_janelas.append(Transform3D(base_j, pos_j))
+					# Mistura de branco-quente e ciano (cidade viva à noite).
+					cores_janela.append(Color(1.0, 0.85, 0.55) if rng.randf() < 0.7 else Color(0.5, 0.85, 1.0))
+			percorrido += larg + rng.randf_range(1.5, 4.0)
+	if not tf_janelas.is_empty():
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true
+		var qm := QuadMesh.new()
+		qm.size = Vector2(0.55, 0.8)
+		mm.mesh = qm
+		mm.instance_count = tf_janelas.size()
+		for i in tf_janelas.size():
+			mm.set_instance_transform(i, tf_janelas[i])
+			mm.set_instance_color(i, cores_janela[i])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		var mj := mat_janela.duplicate() as StandardMaterial3D
+		mj.vertex_color_use_as_albedo = true
+		mj.emission = Color(1.0, 0.9, 0.7)
+		mj.emission_energy_multiplier = 1.4
+		mmi.material_override = mj
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(mmi)
+	# ── VIADUTO atrás do muro norte: tabuleiro elevado + pilares + guard-rail neon.
+	var mat_viaduto := StandardMaterial3D.new()
+	if ResourceLoader.exists(TEX_CIMENTO):
+		_aplicar_pbr_concreto(mat_viaduto)
+		mat_viaduto.uv1_triplanar = true
+		mat_viaduto.uv1_scale = Vector3(0.3, 0.3, 0.3)
+	mat_viaduto.albedo_color = Color(0.16, 0.16, 0.18)
+	var tab := MeshInstance3D.new()
+	var tb := BoxMesh.new()
+	tb.size = Vector3(w * 2.6, 0.8, 5.0)
+	tab.mesh = tb
+	tab.material_override = mat_viaduto
+	raiz.add_child(tab)
+	tab.position = Vector3(0.0, 6.5, -h - 3.5)
+	for i in 6:
+		var pilar := MeshInstance3D.new()
+		var pm := CylinderMesh.new()
+		pm.top_radius = 0.55
+		pm.bottom_radius = 0.65
+		pm.height = 6.2
+		pilar.mesh = pm
+		pilar.material_override = mat_viaduto
+		raiz.add_child(pilar)
+		pilar.position = Vector3(-w * 1.2 + float(i) * (w * 2.4 / 5.0), 3.1, -h - 3.5)
+	# Guard-rail com luz fria (a cidade tem infraestrutura acesa).
+	var rail := MeshInstance3D.new()
+	var rb := BoxMesh.new()
+	rb.size = Vector3(w * 2.6, 0.07, 0.12)
+	rail.mesh = rb
+	var mat_rail := StandardMaterial3D.new()
+	mat_rail.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat_rail.albedo_color = Color(0.9, 0.6, 0.3)
+	mat_rail.emission_enabled = true
+	mat_rail.emission = Color(0.9, 0.6, 0.3)
+	mat_rail.emission_energy_multiplier = 1.4
+	rail.mesh = rb
+	rail.material_override = mat_rail
+	rail.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	raiz.add_child(rail)
+	rail.position = Vector3(0.0, 7.0, -h - 1.3)
+	# ── Postes de luz nos 4 cantos, iluminando o entorno (poças de luz urbanas).
+	var mat_poste := StandardMaterial3D.new()
+	mat_poste.albedo_color = Color(0.12, 0.12, 0.14)
+	mat_poste.metallic = 0.6
+	mat_poste.roughness = 0.5
+	for canto in [Vector3(-w - 4.0, 0.0, -h - 4.0), Vector3(w + 4.0, 0.0, -h - 4.0),
+			Vector3(-w - 4.0, 0.0, h + 4.0), Vector3(w + 4.0, 0.0, h + 4.0)]:
+		var poste := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.08
+		cm.bottom_radius = 0.12
+		cm.height = 5.0
+		poste.mesh = cm
+		poste.material_override = mat_poste
+		raiz.add_child(poste)
+		poste.position = canto + Vector3(0.0, 2.5, 0.0)
+		var lampada := OmniLight3D.new()
+		lampada.light_color = Color(1.0, 0.78, 0.5)   # sódio urbano
+		lampada.light_energy = 1.6
+		lampada.omni_range = 9.0
+		lampada.shadow_enabled = false
+		raiz.add_child(lampada)
+		lampada.position = canto + Vector3(0.0, 4.8, 0.0)
 
 
 ## PILARES DE LUZ verticais sobre os dispositivos do mapa (assinatura da referência:
@@ -583,9 +758,10 @@ func _montar_avental() -> void:
 	mat.roughness = 1.0
 	# Mesmo metal do chão, bem escurecido e repetido: "fora da arena" vira piso
 	# industrial em sombra (o fog dilui ao longe), não um vazio chapado.
-	if ResourceLoader.exists(TEX_CHAO):
-		_aplicar_pbr_metal(mat)
-		mat.albedo_color = Color(0.16, 0.17, 0.22)
+	if ResourceLoader.exists(TEX_CIMENTO):
+		# Asfalto/concreto em sombra: a rua continua além dos muros (urbano).
+		_aplicar_pbr_concreto(mat)
+		mat.albedo_color = Color(0.13, 0.13, 0.15)
 		mat.uv1_scale = Vector3(24.0, 24.0, 1.0)
 	mi.material_override = mat
 	add_child(mi)
@@ -619,7 +795,7 @@ func _montar_chao_tiles(mapa: Resource) -> void:
 			por_cor[(x + y) % 2].append(t)
 	# Textura de placas de metal (ambientCG, CC0) tingida pelas 2 cores do tema.
 	# O BoxMesh mapeia a textura 1:1 por face -> UMA placa por tile, sem emenda.
-	var tem_tex := ResourceLoader.exists(TEX_CHAO)
+	var tem_tex := ResourceLoader.exists(TEX_CIMENTO)
 	for ci in 2:
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -631,13 +807,14 @@ func _montar_chao_tiles(mapa: Resource) -> void:
 		mmi.multimesh = mm
 		var mat := StandardMaterial3D.new()
 		if tem_tex:
-			_aplicar_pbr_metal(mat)   # albedo + normal + roughness (relevo real)
+			# CIMENTO urbano (pedido 2026-07-07): placa de concreto por tile,
+			# grid legível pela fresta escura entre placas.
+			_aplicar_pbr_concreto(mat)
 			var c: Color = cores[ci]
-			mat.albedo_color = Color(minf(c.r * 2.0, 1.0), minf(c.g * 2.0, 1.0), minf(c.b * 2.0, 1.0))
+			mat.albedo_color = Color(minf(c.r * 2.2, 1.0), minf(c.g * 2.2, 1.0), minf(c.b * 2.2, 1.0))
 		else:
 			mat.albedo_color = cores[ci]
 			mat.roughness = 0.85
-		mat.metallic = 0.15
 		mmi.material_override = mat
 		raiz.add_child(mmi)
 
@@ -658,13 +835,13 @@ func _montar_paredes() -> void:
 		_caixa_solida(Vector3(-w * 0.5 - esp * 0.5, alt * 0.5, 0.0), Vector3(esp, alt, h + esp * 2.0), cor),
 		_caixa_solida(Vector3(w * 0.5 + esp * 0.5, alt * 0.5, 0.0), Vector3(esp, alt, h + esp * 2.0), cor),
 	]
-	# Textura de metal PBR (triplanar: não estica no comprimento).
-	if ResourceLoader.exists(TEX_CHAO):
+	# MURO de concreto urbano (triplanar: não estica no comprimento).
+	if ResourceLoader.exists(TEX_CIMENTO):
 		for sb in lados:
 			var mi := (sb as Node).get_child(0) as MeshInstance3D
 			var mat := mi.material_override as StandardMaterial3D
-			_aplicar_pbr_metal(mat)
-			mat.albedo_color = Color(0.55, 0.58, 0.68)
+			_aplicar_pbr_concreto(mat)
+			mat.albedo_color = Color(0.5, 0.5, 0.52)
 			mat.uv1_triplanar = true
 			mat.uv1_scale = Vector3(0.5, 0.5, 0.5)
 	# Friso neon no topo de cada lado, na cor clara do tema (o glow faz ele "acender").
