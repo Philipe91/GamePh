@@ -268,17 +268,17 @@ func _configurar_animacao(m: Node3D) -> void:
 	if achados.is_empty():
 		return
 	_anim = achados[0]
-	# Nomes da família Quaternius Modular primeiro (Idle_Gun = postura armada, a cara
-	# de "gunner"); nomes KayKit/genéricos como fallback pra qualquer glb futuro.
-	_anim_idle = _primeira_anim(["Idle_Gun", "Idle", "Idle_A"])
-	_anim_mover = _primeira_anim(["Run", "Running_A", "Running_B", "Walking_A", "Walk"])
-	_anim_derrubado = _primeira_anim(["HitRecieve", "Hit_A", "Hit_B", "Death_A"])
-	_anim_morte = _primeira_anim(["Death", "Death_A", "Death_B"])
-	_anim_vitoria = _primeira_anim(["Wave", "Cheer", "Victory", "Jump"])
+	# Nomes da Universal Animation Library primeiro (postura de pistola = a cara de
+	# "gunner"); nomes Modular/KayKit como fallback pra qualquer glb futuro.
+	_anim_idle = _primeira_anim(["Pistol_Idle_Loop", "Idle_Gun", "Idle_Loop", "Idle"])
+	_anim_mover = _primeira_anim(["Jog_Fwd_Loop", "Sprint_Loop", "Run", "Walk_Loop", "Walk"])
+	_anim_derrubado = _primeira_anim(["Hit_Chest", "HitRecieve", "Hit_A", "Hit_B"])
+	_anim_morte = _primeira_anim(["Death01", "Death", "Death_A"])
+	_anim_vitoria = _primeira_anim(["Dance_Loop", "Wave", "Cheer", "Victory"])
 	# Ações de combate:
-	_anim_atirar = _primeira_anim(["Idle_Gun_Shoot", "Gun_Shoot", "1H_Ranged_Shoot", "Shoot", "Throw"])
-	_anim_plantar = _primeira_anim(["Interact", "Use_Item", "PickUp"])
-	_anim_soco = _primeira_anim(["Punch_Right", "Punch_Left", "Unarmed_Melee_Attack_Punch_A", "Punch"])
+	_anim_atirar = _primeira_anim(["Pistol_Shoot", "Idle_Gun_Shoot", "Gun_Shoot", "Shoot"])
+	_anim_plantar = _primeira_anim(["Interact", "PickUp_Table", "Use_Item", "PickUp"])
+	_anim_soco = _primeira_anim(["Punch_Cross", "Punch_Jab", "Punch_Right", "Punch"])
 	# Idle e corrida precisam de LOOP (glb nem sempre traz a flag).
 	for nome in [_anim_idle, _anim_mover]:
 		if nome != "":
@@ -380,13 +380,26 @@ static func recolorir_tatico(m: Node3D, cor_acento: Color) -> void:
 				melhor_sat = c.s * c.v
 				melhor_mi = mi
 				melhor_si = si
-	if melhor_mi != null and melhor_si >= 0:
+	if melhor_mi != null and melhor_si >= 0 and melhor_sat > 0.08:
+		# Só vira LED se a peça era de fato VIVA — num manequim cinza (tudo s≈0)
+		# o "acento" seria o corpo inteiro brilhando.
 		var acento := melhor_mi.get_surface_override_material(melhor_si) as StandardMaterial3D
 		if acento != null:
 			acento.albedo_color = Color(cor_acento.r * 0.45, cor_acento.g * 0.45, cor_acento.b * 0.45)
 			acento.emission_enabled = true
 			acento.emission = cor_acento
 			acento.emission_energy_multiplier = 1.1
+	elif melhor_sat <= 0.08:
+		# Manequim/monocromático: TINTA pessoal escura no corpo inteiro (uniforme de
+		# operador na cor do personagem) — a identidade vem do matiz.
+		for filho in m.find_children("*", "MeshInstance3D", true, false):
+			var mi2 := filho as MeshInstance3D
+			if mi2.mesh == null:
+				continue
+			for si2 in mi2.mesh.get_surface_count():
+				var so := mi2.get_surface_override_material(si2) as StandardMaterial3D
+				if so != null:
+					so.albedo_color = Color.from_hsv(cor_acento.h, 0.35, 0.32)
 
 
 ## Pinta o modelo inteiro com a cor do time (material chapado): P1 azul, P2 vermelho.

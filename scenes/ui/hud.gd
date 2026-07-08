@@ -106,18 +106,10 @@ func configurar(p1: Node, p2: Node) -> void:
 	# mostrava os lutadores no topo). Falha silenciosa se o personagem não tiver retrato.
 	_montar_retrato(p1, Control.PRESET_TOP_LEFT, Vector2(10.0, 58.0))
 	_montar_retrato(p2, Control.PRESET_TOP_RIGHT, Vector2(-74.0, 58.0))
-	# Ícone da armadilha selecionada no canto inferior esquerdo.
-	_arma_icone = TextureRect.new()
-	_arma_icone.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_arma_icone.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_arma_icone.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_arma_icone.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	_arma_icone.offset_left = 14.0
-	_arma_icone.offset_top = -52.0
-	_arma_icone.offset_right = 52.0
-	_arma_icone.offset_bottom = -12.0
-	add_child(_arma_icone)
-	lbl_minas.offset_left = 58.0   # abre espaço pro ícone na mesma linha
+	# Slots de armadilha na base central (referência 2026-07-07): um quadro por tipo
+	# do loadout com ícone + contagem; o selecionado acende na cor da armadilha.
+	_montar_slots_armadilhas()
+	lbl_minas.visible = false   # o texto solto virou a barra de slots
 	# Placar de rounds (topo-centro, abaixo do timer) e anúncio "ROUND N".
 	_lbl_placar = Label.new()
 	_lbl_placar.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -139,11 +131,17 @@ func configurar(p1: Node, p2: Node) -> void:
 	_lbl_round.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_lbl_round.visible = false
 	add_child(_lbl_round)
-	GameManager.placar_mudou.connect(func(a: int, b: int): _lbl_placar.text = "%d  -  %d" % [a, b])
+	# Método (não lambda): a conexão morre junto com a HUD — lambda em sinal de
+	# autoload sobrevive à troca de cena e explode com "Lambda capture freed".
+	GameManager.placar_mudou.connect(_ao_placar_mudou)
 	GameManager.round_comecou.connect(_ao_round_comecou)
 	_atualizar_label_armadilha()
 	_mostrar_dica_controles()
 	_montar_objetivo()
+
+
+func _ao_placar_mudou(a: int, b: int) -> void:
+	_lbl_placar.text = "%d  -  %d" % [a, b]
 
 
 ## Objetivo especial do Story visível no topo (abaixo do placar), com progresso.
@@ -162,11 +160,20 @@ func _montar_objetivo() -> void:
 	match GameManager.objetivo:
 		"desarmes":
 			lbl.text = "OBJETIVO: desarme %d armadilhas (0/%d)" % [GameManager.objetivo_meta, GameManager.objetivo_meta]
-			GameManager.objetivo_progrediu.connect(func(atual: int, meta: int) -> void:
-				lbl.text = "OBJETIVO: desarme %d armadilhas (%d/%d)" % [meta, atual, meta])
+			_lbl_objetivo = lbl
+			# Método (não lambda): desconecta sozinho quando a HUD morre.
+			GameManager.objetivo_progrediu.connect(_ao_objetivo_progrediu)
 		"sobreviver":
 			lbl.text = "OBJETIVO: sobreviva até o tempo acabar"
 	add_child(lbl)
+
+
+var _lbl_objetivo: Label = null
+
+
+func _ao_objetivo_progrediu(atual: int, meta: int) -> void:
+	if _lbl_objetivo != null:
+		_lbl_objetivo.text = "OBJETIVO: desarme %d armadilhas (%d/%d)" % [meta, atual, meta]
 
 
 ## Lembrete de controles no rodapé durante os primeiros segundos (fade e some).
@@ -177,8 +184,8 @@ func _mostrar_dica_controles() -> void:
 	dica.add_theme_font_size_override("font_size", 13)
 	dica.add_theme_color_override("font_color", Color(1, 1, 1, 0.45))
 	dica.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	dica.offset_top = -30.0
-	dica.offset_bottom = -8.0
+	dica.offset_top = -100.0   # acima da barra de slots de armadilha
+	dica.offset_bottom = -80.0
 	add_child(dica)
 	var tw := dica.create_tween()
 	tw.tween_interval(9.0)
@@ -229,21 +236,85 @@ func _ao_round_comecou(numero: int) -> void:
 
 
 ## Mostra "Nome: quantidade" da armadilha selecionada (rodapé esquerdo).
-func _atualizar_label_armadilha() -> void:
+var _slots_armadilha: Dictionary = {}   # tipo -> {painel, contagem, estilo}
+
+
+## Barra de SLOTS na base central: um quadro por tipo do loadout (ícone + contagem).
+## O tipo selecionado acende com borda na cor da armadilha; sem estoque, apaga.
+func _montar_slots_armadilhas() -> void:
+	var antigo := get_node_or_null("SlotsArmadilha")
+	if antigo != null:
+		antigo.queue_free()
+	_slots_armadilha.clear()
 	if _jogador == null:
 		return
-	var sel: String = _jogador.selecao
-	var qtd: int = int(_jogador.inventario.get(sel, 0))
-	var nome: String = _jogador.STATS[sel].nome
-	lbl_minas.text = "%s: %d" % [nome, qtd]
-	if _arma_icone != null:
-		_arma_icone.texture = _icone_arma(sel)
-		_arma_icone.modulate = Color.WHITE if qtd > 0 else Color(1, 1, 1, 0.4)
+	var barra := HBoxContainer.new()
+	barra.name = "SlotsArmadilha"
+	barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	barra.add_theme_constant_override("separation", 8)
+	barra.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	barra.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	barra.offset_top = -76.0
+	barra.offset_bottom = -14.0
+	add_child(barra)
+	for tipo in _jogador.inventario:
+		var estilo := StyleBoxFlat.new()
+		estilo.bg_color = Color(0.03, 0.04, 0.08, 0.8)
+		estilo.set_corner_radius_all(8)
+		estilo.set_border_width_all(2)
+		estilo.set_content_margin_all(5.0)
+		var painel := PanelContainer.new()
+		painel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		painel.add_theme_stylebox_override("panel", estilo)
+		painel.custom_minimum_size = Vector2(56.0, 62.0)
+		barra.add_child(painel)
+		var caixa := VBoxContainer.new()
+		caixa.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		caixa.add_theme_constant_override("separation", 0)
+		painel.add_child(caixa)
+		var icone := TextureRect.new()
+		icone.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icone.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icone.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icone.custom_minimum_size = Vector2(36.0, 36.0)
+		icone.texture = _icone_arma(tipo)
+		icone.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		caixa.add_child(icone)
+		var contagem := Label.new()
+		contagem.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		contagem.add_theme_font_size_override("font_size", 13)
+		caixa.add_child(contagem)
+		_slots_armadilha[tipo] = {"painel": painel, "contagem": contagem, "estilo": estilo}
+	_atualizar_slots_armadilhas()
+
+
+func _atualizar_slots_armadilhas() -> void:
+	if _jogador == null:
+		return
+	for tipo in _slots_armadilha:
+		var s: Dictionary = _slots_armadilha[tipo]
+		var qtd: int = int(_jogador.inventario.get(tipo, 0))
+		var cor: Color = _jogador.STATS[tipo].cor
+		var sel: bool = (tipo == _jogador.selecao)
+		(s["contagem"] as Label).text = "×%d" % qtd
+		var estilo: StyleBoxFlat = s["estilo"]
+		estilo.border_color = Color(cor.r, cor.g, cor.b, 1.0 if sel else 0.25)
+		estilo.bg_color = Color(cor.r * 0.12, cor.g * 0.12, cor.b * 0.12, 0.85) if sel \
+				else Color(0.03, 0.04, 0.08, 0.8)
+		(s["painel"] as PanelContainer).modulate = \
+				Color.WHITE if qtd > 0 else Color(1, 1, 1, 0.35)
+
+
+func _atualizar_label_armadilha() -> void:
+	_atualizar_slots_armadilhas()
 
 
 func _ao_inventario_mudar(tipo: String, _atual: int, _maximo: int) -> void:
-	if _jogador != null and tipo == _jogador.selecao:
-		_atualizar_label_armadilha()
+	# Troca de personagem muda o LOADOUT (tipos novos): reconstrói a barra.
+	if not _slots_armadilha.has(tipo):
+		_montar_slots_armadilhas()
+		return
+	_atualizar_slots_armadilhas()
 
 
 func _ao_selecao_mudar(_tipo: String) -> void:

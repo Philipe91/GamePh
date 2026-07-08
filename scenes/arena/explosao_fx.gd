@@ -19,9 +19,11 @@ func _ready() -> void:
 	var chamas := get_node_or_null("Chamas") as CPUParticles3D
 	if chamas != null:
 		chamas.emitting = true
-		get_tree().create_timer(0.9).timeout.connect(func() -> void:
-			if is_instance_valid(chamas):
-				chamas.emitting = false)
+		# Tween DONO do nó (não SceneTreeTimer global): morre junto com as chamas,
+		# sem "Lambda capture freed" quando a explosão é liberada antes dos 0.9s.
+		var tw_chamas := chamas.create_tween()
+		tw_chamas.tween_interval(0.9)
+		tw_chamas.tween_property(chamas, "emitting", false, 0.0)
 	# Flash: a luz nasce forte e morre rápido (tween independente do fluxo abaixo).
 	if luz != null:
 		var tw := create_tween()

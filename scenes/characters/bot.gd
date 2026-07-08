@@ -441,10 +441,15 @@ func _plantar(tipo: String) -> bool:
 	get_parent().add_child(a)
 	a.global_position = GridManager.grid_to_world(coord)
 	GridManager.registrar_armadilha(coord, id_jogador, tipo, a)
-	a.consumida.connect(func(): _armadilhas_ativas = maxi(0, _armadilhas_ativas - 1))
+	# Método (não lambda): se o bot morrer antes da armadilha, a conexão some junto.
+	a.consumida.connect(_ao_armadilha_consumida)
 	_armadilhas_ativas += 1
 	animar_plantio()   # mesmo gesto do player (o bot também "trabalha")
 	return true
+
+
+func _ao_armadilha_consumida() -> void:
+	_armadilhas_ativas = maxi(0, _armadilhas_ativas - 1)
 
 
 ## Acha o primeiro combatente de outro time (o player). Sem acoplamento por nome.

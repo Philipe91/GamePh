@@ -3,7 +3,23 @@
 Registro de onde o desenvolvimento parou. Fonte de design: `GDD.md`. Regras de
 trabalho: `CLAUDE.md`. Atualize este arquivo ao fim de cada bloco.
 
-**Última atualização:** 2026-07-06 — auditoria completa + passe de feel/correções
+**Última atualização:** 2026-07-07 (noite) — varredura de bugs + passe visual pela
+referência nova do humano ("Replica Trap Gunner", ideias de cenário/HUD):
+- **Bugs corrigidos:** assets novos sem import (fontes Rajdhani/JetBrains + ual_mannequin
+  .glb quebravam TODOS os .tres do roster headless — suíte 7 falhas → verde); lambdas em
+  sinais de autoload/objeto alheio capturando nós mortos ("Lambda capture freed") em
+  hud.gd/bot.gd/explosao_fx.gd → viraram métodos/tween; AudioManager: SFX saía a -16dB
+  se o player do pool vinha de um eco (tocar() agora reseta volume_db).
+- **WIP manequim revertido:** os 6 .tres voltaram aos modelos distintos (decisão fechada
+  no BRIEFING §2.2 e na referência nova — personagens distintos); ficaram os nomes de
+  anim UAL como preferência (fallback resolve) e o guard do recolor.
+- **Visual pela referência:** recalibração MODERADA (chão 0.27 — não o 0.17 revertido;
+  glow 0.8/threshold 1.0; key 0.62), cabos de energia com FILETE EMISSIVO laranja
+  (parede→torretas/esteiras, plugue com LED), pilares de luz verticais (vault verde,
+  cannon vermelho, lançador laranja), friso neon re-saturado por HSV, HUD com BARRA DE
+  SLOTS de armadilha na base central (ícone+contagem, seleção acesa na cor do .tres).
+
+**Anterior:** 2026-07-06 — auditoria completa + passe de feel/correções
 (Missões 01–03 do humano). Docs novos: `docs/Architecture.md`, `docs/Roadmap.md`,
 `docs/DevLog.md`, `docs/BugReport.md`, `docs/Tasks.md`. Testes/demos saíram de
 `arena.gd` (1489→~330 linhas) para `scripts/dev_arena.gd`. Knockback agora é impulso

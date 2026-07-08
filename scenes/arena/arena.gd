@@ -314,6 +314,58 @@ func _montar_visual_mapa(mapa: Resource) -> void:
 	_montar_paredes()
 	_montar_avental()
 	_montar_decoracao(mapa)
+	_montar_pilares_luz(mapa)
+
+
+## PILARES DE LUZ verticais sobre os dispositivos do mapa (assinatura da referência:
+## colunas neon marcam os pontos de interesse de longe). Vault = verde, cannon =
+## vermelho, lançador = laranja. Cilindro aditivo + luz fraca na base — barato.
+func _montar_pilares_luz(mapa: Resource) -> void:
+	var antigo := get_node_or_null("PilaresLuz")
+	if antigo != null:
+		antigo.queue_free()
+	var raiz := Node3D.new()
+	raiz.name = "PilaresLuz"
+	add_child(raiz)
+	var grupos := [
+		[mapa.vaults, Color(0.25, 1.0, 0.45)],
+		[mapa.cannons, Color(1.0, 0.28, 0.22)],
+		[mapa.lancadores, Color(1.0, 0.55, 0.15)],
+	]
+	for g in grupos:
+		var coords: Array = g[0]
+		var cor: Color = g[1]
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		mat.albedo_color = Color(cor.r, cor.g, cor.b, 0.16)
+		mat.emission_enabled = true
+		mat.emission = cor
+		mat.emission_energy_multiplier = 1.4
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		for coord in coords:
+			var p := GridManager.grid_to_world(coord)
+			var mi := MeshInstance3D.new()
+			var cm := CylinderMesh.new()
+			cm.top_radius = 0.16          # afina no topo (feixe, não tubo)
+			cm.bottom_radius = 0.3
+			cm.height = 5.5
+			cm.radial_segments = 10
+			cm.cap_top = false
+			cm.cap_bottom = false
+			mi.mesh = cm
+			mi.material_override = mat
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			raiz.add_child(mi)
+			mi.position = Vector3(p.x, 2.75, p.z)
+			var luz := OmniLight3D.new()
+			luz.light_color = cor
+			luz.light_energy = 1.1
+			luz.omni_range = 3.5
+			luz.shadow_enabled = false
+			raiz.add_child(luz)
+			luz.position = Vector3(p.x, 1.2, p.z)
 
 
 ## IDENTIDADE do piso (Art Bible §5 — "usado por décadas, sinalizado por burocratas"):
@@ -401,6 +453,74 @@ func _montar_chao_identidade(mapa: Resource) -> void:
 		mancha.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		raiz.add_child(mancha)
 		mancha.position = Vector3(rng.randf_range(-w + 2.0, w - 2.0), 0.012, rng.randf_range(-h + 2.0, h - 2.0))
+	# ── CABOS DE ENERGIA correndo pelo chão, da parede até cada torreta/esteira
+	# (regra do encanador: máquina é ALIMENTADA por algo). Diferente da 1ª tentativa
+	# (borracha preta, invisível), o cabo tem um FILETE EMISSIVO laranja por cima —
+	# na referência os cabos BRILHAM e guiam o olho até as máquinas.
+	var mat_cabo := StandardMaterial3D.new()
+	mat_cabo.albedo_color = Color(0.05, 0.05, 0.06)
+	mat_cabo.roughness = 0.3
+	mat_cabo.metallic = 0.2
+	var cor_energia := Color(1.0, 0.5, 0.12)
+	var mat_energia := StandardMaterial3D.new()
+	mat_energia.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat_energia.albedo_color = cor_energia
+	mat_energia.emission_enabled = true
+	mat_energia.emission = cor_energia
+	mat_energia.emission_energy_multiplier = 2.2
+	var alvos_cabo: Array = []
+	for c in mapa.lancadores:
+		alvos_cabo.append(c)
+	for c in mapa.cannons:
+		alvos_cabo.append(c)
+	for c in mapa.esteiras:
+		alvos_cabo.append(c)
+	for coord_alvo in alvos_cabo:
+		var p_alvo := GridManager.grid_to_world(coord_alvo)
+		# Cabo sai da parede mais próxima no eixo X e corre reto até o alvo.
+		var lado := 1.0 if p_alvo.x >= 0.0 else -1.0
+		var x_parede := lado * w
+		var comp1 := absf(x_parede - p_alvo.x)
+		if comp1 > 0.4:
+			# Capa do cabo (cilindro escuro).
+			var s1 := MeshInstance3D.new()
+			var c1 := CylinderMesh.new()
+			c1.top_radius = 0.055
+			c1.bottom_radius = 0.055
+			c1.height = comp1
+			c1.radial_segments = 6
+			s1.mesh = c1
+			s1.material_override = mat_cabo
+			s1.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			raiz.add_child(s1)
+			s1.rotation.z = PI * 0.5
+			s1.position = Vector3((x_parede + p_alvo.x) * 0.5, 0.05, p_alvo.z + 0.35)
+			# Filete de energia por cima (o glow acende ele).
+			var fe := MeshInstance3D.new()
+			var bm_fe := BoxMesh.new()
+			bm_fe.size = Vector3(comp1, 0.015, 0.03)
+			fe.mesh = bm_fe
+			fe.material_override = mat_energia
+			fe.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			raiz.add_child(fe)
+			fe.position = Vector3((x_parede + p_alvo.x) * 0.5, 0.105, p_alvo.z + 0.35)
+		# Plugue na base da máquina (caixinha com LED de energia).
+		var plug := MeshInstance3D.new()
+		var pb := BoxMesh.new()
+		pb.size = Vector3(0.22, 0.12, 0.22)
+		plug.mesh = pb
+		plug.material_override = mat_cabo
+		plug.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(plug)
+		plug.position = Vector3(p_alvo.x, 0.06, p_alvo.z + 0.35)
+		var led := MeshInstance3D.new()
+		var lb := BoxMesh.new()
+		lb.size = Vector3(0.08, 0.02, 0.08)
+		led.mesh = lb
+		led.material_override = mat_energia
+		led.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(led)
+		led.position = Vector3(p_alvo.x, 0.13, p_alvo.z + 0.35)
 	# ── Grelhas de ventilação em tiles fixos por seed (2 soltam vapor).
 	for i in 5:
 		var gx := rng.randi_range(1, GridManager.LARGURA - 2)
@@ -549,7 +669,8 @@ func _montar_paredes() -> void:
 			mat.uv1_scale = Vector3(0.5, 0.5, 0.5)
 	# Friso neon no topo de cada lado, na cor clara do tema (o glow faz ele "acender").
 	var cor_neon: Color = _mapa.cor_tile_a if _mapa != null else Color(0.3, 0.6, 1.0)
-	cor_neon = Color(minf(cor_neon.r * 2.4, 1.0), minf(cor_neon.g * 2.4, 1.0), minf(cor_neon.b * 2.4, 1.0))
+	# Realça e SATURA o acento (o tile é dessaturado de propósito; o neon não pode ser).
+	cor_neon = Color.from_hsv(cor_neon.h, clampf(cor_neon.s * 2.5, 0.6, 1.0), 1.0)
 	var mat_neon := StandardMaterial3D.new()
 	mat_neon.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat_neon.albedo_color = cor_neon

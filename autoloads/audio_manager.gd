@@ -125,8 +125,8 @@ func _process(delta: float) -> void:
 	p.volume_db = -16.0
 	p.pitch_scale = randf_range(0.85, 1.05)
 	p.play()
-	# Devolve o volume normal do player pro próximo SFX de gameplay.
-	p.finished.connect(func(): p.volume_db = 0.0, CONNECT_ONE_SHOT)
+	# (o volume volta pro normal no próprio tocar() — conectar "finished" aqui
+	# duplicava conexões quando o mesmo player pegava dois ecos seguidos)
 
 
 ## Ecos não têm entrada na tabela EVENTOS (nada de fallback sintetizado — sem arquivo,
@@ -197,6 +197,7 @@ func tocar(evento: String) -> bool:
 	_proximo = (_proximo + 1) % _players.size()
 	var variacoes: Array = _sons[evento]
 	p.stream = variacoes[randi() % variacoes.size()]
+	p.volume_db = 0.0   # o player pode ter tocado um eco a -16dB — SFX volta ao cheio
 	p.pitch_scale = randf_range(0.92, 1.08)
 	p.play()
 	return true
